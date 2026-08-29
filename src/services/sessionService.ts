@@ -96,17 +96,16 @@ export async function addCheckpoint(sessionId: string, checkpointKey: string, la
 
 export async function getActiveSession() {
   const db = getDb();
-  const rows = await db
-    .select()
-    .from(schema.workoutSessions)
-    .where(eq(schema.workoutSessions.status, 'active'))
-    .limit(1);
-  const paused = await db
-    .select()
-    .from(schema.workoutSessions)
-    .where(eq(schema.workoutSessions.status, 'paused'))
-    .limit(1);
-  return rows[0] ?? paused[0] ?? null;
+  const statuses = ['active', 'paused', 'countdown'] as const;
+  for (const status of statuses) {
+    const rows = await db
+      .select()
+      .from(schema.workoutSessions)
+      .where(eq(schema.workoutSessions.status, status))
+      .limit(1);
+    if (rows[0]) return rows[0];
+  }
+  return null;
 }
 
 export async function getSession(id: string) {
@@ -269,7 +268,7 @@ export async function buildRematchComparison(sessionId: string, opponentSessionI
 
   const pb = await getPb(session.workoutId, session.workoutVersionId, session.workoutVariantId, session.scalingCategory as ScalingCategory);
   comparison.isNewPb = pb?.sessionId === sessionId;
-  comparison.previousPbMs = pb && pb.sessionId !== sessionId ? pb.completionMs : null;
+  comparison.previousPbMs = pb && pb.sessionId === sessionId && comparison.deltaMs < 0 ? comparison.opponentMs : null;
   return comparison;
 }
 

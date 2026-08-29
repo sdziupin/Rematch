@@ -72,24 +72,26 @@ export default function ActiveWorkoutScreen() {
   }, [state?.currentRoundIndex, state?.currentExerciseIndex]);
 
   useEffect(() => {
-    if (!state || state.phase !== 'countdown') return;
+    if (!state || state.phase !== 'countdown' || !sessionId) return;
     const t = setInterval(() => {
-      if (state.countdownRemaining <= 0) {
-        const started = startTimer(timer);
+      const current = useWorkoutStore.getState().state;
+      const currentTimer = useWorkoutStore.getState().timer;
+      if (!current || current.phase !== 'countdown') return;
+      if (current.countdownRemaining <= 0) {
+        const started = startTimer(currentTimer);
         setTimer(started);
-        setState({ ...state, phase: 'active', countdownRemaining: 0 });
-        if (sessionId) {
-          appendEvent(sessionId, 'WorkoutStarted', {}, 0);
-          saveSessionState(sessionId, { ...state, phase: 'active' }, { elapsedActiveMs: 0, pausedAccumulatedMs: 0, lastPausedAt: null, status: 'active', startedAt: Date.now() });
-        }
+        const next = { ...current, phase: 'active' as const, countdownRemaining: 0 };
+        setState(next);
+        appendEvent(sessionId, 'WorkoutStarted', {}, 0);
+        saveSessionState(sessionId, next, { elapsedActiveMs: 0, pausedAccumulatedMs: 0, lastPausedAt: null, status: 'active', startedAt: Date.now() });
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         return;
       }
-      setState({ ...state, countdownRemaining: state.countdownRemaining - 1 });
+      setState({ ...current, countdownRemaining: current.countdownRemaining - 1 });
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }, 1000);
     return () => clearInterval(t);
-  }, [state?.phase, state?.countdownRemaining]);
+  }, [state?.phase, sessionId]);
 
   if (!state || !sessionId) {
     router.replace('/');

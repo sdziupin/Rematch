@@ -12,7 +12,8 @@ import type { WorkoutStructure } from '../../src/domain/types';
 import { useWorkoutStore } from '../../src/store/workoutStore';
 
 export default function WorkoutDetailScreen() {
-  const { id, mode, partial } = useLocalSearchParams<{ id: string; mode?: string; opponent?: string; partial?: string }>();
+  const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
+  const [partialKey, setPartialKey] = useState('full');
   const router = useRouter();
   const setSession = useWorkoutStore((s) => s.setSession);
   const [workout, setWorkout] = useState<any>(null);
@@ -31,7 +32,7 @@ export default function WorkoutDetailScreen() {
       const version = await getCurrentVersion(w.id);
       if (!version) return;
       setVersionId(version.id);
-      const variant = await getVariant(version.id, partial ?? 'full');
+      const variant = await getVariant(version.id, partialKey);
       if (!variant) return;
       setVariantId(variant.id);
       const s = JSON.parse(variant.structureJson) as WorkoutStructure;
@@ -49,7 +50,7 @@ export default function WorkoutDetailScreen() {
       }
       setExerciseNames(names);
     })();
-  }, [id, partial]);
+  }, [id, partialKey]);
 
   const start = async (opponentSessionId?: string | null) => {
     if (!workout || !structure || !versionId || !variantId) return;
@@ -63,7 +64,7 @@ export default function WorkoutDetailScreen() {
       workoutVariantId: variantId,
       scalingCategory: 'rx',
       structure,
-      partialKey: (partial as any) ?? 'full',
+      partialKey: partialKey as any,
       opponentSessionId: opponent ?? null,
     });
     setSession(sessionId, state, opponent ?? null);
@@ -108,6 +109,13 @@ export default function WorkoutDetailScreen() {
         <Text style={styles.section}>Equipment</Text>
         <Text style={styles.meta}>{JSON.parse(workout.equipmentJson).join(', ') || 'None'}</Text>
 
+        <Text style={styles.section}>Variant</Text>
+        <View style={styles.variantRow}>
+          {['quarter', 'half', 'three_quarter', 'full'].map((k) => (
+            <Button key={k} title={k === 'three_quarter' ? '3/4' : k === 'quarter' ? '1/4' : k === 'half' ? '1/2' : 'FULL'} variant={partialKey === k ? 'primary' : 'secondary'} onPress={() => setPartialKey(k)} style={styles.variantBtn} />
+          ))}
+        </View>
+
         {pb != null && <Button title="REMATCH PB" onPress={startRematchPb} style={styles.cta} />}
         {last != null && <Button title="REMATCH LAST" variant="secondary" onPress={startRematchLast} />}
         <Button title="JUST TRAIN" variant="ghost" onPress={() => start(null)} />
@@ -140,4 +148,6 @@ const styles = StyleSheet.create({
   section: { ...typography.label, color: colors.muted, marginTop: spacing.lg, marginBottom: spacing.sm },
   exerciseLine: { ...typography.body, color: colors.primary, marginBottom: 4 },
   cta: { marginTop: spacing.xl },
+  variantRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
+  variantBtn: { minWidth: 70, paddingHorizontal: 8 },
 });
