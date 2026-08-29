@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "REMATCH",
+    "slug": "rematch",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "rematch",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0C10"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rematch.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0C10",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.rematch.app",
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-font"
+    ]
+  }
+}

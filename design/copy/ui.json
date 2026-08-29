@@ -1,0 +1,67 @@
+{
+  "tagline": "You vs. you.",
+  "today": {
+    "title": "TODAY",
+    "startRematch": "START REMATCH",
+    "justTrain": "Just Train",
+    "browseWorkouts": "Browse workouts",
+    "quickAlternative": "Quick alternative"
+  },
+  "challengeMe": {
+    "title": "CHALLENGE ME",
+    "subtitle": "Pick your time. We'll pick the workout.",
+    "start": "START"
+  },
+  "rematch": {
+    "rematchPb": "REMATCH PB",
+    "rematchLast": "REMATCH LAST",
+    "chooseOpponent": "Choose Opponent",
+    "rematchThis": "REMATCH THIS",
+    "justTrain": "JUST TRAIN",
+    "ahead": "AHEAD",
+    "behind": "BEHIND",
+    "tied": "TIED"
+  },
+  "results": {
+    "youWon": "YOU WON",
+    "soClose": "SO CLOSE",
+    "newPb": "NEW PERSONAL BEST",
+    "firstResult": "FIRST RESULT",
+    "newOpponent": "New opponent created",
+    "previousPb": "Previous PB",
+    "readyRematch": "Ready for a rematch?",
+    "firstChallenge": "YOUR FIRST CHALLENGE",
+    "firstRematch": "YOUR FIRST REMATCH"
+  },
+  "workout": {
+    "paused": "PAUSED",
+    "resume": "Resume",
+    "endWorkout": "End Workout",
+    "inProgress": "WORKOUT IN PROGRESS",
+    "round": "ROUND",
+    "next": "NEXT",
+    "go": "GO"
+  },
+  "feedback": {
+    "howWasIt": "HOW WAS IT?",
+    "tooEasy": "Too easy",
+    "good": "Good",
+    "tooHard": "Too hard",
+    "technique": "TECHNIQUE?",
+    "clean": "Clean",
+    "struggled": "Struggled",
+    "pain": "Pain / discomfort"
+  },
+  "onboarding": {
+    "welcome": "Welcome to REMATCH",
+    "subtitle": "Every workout becomes your next opponent.",
+    "goal": "What's your focus?",
+    "level": "Current level",
+    "equipment": "Equipment available",
+    "time": "Typical session length",
+    "frequency": "Training days per week",
+    "restrictions": "Any restrictions? (optional)",
+    "continue": "Continue",
+    "start": "START"
+  }
+}

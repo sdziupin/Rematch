@@ -1,0 +1,16 @@
+{
+  "exerciseVisuals": {
+    "style": "Minimal SVG stick figures on dark elevated surface",
+    "palette": ["#4ECDC4", "#F4A261", "#6BCB77", "#5B8DEF"],
+    "count": 52,
+    "implementation": "src/components/ExerciseVisual.tsx"
+  },
+  "workoutSymbols": {
+    "style": "Unicode symbols with per-workout identity colors",
+    "count": 30
+  },
+  "appIcon": {
+    "description": "REMATCH wordmark R on #0A0C10 with accent slash",
+    "path": "assets/icon.png"
+  }
+}

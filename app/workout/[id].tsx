@@ -1,0 +1,143 @@
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button } from '../../src/components/Button';
+import { getCurrentVersion, getExercise, getVariant, getWorkoutById } from '../../src/db/seed';
+import { createSession, getLastResult, getPb } from '../../src/services/sessionService';
+import { colors, spacing, typography } from '../../src/theme';
+import { focusLabel, difficultyLabel } from '../../src/services/recommendationService';
+import { formatDuration } from '../../src/domain/utils';
+import type { WorkoutStructure } from '../../src/domain/types';
+import { useWorkoutStore } from '../../src/store/workoutStore';
+
+export default function WorkoutDetailScreen() {
+  const { id, mode, partial } = useLocalSearchParams<{ id: string; mode?: string; opponent?: string; partial?: string }>();
+  const router = useRouter();
+  const setSession = useWorkoutStore((s) => s.setSession);
+  const [workout, setWorkout] = useState<any>(null);
+  const [structure, setStructure] = useState<WorkoutStructure | null>(null);
+  const [pb, setPb] = useState<number | null>(null);
+  const [last, setLast] = useState<number | null>(null);
+  const [versionId, setVersionId] = useState('');
+  const [variantId, setVariantId] = useState('');
+  const [exerciseNames, setExerciseNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const w = await getWorkoutById(id);
+      if (!w) return;
+      setWorkout(w);
+      const version = await getCurrentVersion(w.id);
+      if (!version) return;
+      setVersionId(version.id);
+      const variant = await getVariant(version.id, partial ?? 'full');
+      if (!variant) return;
+      setVariantId(variant.id);
+      const s = JSON.parse(variant.structureJson) as WorkoutStructure;
+      setStructure(s);
+      const pbRow = await getPb(w.id, version.id, variant.id, 'rx');
+      const lastRow = await getLastResult(w.id, variant.id, 'rx');
+      setPb(pbRow?.completionMs ?? null);
+      setLast(lastRow?.completionMs ?? null);
+      const ids = s.rounds[0]?.steps ?? [];
+      const names: string[] = [];
+      for (const st of ids) {
+        const ex = await getExercise(st.exerciseId);
+        const prefix = st.durationSec ? `${st.durationSec}s` : `${st.reps}`;
+        names.push(ex ? `${prefix} ${ex.name}` : st.exerciseId);
+      }
+      setExerciseNames(names);
+    })();
+  }, [id, partial]);
+
+  const start = async (opponentSessionId?: string | null) => {
+    if (!workout || !structure || !versionId || !variantId) return;
+    let opponent = opponentSessionId;
+    if (opponent === undefined && mode !== 'train') {
+      opponent = await resolveDefaultOpponent();
+    }
+    const { sessionId, state } = await createSession({
+      workoutId: workout.id,
+      workoutVersionId: versionId,
+      workoutVariantId: variantId,
+      scalingCategory: 'rx',
+      structure,
+      partialKey: (partial as any) ?? 'full',
+      opponentSessionId: opponent ?? null,
+    });
+    setSession(sessionId, state, opponent ?? null);
+    router.push('/workout/active');
+  };
+
+  const resolveDefaultOpponent = async () => {
+    const lastRow = await getLastResult(workout.id, variantId, 'rx');
+    if (lastRow) return lastRow.sessionId;
+    const pbRow = await getPb(workout.id, versionId, variantId, 'rx');
+    if (pbRow) return pbRow.sessionId;
+    return null;
+  };
+
+  const startRematchPb = async () => {
+    const pbRow = await getPb(workout.id, versionId, variantId, 'rx');
+    await start(pbRow?.sessionId ?? null);
+  };
+
+  const startRematchLast = async () => {
+    const lastRow = await getLastResult(workout.id, variantId, 'rx');
+    await start(lastRow?.sessionId ?? null);
+  };
+
+  if (!workout || !structure) return <SafeAreaView style={styles.safe} />;
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={[styles.symbol, { color: workout.identityColor }]}>{workout.symbol}</Text>
+        <Text style={styles.name}>{workout.name}</Text>
+        <Text style={styles.meta}>{difficultyLabel(workout.difficulty)} · {focusLabel(workout.focus)}</Text>
+        <Text style={styles.duration}>≈ {workout.estimatedMinutesMin}–{workout.estimatedMinutesMax} min</Text>
+        <View style={styles.stats}>
+          <Stat label="PB" value={pb != null ? formatDuration(pb) : '—'} highlight />
+          <Stat label="LAST" value={last != null ? formatDuration(last) : '—'} />
+        </View>
+        <Text style={styles.section}>{structure.rounds.length} rounds</Text>
+        {exerciseNames.map((line, i) => (
+          <Text key={i} style={styles.exerciseLine}>{line}</Text>
+        ))}
+        <Text style={styles.section}>Equipment</Text>
+        <Text style={styles.meta}>{JSON.parse(workout.equipmentJson).join(', ') || 'None'}</Text>
+
+        {pb != null && <Button title="REMATCH PB" onPress={startRematchPb} style={styles.cta} />}
+        {last != null && <Button title="REMATCH LAST" variant="secondary" onPress={startRematchLast} />}
+        <Button title="JUST TRAIN" variant="ghost" onPress={() => start(null)} />
+        <Button title="Choose Opponent" variant="ghost" onPress={() => router.push(`/opponent/${workout.id}`)} />
+        <Button title="Scale" variant="ghost" onPress={() => {}} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <View>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, highlight && { color: colors.pb }]}>{value}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { padding: spacing.lg },
+  symbol: { fontSize: 48 },
+  name: { ...typography.displayLG, color: colors.primary },
+  meta: { ...typography.body, color: colors.muted, textTransform: 'capitalize' },
+  duration: { ...typography.subheading, color: colors.primary, marginVertical: spacing.sm },
+  stats: { flexDirection: 'row', gap: spacing.xl, marginVertical: spacing.md },
+  statLabel: { ...typography.label, color: colors.muted },
+  statValue: { ...typography.heading, color: colors.primary },
+  section: { ...typography.label, color: colors.muted, marginTop: spacing.lg, marginBottom: spacing.sm },
+  exerciseLine: { ...typography.body, color: colors.primary, marginBottom: 4 },
+  cta: { marginTop: spacing.xl },
+});

@@ -1,0 +1,149 @@
+import { eq } from 'drizzle-orm';
+import { getDb } from './client';
+import * as schema from './schema';
+import { EXERCISE_SEEDS, WORKOUT_SEEDS, PARTIAL_FRACTIONS, scaleStructure } from '../content/seed';
+import type { WorkoutStructure } from '../domain/types';
+
+const now = () => Date.now();
+
+export async function seedDatabaseIfNeeded() {
+  const db = getDb();
+  const existing = await db.select().from(schema.workouts).limit(1);
+  if (existing.length > 0) return;
+
+  const ts = now();
+
+  for (const ex of EXERCISE_SEEDS) {
+    await db.insert(schema.exercises).values({
+      id: ex.id,
+      name: ex.name,
+      description: ex.description,
+      instructions: ex.instructions,
+      startPosition: ex.startPosition,
+      movementSequence: ex.movementSequence,
+      cuesJson: JSON.stringify(ex.cues),
+      mistakesJson: JSON.stringify(ex.mistakes),
+      primaryMusclesJson: JSON.stringify(ex.primaryMuscles),
+      secondaryMusclesJson: JSON.stringify(ex.secondaryMuscles),
+      category: ex.category,
+      equipmentJson: JSON.stringify(ex.equipment),
+      impactLevel: ex.impactLevel,
+      easierVariantId: ex.easierVariantId ?? null,
+      harderVariantId: ex.harderVariantId ?? null,
+      visualAsset: ex.visualAsset,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  }
+
+  for (const w of WORKOUT_SEEDS) {
+    await db.insert(schema.workouts).values({
+      id: w.id,
+      slug: w.slug,
+      name: w.name,
+      symbol: w.symbol,
+      focus: w.focus,
+      difficulty: w.difficulty,
+      estimatedMinutesMin: w.estimatedMinutesMin,
+      estimatedMinutesMax: w.estimatedMinutesMax,
+      equipmentJson: JSON.stringify(w.equipment),
+      format: w.format,
+      identityColor: w.identityColor,
+      visualAsset: `workouts/${w.slug}`,
+      progressionTier: w.progressionTier,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    const versionId = `${w.id}-v1`;
+    await db.insert(schema.workoutVersions).values({
+      id: versionId,
+      workoutId: w.id,
+      version: 1,
+      structureJson: JSON.stringify(w.structure),
+      rulesJson: JSON.stringify({ scoring: 'time', restBetweenRoundsSec: 0 }),
+      isCurrent: true,
+      createdAt: ts,
+    });
+
+    for (const partial of PARTIAL_FRACTIONS) {
+      const scaled: WorkoutStructure = scaleStructure(w.structure, partial.fraction);
+      await db.insert(schema.workoutVariants).values({
+        id: `${versionId}-${partial.key}`,
+        workoutVersionId: versionId,
+        partialKey: partial.key,
+        label: partial.label,
+        fraction: partial.fraction,
+        structureJson: JSON.stringify(scaled),
+        createdAt: ts,
+      });
+    }
+  }
+
+  await db.insert(schema.userProfile).values({
+    id: 'local-user',
+    goal: 'conditioning',
+    level: 'intermediate',
+    typicalMinutes: 15,
+    frequencyDays: 3,
+    restrictions: null,
+    equipmentJson: JSON.stringify(['bodyweight', 'mat']),
+    onboardingComplete: false,
+    hapticsEnabled: true,
+    soundEnabled: true,
+    voiceEnabled: false,
+    keepAwakeEnabled: true,
+    createdAt: ts,
+    updatedAt: ts,
+  });
+}
+
+export async function getProfile() {
+  const db = getDb();
+  const rows = await db.select().from(schema.userProfile).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateProfile(patch: Partial<typeof schema.userProfile.$inferInsert>) {
+  const db = getDb();
+  const profile = await getProfile();
+  if (!profile) return;
+  await db.update(schema.userProfile).set({ ...patch, updatedAt: now() }).where(eq(schema.userProfile.id, profile.id));
+}
+
+export async function listWorkouts() {
+  const db = getDb();
+  return db.select().from(schema.workouts);
+}
+
+export async function getWorkoutById(id: string) {
+  const db = getDb();
+  const rows = await db.select().from(schema.workouts).where(eq(schema.workouts.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getCurrentVersion(workoutId: string) {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(schema.workoutVersions)
+    .where(eq(schema.workoutVersions.workoutId, workoutId));
+  return rows.find((r) => r.isCurrent) ?? rows[0] ?? null;
+}
+
+export async function getVariant(versionId: string, partialKey = 'full') {
+  const db = getDb();
+  const rows = await db.select().from(schema.workoutVariants).where(eq(schema.workoutVariants.workoutVersionId, versionId));
+  return rows.find((r) => r.partialKey === partialKey) ?? rows.find((r) => r.partialKey === 'full') ?? rows[0] ?? null;
+}
+
+export async function getExercise(id: string) {
+  const db = getDb();
+  const rows = await db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listExercises() {
+  const db = getDb();
+  return db.select().from(schema.exercises);
+}
