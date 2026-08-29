@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Line, Rect } from 'react-native-svg';
+import { getExerciseImage } from '../assets/imageRegistry';
 import { colors, typography } from '../theme';
 
 const POSES: Record<string, { color: string }> = {
@@ -18,6 +19,17 @@ interface ExerciseVisualProps {
 }
 
 export function ExerciseVisual({ exerciseId, category = 'default', size = 160 }: ExerciseVisualProps) {
+  const generated = getExerciseImage(exerciseId);
+
+  if (generated) {
+    return (
+      <View style={[styles.wrap, { width: size }]} accessibilityLabel={`Exercise demonstration for ${exerciseId}`}>
+        <Image source={generated} style={[styles.image, { width: size, height: size, borderRadius: 16 }]} resizeMode="cover" />
+        <Text style={styles.caption} numberOfLines={1}>{exerciseId.replace(/-/g, ' ')}</Text>
+      </View>
+    );
+  }
+
   const pose = POSES[category] ?? POSES.default;
   const id = exerciseId.toLowerCase();
 
@@ -59,5 +71,6 @@ export function ExerciseVisual({ exerciseId, category = 'default', size = 160 }:
 
 const styles = StyleSheet.create({
   wrap: { alignItems: 'center', justifyContent: 'center' },
+  image: { backgroundColor: colors.surfaceElevated },
   caption: { ...typography.caption, color: colors.muted, marginTop: 8, textTransform: 'capitalize' },
 });

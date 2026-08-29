@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
+import { WorkoutArtwork } from '../../src/components/WorkoutArtwork';
 import { getCurrentVersion, getExercise, getVariant, getWorkoutById } from '../../src/db/seed';
 import { createSession, getLastResult, getPb } from '../../src/services/sessionService';
 import { colors, spacing, typography } from '../../src/theme';
@@ -94,7 +95,7 @@ export default function WorkoutDetailScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={[styles.symbol, { color: workout.identityColor }]}>{workout.symbol}</Text>
+        <WorkoutArtwork slug={workout.slug} symbol={workout.symbol} color={workout.identityColor} size={96} />
         <Text style={styles.name}>{workout.name}</Text>
         <Text style={styles.meta}>{difficultyLabel(workout.difficulty)} · {focusLabel(workout.focus)}</Text>
         <Text style={styles.duration}>≈ {workout.estimatedMinutesMin}–{workout.estimatedMinutesMax} min</Text>

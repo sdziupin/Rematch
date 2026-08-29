@@ -11,6 +11,13 @@
   },
   "appIcon": {
     "description": "REMATCH wordmark R on #0A0C10 with accent slash",
-    "path": "assets/icon.png"
+    "path": "assets/icon.png",
+    "generator": "scripts/generate-gemini-assets.mjs --type icon",
+    "fallback": "Cursor GenerateImage when Gemini quota unavailable"
+  },
+  "generated": {
+    "exercises": "assets/generated/exercises/",
+    "workouts": "assets/generated/workouts/",
+    "registry": "src/assets/imageRegistry.ts"
   }
 }
