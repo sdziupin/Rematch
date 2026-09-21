@@ -69,3 +69,17 @@ export default function OpponentScreen() {
         />
       </View>
     </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: spacing.lg },
+  title: { ...typography.displayMD, color: colors.primary },
+  sub: { ...typography.body, color: colors.muted, marginBottom: spacing.lg },
+  row: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  time: { ...typography.heading, color: colors.primary },
+  label: { ...typography.caption, color: colors.pb },
+  action: { ...typography.label, color: colors.accent, marginTop: 4 },
+  empty: { ...typography.body, color: colors.muted },
+});
