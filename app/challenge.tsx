@@ -16,3 +16,21 @@ export default function ChallengeScreen() {
   const initial = params.minutes ? Number(params.minutes) : 15;
   const [minutes, setMinutes] = useState(initial);
   const [preview, setPreview] = useState<any>(null);
+
+  const pick = async (m: number) => {
+    setMinutes(m);
+    const profile = await getProfile();
+    const rec = recommendWorkout({
+      minutes: m,
+      level: profile?.level ?? 'intermediate',
+      goal: profile?.goal ?? 'conditioning',
+      equipment: JSON.parse(profile?.equipmentJson ?? '["bodyweight"]'),
+      recentWorkoutIds: [],
+      painRecent: false,
+    });
+    const w = await getWorkoutById(rec.workoutId);
+    setPreview(w);
+  };
+
+  React.useEffect(() => {
+    pick(initial);
