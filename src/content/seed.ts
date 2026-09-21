@@ -134,3 +134,5 @@ export const WORKOUT_SEEDS: WorkoutSeed[] = [
 // Fix pulse workout exercise reference
 WORKOUT_SEEDS.find((w) => w.slug === 'pulse')!.structure.rounds[0].steps[0].exerciseId = 'high-knees';
 
+export const PARTIAL_FRACTIONS = [
+  { key: 'full', label: 'FULL', fraction: 1 },
