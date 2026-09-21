@@ -187,3 +187,21 @@ async function main() {
   const opts = parseArgs();
   console.log(`REMATCH Gemini asset generator — model: ${MODEL}\n`);
 
+  if (opts.type === 'icon') {
+    await generateIcon();
+  } else if (opts.type === 'exercises') {
+    await generateExercises(opts.all ? 999 : opts.limit, opts.id);
+  } else if (opts.type === 'workouts') {
+    await generateWorkouts(opts.all ? 999 : opts.limit, opts.id);
+  } else {
+    console.error('Unknown --type. Use: icon | exercises | workouts');
+    process.exit(1);
+  }
+
+  console.log('\nDone. Run: node scripts/sync-image-registry.mjs');
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
