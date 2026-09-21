@@ -31,3 +31,19 @@ export default function RootLayout() {
         <ActivityIndicator color={colors.accent} />
       </View>
     );
+  }
+
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="challenge" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="workout/[id]" />
+      <Stack.Screen name="workout/active" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="workout/result" options={{ gestureEnabled: false }} />
+      <Stack.Screen name="workout/recovery" />
+      <Stack.Screen name="opponent/[workoutId]" options={{ presentation: 'modal' }} />
+    </Stack>
+  );
+}
