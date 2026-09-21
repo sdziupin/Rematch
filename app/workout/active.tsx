@@ -125,3 +125,17 @@ export default function ActiveWorkoutScreen() {
           }} style={{ marginTop: spacing.lg }} />
           <Button title="End Workout" variant="danger" onPress={async () => {
             await completeSession(sessionId, elapsed, false, true);
+            clear();
+            router.replace('/(tabs)/today');
+          }} style={{ marginTop: spacing.md }} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const current = getCurrentExercise(state);
+  const round = state.rounds[state.currentRoundIndex];
+  const delta = opponentSessionId
+    ? getLiveDelta(elapsed, opponentCheckpoints.current, getCheckpointKey(state))
+    : null;
+  const youProgress = state.rounds.filter((r) => r.completed).length / state.rounds.length;
