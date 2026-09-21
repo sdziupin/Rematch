@@ -181,3 +181,17 @@ export default function ActiveWorkoutScreen() {
         </View>
 
         <Text style={styles.round}>ROUND {round.roundNumber} / {state.rounds.length}</Text>
+        <Text style={styles.exerciseName}>{exerciseMeta?.name ?? 'Exercise'}</Text>
+        <Text style={styles.reps}>
+          {current?.durationSec
+            ? `${current.completedReps > 0 ? 'DONE' : `${current.durationSec}s`}`
+            : `${current?.completedReps ?? 0} / ${current?.targetReps ?? 0}`}
+        </Text>
+
+        <View style={styles.visual}>
+          <ExerciseVisual exerciseId={current?.scaledExerciseId ?? 'push-up'} category={exerciseMeta?.category} size={180} />
+        </View>
+
+        {!current?.durationSec && (
+          <View style={styles.repControls}>
+            <Pressable style={styles.repBtn} onPress={() => setState(advanceRep(state, -1))} accessibilityLabel="Decrease reps">
