@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "REMATCH",
+    "slug": "rematch",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "rematch",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0C10"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rematch.app"
+    },
+    "android": {
