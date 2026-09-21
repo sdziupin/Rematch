@@ -92,3 +92,6 @@ export interface WorkoutSeed {
 
 function rounds(count: number, steps: WorkoutStructure['rounds'][0]['steps']): WorkoutStructure {
   return {
+    format: 'fixed_rounds',
+    rounds: Array.from({ length: count }, (_, i) => ({ roundNumber: i + 1, steps })),
+  };
