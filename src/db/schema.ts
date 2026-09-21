@@ -27,3 +27,18 @@ export const exercises = sqliteTable('exercises', {
   cuesJson: text('cues_json').notNull(),
   mistakesJson: text('mistakes_json').notNull(),
   primaryMusclesJson: text('primary_muscles_json').notNull(),
+  secondaryMusclesJson: text('secondary_muscles_json').notNull(),
+  category: text('category').notNull(),
+  equipmentJson: text('equipment_json').notNull(),
+  impactLevel: text('impact_level').notNull(),
+  easierVariantId: text('easier_variant_id'),
+  harderVariantId: text('harder_variant_id'),
+  visualAsset: text('visual_asset').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const workouts = sqliteTable('workouts', {
+  id: text('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
