@@ -126,3 +126,24 @@ export async function getCurrentVersion(workoutId: string) {
   const db = getDb();
   const rows = await db
     .select()
+    .from(schema.workoutVersions)
+    .where(eq(schema.workoutVersions.workoutId, workoutId));
+  return rows.find((r) => r.isCurrent) ?? rows[0] ?? null;
+}
+
+export async function getVariant(versionId: string, partialKey = 'full') {
+  const db = getDb();
+  const rows = await db.select().from(schema.workoutVariants).where(eq(schema.workoutVariants.workoutVersionId, versionId));
+  return rows.find((r) => r.partialKey === partialKey) ?? rows.find((r) => r.partialKey === 'full') ?? rows[0] ?? null;
+}
+
+export async function getExercise(id: string) {
+  const db = getDb();
+  const rows = await db.select().from(schema.exercises).where(eq(schema.exercises.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listExercises() {
+  const db = getDb();
+  return db.select().from(schema.exercises);
+}
