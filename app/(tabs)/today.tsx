@@ -43,3 +43,18 @@ export default function TodayScreen() {
 
   if (!workout) return <SafeAreaView style={styles.safe} />;
 
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text style={styles.brand}>REMATCH</Text>
+        <Text style={styles.section}>TODAY</Text>
+
+        <WorkoutHeroCard
+          name={workout.name}
+          symbol={workout.symbol}
+          meta={`${focusLabel(workout.focus)} · ${difficultyLabel(workout.difficulty as any)}`}
+          duration={`${workout.estimatedMinutesMin}–${workout.estimatedMinutesMax} min`}
+          pb={pb}
+          last={last}
+          color={workout.identityColor}
+          onPress={() => {}}
