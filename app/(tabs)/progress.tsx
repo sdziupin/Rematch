@@ -12,3 +12,17 @@ export default function ProgressScreen() {
   const [sessionsWeek, setSessionsWeek] = useState(0);
 
   useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const workouts = await listWorkouts();
+        const out: { name: string; first?: number; latest?: number; count: number }[] = [];
+        let weekCount = 0;
+        const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        for (const w of workouts.slice(0, 8)) {
+          const versionId = `${w.id}-v1`;
+          const variantId = `${versionId}-full`;
+          const results = await listResults(w.id, variantId, 'rx');
+          if (results.length === 0) continue;
+          const sorted = [...results].sort((a, b) => a.createdAt - b.createdAt);
+          out.push({
+            name: w.name,
