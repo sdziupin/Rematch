@@ -54,3 +54,17 @@ export default function ProgressScreen() {
             const delta = r.first != null && r.latest != null ? r.latest - r.first : 0;
             return (
               <View key={r.name} style={styles.row}>
+                <Text style={styles.rowName}>{r.name}</Text>
+                <Text style={styles.rowMeta}>{r.count} attempts</Text>
+                <Text style={[styles.rowDelta, { color: delta <= 0 ? colors.ahead : colors.behind }]}>
+                  {r.first != null && r.latest != null ? `${formatDuration(r.first)} → ${formatDuration(r.latest)}` : '—'}
+                </Text>
+              </View>
+            );
+          })
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
