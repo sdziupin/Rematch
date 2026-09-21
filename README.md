@@ -206,3 +206,22 @@ npm ci
 ```
 
 ### 2. Run
+
+```bash
+npm start
+```
+
+Then press:
+
+- `i` — iOS simulator
+- `a` — Android emulator
+- `w` — web
+
+Or use the dedicated scripts:
+
+```bash
+npm run ios
+npm run android
+npm run web
+```
+
