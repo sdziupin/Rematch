@@ -101,3 +101,18 @@ export const workoutSessionEvents = sqliteTable('workout_session_events', {
   payloadJson: text('payload_json').notNull(),
   elapsedActiveMs: integer('elapsed_active_ms').notNull(),
   createdAt: integer('created_at').notNull(),
+});
+
+export const workoutCheckpoints = sqliteTable('workout_checkpoints', {
+  id: text('id').primaryKey(),
+  sessionId: text('session_id').notNull().references(() => workoutSessions.id),
+  checkpointKey: text('checkpoint_key').notNull(),
+  label: text('label').notNull(),
+  elapsedActiveMs: integer('elapsed_active_ms').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
+export const workoutResults = sqliteTable('workout_results', {
+  id: text('id').primaryKey(),
+  sessionId: text('session_id').notNull().unique().references(() => workoutSessions.id),
+  workoutId: text('workout_id').notNull(),
