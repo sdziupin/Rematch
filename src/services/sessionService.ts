@@ -181,3 +181,24 @@ async function maybeUpdatePb(
     }
     await db.insert(schema.personalBests).values({
       id: uuid(),
+      workoutId: session.workoutId,
+      workoutVersionId: session.workoutVersionId,
+      workoutVariantId: session.workoutVariantId,
+      scalingCategory: session.scalingCategory,
+      resultId,
+      sessionId: session.id,
+      completionMs,
+      achievedAt: ts,
+    });
+    return true;
+  }
+  return false;
+}
+
+export async function getPb(workoutId: string, versionId: string, variantId: string, scaling: ScalingCategory) {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(schema.personalBests)
+    .where(
+      and(
