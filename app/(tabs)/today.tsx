@@ -73,3 +73,18 @@ export default function TodayScreen() {
             <Text style={styles.footerLink}>Browse workouts</Text>
           </Pressable>
         </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: spacing.lg },
+  brand: { ...typography.displayMD, color: colors.primary },
+  section: { ...typography.label, color: colors.muted, marginVertical: spacing.md },
+  cta: { marginVertical: spacing.md },
+  footer: { marginTop: 'auto', paddingTop: spacing.lg },
+  footerLabel: { ...typography.caption, color: colors.muted },
+  footerLink: { ...typography.bodyBold, color: colors.accent, marginTop: 4 },
+});
