@@ -168,3 +168,22 @@ async function generateWorkouts(limit, singleId) {
     }
     try {
       await saveImage(workoutPrompt(w.name, w.symbol, w.focus), out);
+      await sleep(1500);
+    } catch (e) {
+      console.error(`✗ ${slug}: ${e.message}`);
+      if (e.code === 429 || e.message.includes('quota')) {
+        console.error('\nGemini image quota exhausted. Enable billing at https://ai.google.dev/');
+        process.exit(1);
+      }
+    }
+  }
+}
+
+function sleep(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+async function main() {
+  const opts = parseArgs();
+  console.log(`REMATCH Gemini asset generator — model: ${MODEL}\n`);
+
