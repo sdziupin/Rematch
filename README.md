@@ -54,3 +54,22 @@ No social leaderboard. No stranger to chase. No backend required for the core tr
 flowchart LR
     A["Pick a benchmark"] --> B["Choose your past attempt"]
     B --> C["3 · 2 · 1 · GO"]
+    C --> D["Train"]
+    D --> E["Capture events + checkpoints"]
+    E --> F["Live delta + race rails"]
+    F --> G["Finish"]
+    G --> H["Checkpoint breakdown"]
+    H --> I{"Faster?"}
+    I -- Yes --> J["New PB"]
+    I -- Not yet --> K["New data for the next rematch"]
+    J --> A
+    K --> A
+```
+
+A previous attempt is not simulated as a smooth, imaginary pace. The race UI advances from **recorded checkpoint telemetry**. That keeps the comparison grounded in what actually happened during that workout.
+
+## What makes it different
+
+| | Capability | What it means in practice |
+|---|---|---|
+| **↯** | **Real rematch telemetry** | Live ahead/behind comparison is based on recorded checkpoints, not linear interpolation. |
