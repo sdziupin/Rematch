@@ -54,3 +54,17 @@ export default function ActiveWorkoutScreen() {
         opponentFinalMs.current = session?.elapsedActiveMs ?? cps[cps.length - 1]?.elapsedActiveMs ?? 0;
       }
       if (state?.workoutId) {
+        const w = await getWorkoutById(state.workoutId);
+        setWorkoutName(w?.name ?? '');
+      }
+    })();
+    return () => { deactivateKeepAwake('rematch-workout'); };
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!state) return;
+      const ex = getCurrentExercise(state);
+      if (!ex) return;
+      const meta = await getExercise(ex.scaledExerciseId);
+      setExerciseMeta(meta);
