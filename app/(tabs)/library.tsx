@@ -60,3 +60,16 @@ export default function LibraryScreen() {
         <TextInput placeholder="Search" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={styles.search} />
         <FilterRow options={DURATIONS} value={duration} onChange={setDuration} />
         <FilterRow options={DIFFICULTIES} value={difficulty} onChange={setDifficulty} />
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          renderItem={({ item }) => (
+            <Pressable style={styles.card} onPress={() => router.push(`/workout/${item.id}`)}>
+              <Text style={[styles.symbol, { color: item.identityColor }]}>{item.symbol}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.meta}>{focusLabel(item.focus)} · {difficultyLabel(item.difficulty)} · {item.estimatedMinutesMin}–{item.estimatedMinutesMax} min</Text>
+                <Text style={styles.stats}>
+                  PB {stats[item.id]?.pb != null ? formatDuration(stats[item.id].pb!) : '—'} · Last {stats[item.id]?.last != null ? formatDuration(stats[item.id].last!) : '—'}
+                </Text>
