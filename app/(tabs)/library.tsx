@@ -35,3 +35,16 @@ export default function LibraryScreen() {
         setStats(map);
       })();
     }, []),
+  );
+
+  const filtered = useMemo(() => {
+    return workouts.filter((w) => {
+      if (query && !w.name.toLowerCase().includes(query.toLowerCase())) return false;
+      if (difficulty !== 'all' && w.difficulty !== difficulty) return false;
+      if (duration !== 'all') {
+        const mid = (w.estimatedMinutesMin + w.estimatedMinutesMax) / 2;
+        if (duration === '5-10' && mid > 10) return false;
+        if (duration === '10-15' && (mid < 10 || mid > 15)) return false;
+        if (duration === '15-20' && (mid < 15 || mid > 20)) return false;
+        if (duration === '20-30' && (mid < 20 || mid > 30)) return false;
+        if (duration === '30+' && mid < 30) return false;
