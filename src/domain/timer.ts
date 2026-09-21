@@ -16,3 +16,21 @@ export function createTimerSnapshot(): TimerSnapshot {
 
 export function startTimer(snapshot: TimerSnapshot, now = Date.now()): TimerSnapshot {
   if (snapshot.startedAt !== null) return snapshot;
+  return { ...snapshot, startedAt: now, isPaused: false, lastPausedAt: null };
+}
+
+export function pauseTimer(snapshot: TimerSnapshot, now = Date.now()): TimerSnapshot {
+  if (snapshot.isPaused || snapshot.startedAt === null) return snapshot;
+  return { ...snapshot, isPaused: true, lastPausedAt: now };
+}
+
+export function resumeTimer(snapshot: TimerSnapshot, now = Date.now()): TimerSnapshot {
+  if (!snapshot.isPaused || snapshot.lastPausedAt === null) return snapshot;
+  const pauseDuration = now - snapshot.lastPausedAt;
+  return {
+    ...snapshot,
+    isPaused: false,
+    lastPausedAt: null,
+    pausedAccumulatedMs: snapshot.pausedAccumulatedMs + pauseDuration,
+  };
+}
