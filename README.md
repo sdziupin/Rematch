@@ -244,3 +244,22 @@ Rematch/
 ├── src/
 │   ├── components/           # Workout and race UI
 │   ├── content/              # 31 workouts + 52 exercise seeds
+│   ├── db/                   # SQLite client, schema, seed layer
+│   ├── domain/               # Timer, rematch comparison, types
+│   ├── engine/               # Deterministic workout state transitions
+│   ├── hooks/                # Runtime workout hooks
+│   ├── services/             # Sessions and recommendations
+│   ├── store/                # Zustand workout state
+│   └── theme/                # Production design tokens
+├── design/                   # Brand, copy, content and handoff specs
+├── assets/                   # App and generated workout artwork
+└── scripts/                  # Asset generation tooling
+```
+
+## Visual language
+
+REMATCH is intentionally dark, focused, and competitive without becoming aggressive.
+
+| Role | Token |
+|---|---|
+| Canvas | `#0A0C10` |
