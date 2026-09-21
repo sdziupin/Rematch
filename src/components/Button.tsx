@@ -22,3 +22,27 @@ export function Button({ title, onPress, variant = 'primary', disabled, style, a
       accessibilityLabel={accessibilityLabel ?? title}
       onPress={onPress}
       disabled={disabled}
+      style={({ pressed }) => [
+        styles.base,
+        { backgroundColor: bg, opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
+        style,
+      ]}
+    >
+      <Text style={[styles.text, { color: textColor }]}>{title}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    minHeight: 52,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+  },
+  text: {
+    ...typography.bodyBold,
+    letterSpacing: 1,
+  },
+});
