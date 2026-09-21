@@ -111,3 +111,22 @@ session
 ├── current round / exercise / reps
 ├── event stream
 ├── checkpoint timestamps
+├── opponent session
+└── persisted recovery state
+```
+
+During a rematch, the comparator lines up matching checkpoint keys from the current and opponent sessions:
+
+```text
+Round 1    you 02:03    past you 02:08    -00:05
+Round 2    you 04:21    past you 04:17    +00:04
+Round 3    you 06:30    past you 06:42    -00:12
+```
+
+Negative delta means you're ahead. Positive delta means the old you is making you work for it.
+
+## Architecture
+
+```mermaid
+flowchart TB
+    UI["Expo Router screens"] --> STORE["Zustand active workout state"]
