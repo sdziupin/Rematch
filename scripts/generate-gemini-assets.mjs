@@ -111,3 +111,22 @@ function exercisePrompt(name, category) {
     : category === 'core' ? BRAND.success
     : category === 'cardio' ? '#5B8DEF'
     : BRAND.accent;
+  return `${STYLE_PREFIX} Exercise: ${name}. Category: ${category}. Accent color ${color}. Single clear pose for instruction.`;
+}
+
+function workoutPrompt(name, symbol, focus) {
+  return `${STYLE_PREFIX} Abstract workout identity symbol for "${name}" (${focus}). Inspired by ${symbol}. Geometric storm/force motif. Teal and white on dark. Square card art.`;
+}
+
+async function generateIcon() {
+  const prompt = `App icon for REMATCH fitness app. Square. Background ${BRAND.bg}. Bold stylized letter R in off-white with diagonal teal slash ${BRAND.accent}. Premium athletic minimal flat vector. No other text.`;
+  await saveImage(prompt, path.join(ROOT, 'assets/icon.png'));
+  await saveImage(prompt, path.join(ROOT, 'assets/splash-icon.png'));
+  await saveImage(prompt, path.join(ROOT, 'assets/android-icon-foreground.png'));
+}
+
+async function generateExercises(limit, singleId) {
+  const manifest = loadSeed();
+  const exercises = manifest?.exercises ?? [
+    { id: 'push-up', name: 'Push-up', category: 'push' },
+    { id: 'air-squat', name: 'Air Squat', category: 'squat' },
