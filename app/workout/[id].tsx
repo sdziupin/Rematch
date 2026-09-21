@@ -138,3 +138,17 @@ function Stat({ label, value, highlight }: { label: string; value: string; highl
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  container: { padding: spacing.lg },
+  symbol: { fontSize: 48 },
+  name: { ...typography.displayLG, color: colors.primary },
+  meta: { ...typography.body, color: colors.muted, textTransform: 'capitalize' },
+  duration: { ...typography.subheading, color: colors.primary, marginVertical: spacing.sm },
+  stats: { flexDirection: 'row', gap: spacing.xl, marginVertical: spacing.md },
+  statLabel: { ...typography.label, color: colors.muted },
+  statValue: { ...typography.heading, color: colors.primary },
+  section: { ...typography.label, color: colors.muted, marginTop: spacing.lg, marginBottom: spacing.sm },
+  exerciseLine: { ...typography.body, color: colors.primary, marginBottom: 4 },
+  cta: { marginTop: spacing.xl },
+  variantRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.md },
+  variantBtn: { minWidth: 70, paddingHorizontal: 8 },
+});
