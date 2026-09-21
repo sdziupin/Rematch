@@ -40,3 +40,17 @@ export default function ActiveWorkoutScreen() {
   });
   const opponentCheckpoints = useRef<{ checkpointKey: string; label: string; elapsedActiveMs: number }[]>([]);
   const opponentFinalMs = useRef(0);
+  const [exerciseMeta, setExerciseMeta] = React.useState<any>(null);
+  const [workoutName, setWorkoutName] = React.useState('');
+
+  useEffect(() => {
+    (async () => {
+      const profile = await getProfile();
+      if (profile?.keepAwakeEnabled) activateKeepAwakeAsync('rematch-workout');
+      if (opponentSessionId) {
+        const cps = await getCheckpoints(opponentSessionId);
+        opponentCheckpoints.current = cps.map((c) => ({ checkpointKey: c.checkpointKey, label: c.label, elapsedActiveMs: c.elapsedActiveMs }));
+        const session = await getSession(opponentSessionId);
+        opponentFinalMs.current = session?.elapsedActiveMs ?? cps[cps.length - 1]?.elapsedActiveMs ?? 0;
+      }
+      if (state?.workoutId) {
