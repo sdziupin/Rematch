@@ -92,3 +92,22 @@ async function saveImage(prompt, outPath, aspectRatio = '1:1') {
   const { buffer, mime } = await generateImage(prompt, aspectRatio);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   const finalPath = outPath.replace(/\.[^.]+$/, '') + extForMime(mime);
+  fs.writeFileSync(finalPath, buffer);
+  console.log(`✓ ${finalPath} (${buffer.length} bytes)`);
+  return finalPath;
+}
+
+function loadSeed() {
+  // Dynamic import of TS seed via transpile-free JSON export
+  const seedPath = path.join(ROOT, 'design/content/seed-manifest.json');
+  if (fs.existsSync(seedPath)) {
+    return JSON.parse(fs.readFileSync(seedPath, 'utf8'));
+  }
+  return null;
+}
+
+function exercisePrompt(name, category) {
+  const color = category === 'squat' || category === 'lunge' ? BRAND.accentWarm
+    : category === 'core' ? BRAND.success
+    : category === 'cardio' ? '#5B8DEF'
+    : BRAND.accent;
