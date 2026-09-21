@@ -149,3 +149,5 @@ export function scaleStructure(structure: WorkoutStructure, fraction: number): W
     rounds: structure.rounds.slice(0, roundCount),
     timeCapSec: structure.timeCapSec ? Math.round(structure.timeCapSec * fraction) : undefined,
     intervalRounds: structure.intervalRounds ? Math.max(1, Math.round(structure.intervalRounds * fraction)) : undefined,
+  };
+}
