@@ -151,3 +151,22 @@ export async function runMigrations() {
       scaling_category TEXT NOT NULL,
       result_id TEXT NOT NULL REFERENCES workout_results(id),
       session_id TEXT NOT NULL,
+      completion_ms INTEGER NOT NULL,
+      achieved_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS post_workout_feedback (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL UNIQUE REFERENCES workout_sessions(id),
+      intensity TEXT,
+      technique TEXT,
+      pain_reported INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sessions_status ON workout_sessions(status);
+    CREATE INDEX IF NOT EXISTS idx_results_workout ON workout_results(workout_id, workout_variant_id, scaling_category);
+    CREATE INDEX IF NOT EXISTS idx_checkpoints_session ON workout_checkpoints(session_id);
+    CREATE INDEX IF NOT EXISTS idx_events_session ON workout_session_events(session_id);
+  `);
+}
