@@ -73,3 +73,15 @@ export default function LibraryScreen() {
                 <Text style={styles.stats}>
                   PB {stats[item.id]?.pb != null ? formatDuration(stats[item.id].pb!) : '—'} · Last {stats[item.id]?.last != null ? formatDuration(stats[item.id].last!) : '—'}
                 </Text>
+              </View>
+            </Pressable>
+          )}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function FilterRow({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={styles.filterRow}>
