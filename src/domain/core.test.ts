@@ -49,3 +49,19 @@ test('workout engine completes rounds', () => {
     rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'push-up', reps: 5 }] }],
   };
   let state = createActiveState('w', 'v', 'var', 'full', 'rx', structure);
+  state = { ...state, phase: 'active' };
+  const step = nextStep(state);
+  assert.equal(step.state.phase, 'completed');
+});
+
+test('recommendation picks duration match', () => {
+  const rec = recommendWorkout({
+    minutes: 8,
+    level: 'beginner',
+    goal: 'conditioning',
+    equipment: ['bodyweight', 'mat'],
+    recentWorkoutIds: [],
+    painRecent: false,
+  });
+  assert.ok(rec.workoutId);
+});
