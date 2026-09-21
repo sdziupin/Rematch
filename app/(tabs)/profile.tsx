@@ -11,3 +11,17 @@ export default function ProfileScreen() {
   const [voice, setVoice] = useState(false);
   const [keepAwake, setKeepAwake] = useState(true);
 
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const p = await getProfile();
+        if (!p) return;
+        setHaptics(p.hapticsEnabled);
+        setSound(p.soundEnabled);
+        setVoice(p.voiceEnabled);
+        setKeepAwake(p.keepAwakeEnabled);
+      })();
+    }, []),
+  );
+
+  const save = async (patch: Record<string, boolean>) => {
