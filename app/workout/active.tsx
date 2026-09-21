@@ -209,3 +209,17 @@ export default function ActiveWorkoutScreen() {
           {opponentSessionId && <RematchBar deltaMs={delta} />}
           {opponentSessionId && <RaceRails youProgress={youProgress} opponentProgress={oppProgress} />}
           <Button title="NEXT" onPress={handleNext} style={styles.nextBtn} />
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: spacing.md },
+  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  workoutName: { ...typography.subheading, color: colors.muted },
+  pauseBtn: { padding: spacing.sm },
+  pauseText: { ...typography.label, color: colors.muted },
+  round: { ...typography.label, color: colors.accent, marginTop: spacing.sm },
