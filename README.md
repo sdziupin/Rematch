@@ -92,3 +92,22 @@ The current seed contains **52 exercises** with movement metadata and scaling re
 - **Formats:** fixed rounds, chipper, ladder, intervals, AMRAP
 - **Difficulty:** beginner, intermediate, advanced, elite
 - **Scaling:** RX, scaled, modified
+- **Variants:** full, ¾, ½, ¼
+- **Equipment-aware recommendations**
+- **Versioned workout definitions** so historical results stay meaningful when a benchmark changes
+
+The recommendation layer can filter by available time, level, equipment, recent workouts, and recovery constraints before selecting a benchmark.
+
+## The race engine
+
+The core domain is deliberately small and deterministic.
+
+A workout session tracks:
+
+```text
+session
+├── version + variant + scaling
+├── timer state
+├── current round / exercise / reps
+├── event stream
+├── checkpoint timestamps
