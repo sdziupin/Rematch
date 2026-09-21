@@ -10,3 +10,16 @@ const POSES: Record<string, { color: string }> = {
   core: { color: colors.success },
   cardio: { color: '#5B8DEF' },
   default: { color: colors.muted },
+};
+
+interface ExerciseVisualProps {
+  exerciseId: string;
+  category?: string;
+  size?: number;
+}
+
+export function ExerciseVisual({ exerciseId, category = 'default', size = 160 }: ExerciseVisualProps) {
+  const generated = getExerciseImage(exerciseId);
+
+  if (generated) {
+    return (
