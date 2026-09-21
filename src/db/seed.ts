@@ -19,3 +19,24 @@ export async function seedDatabaseIfNeeded() {
       name: ex.name,
       description: ex.description,
       instructions: ex.instructions,
+      startPosition: ex.startPosition,
+      movementSequence: ex.movementSequence,
+      cuesJson: JSON.stringify(ex.cues),
+      mistakesJson: JSON.stringify(ex.mistakes),
+      primaryMusclesJson: JSON.stringify(ex.primaryMuscles),
+      secondaryMusclesJson: JSON.stringify(ex.secondaryMuscles),
+      category: ex.category,
+      equipmentJson: JSON.stringify(ex.equipment),
+      impactLevel: ex.impactLevel,
+      easierVariantId: ex.easierVariantId ?? null,
+      harderVariantId: ex.harderVariantId ?? null,
+      visualAsset: ex.visualAsset,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+  }
+
+  for (const w of WORKOUT_SEEDS) {
+    await db.insert(schema.workouts).values({
+      id: w.id,
+      slug: w.slug,
