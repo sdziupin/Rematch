@@ -52,3 +52,21 @@ export default function ChallengeScreen() {
             symbol={preview.symbol}
             meta={`${focusLabel(preview.focus)} · ${difficultyLabel(preview.difficulty)}`}
             duration={`${preview.estimatedMinutesMin}–${preview.estimatedMinutesMax} min`}
+            color={preview.identityColor}
+            onPress={() => {}}
+          />
+        )}
+        {preview && <Button title="START" onPress={() => router.push(`/workout/${preview.id}`)} style={{ marginTop: spacing.lg }} />}
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: spacing.lg },
+  title: { ...typography.displayMD, color: colors.primary },
+  sub: { ...typography.body, color: colors.muted, marginBottom: spacing.lg },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: spacing.lg },
+  durationBtn: { minWidth: 56, paddingHorizontal: 8 },
+});
