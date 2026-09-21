@@ -120,3 +120,24 @@ export async function getCheckpoints(sessionId: string) {
     .select()
     .from(schema.workoutCheckpoints)
     .where(eq(schema.workoutCheckpoints.sessionId, sessionId))
+    .orderBy(schema.workoutCheckpoints.elapsedActiveMs);
+}
+
+export async function completeSession(sessionId: string, completionMs: number, isComplete: boolean, abandoned = false) {
+  const db = getDb();
+  const session = await getSession(sessionId);
+  if (!session) throw new Error('Session not found');
+
+  const resultId = uuid();
+  const ts = now();
+  await db.insert(schema.workoutResults).values({
+    id: resultId,
+    sessionId,
+    workoutId: session.workoutId,
+    workoutVersionId: session.workoutVersionId,
+    workoutVariantId: session.workoutVariantId,
+    scalingCategory: session.scalingCategory,
+    completionMs,
+    isComplete,
+    isAbandoned: abandoned,
+    createdAt: ts,
