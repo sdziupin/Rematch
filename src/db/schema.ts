@@ -116,3 +116,18 @@ export const workoutResults = sqliteTable('workout_results', {
   id: text('id').primaryKey(),
   sessionId: text('session_id').notNull().unique().references(() => workoutSessions.id),
   workoutId: text('workout_id').notNull(),
+  workoutVersionId: text('workout_version_id').notNull(),
+  workoutVariantId: text('workout_variant_id').notNull(),
+  scalingCategory: text('scaling_category').notNull(),
+  completionMs: integer('completion_ms').notNull(),
+  isComplete: integer('is_complete', { mode: 'boolean' }).notNull(),
+  isAbandoned: integer('is_abandoned', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('created_at').notNull(),
+});
+
+export const personalBests = sqliteTable('personal_bests', {
+  id: text('id').primaryKey(),
+  workoutId: text('workout_id').notNull(),
+  workoutVersionId: text('workout_version_id').notNull(),
+  workoutVariantId: text('workout_variant_id').notNull(),
+  scalingCategory: text('scaling_category').notNull(),
