@@ -48,3 +48,13 @@
       <text x="39" y="27" fill="#C6CDD8" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">31 BENCHMARKS</text>
 
       <rect x="178" width="154" height="42" rx="21" fill="#141820" stroke="#2A3142"/>
+      <circle cx="201" cy="21" r="5" fill="#F4A261"/>
+      <text x="217" y="27" fill="#C6CDD8" font-family="Arial, Helvetica, sans-serif" font-size="15" font-weight="700">52 EXERCISES</text>
+    </g>
+  </g>
+
+  <g transform="translate(875 90)">
+    <rect width="445" height="380" rx="24" fill="#11161E" stroke="#2A3142"/>
+    <rect x="1" y="1" width="443" height="378" rx="23" stroke="url(#teal)" stroke-opacity="0.5"/>
+
+    <text x="30" y="43" fill="#6B7280" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" letter-spacing="2">LIVE REMATCH</text>
