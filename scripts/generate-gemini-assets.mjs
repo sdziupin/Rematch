@@ -54,3 +54,22 @@ async function generateImage(prompt, aspectRatio = '1:1') {
       imageConfig: { aspectRatio },
     },
   };
+
+  const res = await fetch(`${API_URL}?key=${API_KEY}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  if (data.error) {
+    const err = new Error(data.error.message || 'Gemini API error');
+    err.code = data.error.code;
+    throw err;
+  }
+
+  const parts = data?.candidates?.[0]?.content?.parts ?? [];
+  for (const part of parts) {
+    const inline = part.inlineData || part.inline_data;
+    if (inline?.data) {
+      return {
