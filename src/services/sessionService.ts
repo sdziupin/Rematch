@@ -59,3 +59,23 @@ export async function saveSessionState(
   await db
     .update(schema.workoutSessions)
     .set({
+      currentStateJson: JSON.stringify(state),
+      status: timer.status,
+      startedAt: timer.startedAt,
+      elapsedActiveMs: timer.elapsedActiveMs,
+      pausedAccumulatedMs: timer.pausedAccumulatedMs,
+      lastPausedAt: timer.lastPausedAt,
+      updatedAt: now(),
+    })
+    .where(eq(schema.workoutSessions.id, sessionId));
+}
+
+export async function appendEvent(sessionId: string, type: string, payload: Record<string, unknown>, elapsedActiveMs: number) {
+  const db = getDb();
+  await db.insert(schema.workoutSessionEvents).values({
+    id: uuid(),
+    sessionId,
+    type,
+    payloadJson: JSON.stringify(payload),
+    elapsedActiveMs,
+    createdAt: now(),
