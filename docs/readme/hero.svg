@@ -68,3 +68,13 @@
     <text x="30" y="166" fill="#9AA3B2" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">YOU</text>
     <rect x="30" y="178" width="355" height="10" rx="5" fill="#1C2230"/>
     <rect x="30" y="178" width="286" height="10" rx="5" fill="#4ECDC4"/>
+    <circle cx="316" cy="183" r="8" fill="#4ECDC4" stroke="#0A0C10" stroke-width="3"/>
+
+    <text x="30" y="222" fill="#9AA3B2" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">PAST YOU</text>
+    <rect x="30" y="234" width="355" height="10" rx="5" fill="#1C2230"/>
+    <rect x="30" y="234" width="252" height="10" rx="5" fill="#F4A261" fill-opacity="0.9"/>
+    <circle cx="282" cy="239" r="8" fill="#F4A261" stroke="#0A0C10" stroke-width="3"/>
+
+    <line x1="30" y1="281" x2="415" y2="281" stroke="#2A3142"/>
+    <text x="30" y="315" fill="#6B7280" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.5">CHECKPOINTS</text>
+
