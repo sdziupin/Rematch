@@ -34,3 +34,21 @@ export default function ChallengeScreen() {
 
   React.useEffect(() => {
     pick(initial);
+  }, []);
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text style={styles.title}>CHALLENGE ME</Text>
+        <Text style={styles.sub}>Pick your time. We'll pick the workout.</Text>
+        <View style={styles.row}>
+          {DURATIONS.map((d) => (
+            <Button key={d} title={`${d}`} variant={minutes === d ? 'primary' : 'secondary'} onPress={() => pick(d)} style={styles.durationBtn} />
+          ))}
+        </View>
+        {preview && (
+          <WorkoutHeroCard
+            name={preview.name}
+            symbol={preview.symbol}
+            meta={`${focusLabel(preview.focus)} · ${difficultyLabel(preview.difficulty)}`}
+            duration={`${preview.estimatedMinutesMin}–${preview.estimatedMinutesMax} min`}
