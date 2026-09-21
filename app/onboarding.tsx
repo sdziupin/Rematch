@@ -29,3 +29,19 @@ export default function Onboarding() {
       goal,
       level,
       typicalMinutes: minutes,
+      frequencyDays: freq,
+      equipmentJson: JSON.stringify(equipment),
+      onboardingComplete: true,
+    });
+    router.replace('/(tabs)/today');
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.brand}>REMATCH</Text>
+        <Text style={styles.tagline}>You vs. you.</Text>
+        <Text style={styles.intro}>Every workout becomes your next opponent. Quick setup — then your first challenge.</Text>
+
+        <Section title="Focus">
+          <Row options={GOALS} value={goal} onChange={setGoal} />
