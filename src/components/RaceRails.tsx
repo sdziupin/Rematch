@@ -36,3 +36,22 @@ export function CheckpointBreakdown({ items }: { items: { label: string; deltaMs
   return (
     <View>
       {items.map((item) => (
+        <View key={item.label} style={styles.row}>
+          <Text style={styles.rowLabel}>{item.label}</Text>
+          <Text style={[styles.rowDelta, { color: item.deltaMs <= 0 ? colors.ahead : colors.behind }]}>
+            {formatDelta(item.deltaMs)}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { gap: 12 },
+  railRow: { gap: 6 },
+  railLabel: { ...typography.label, color: colors.muted },
+  track: {
+    height: 8,
+    backgroundColor: colors.border,
+    borderRadius: 4,
