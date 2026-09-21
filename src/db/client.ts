@@ -74,3 +74,23 @@ export async function runMigrations() {
       updated_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS workout_versions (
+      id TEXT PRIMARY KEY,
+      workout_id TEXT NOT NULL REFERENCES workouts(id),
+      version INTEGER NOT NULL,
+      structure_json TEXT NOT NULL,
+      rules_json TEXT NOT NULL,
+      is_current INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS workout_variants (
+      id TEXT PRIMARY KEY,
+      workout_version_id TEXT NOT NULL REFERENCES workout_versions(id),
+      partial_key TEXT NOT NULL,
+      label TEXT NOT NULL,
+      fraction REAL NOT NULL,
+      structure_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
