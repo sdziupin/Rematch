@@ -96,3 +96,17 @@ export default function ActiveWorkoutScreen() {
   if (!state || !sessionId) {
     router.replace('/');
     return null;
+  }
+
+  if (state.phase === 'countdown') {
+    const display = state.countdownRemaining > 0 ? state.countdownRemaining : 'GO';
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.countdownWrap}>
+          <Text style={styles.countdown}>{display}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (state.phase === 'paused') {
