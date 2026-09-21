@@ -132,3 +132,22 @@ export async function runMigrations() {
 
     CREATE TABLE IF NOT EXISTS workout_results (
       id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL UNIQUE REFERENCES workout_sessions(id),
+      workout_id TEXT NOT NULL,
+      workout_version_id TEXT NOT NULL,
+      workout_variant_id TEXT NOT NULL,
+      scaling_category TEXT NOT NULL,
+      completion_ms INTEGER NOT NULL,
+      is_complete INTEGER NOT NULL,
+      is_abandoned INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS personal_bests (
+      id TEXT PRIMARY KEY,
+      workout_id TEXT NOT NULL,
+      workout_version_id TEXT NOT NULL,
+      workout_variant_id TEXT NOT NULL,
+      scaling_category TEXT NOT NULL,
+      result_id TEXT NOT NULL REFERENCES workout_results(id),
+      session_id TEXT NOT NULL,
