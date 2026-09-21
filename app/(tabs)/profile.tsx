@@ -53,3 +53,16 @@ function Setting({ label, value, onChange }: { label: string; value: boolean; on
       <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent }} />
     </View>
   );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { padding: spacing.lg },
+  title: { ...typography.displayMD, color: colors.primary },
+  tagline: { ...typography.body, color: colors.muted, marginBottom: spacing.lg },
+  setting: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  settingLabel: { ...typography.body, color: colors.primary, flex: 1, paddingRight: spacing.md },
+  disclaimer: { marginTop: spacing.xl, backgroundColor: colors.surface, padding: spacing.lg, borderRadius: 12 },
+  disclaimerTitle: { ...typography.subheading, color: colors.primary },
+  disclaimerText: { ...typography.body, color: colors.muted, marginTop: spacing.sm },
+});
