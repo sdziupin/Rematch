@@ -26,3 +26,17 @@ import { colors, spacing, typography, touchTarget } from '../../src/theme';
 import { getCheckpointKey } from '../../src/engine/workoutEngine';
 
 export default function ActiveWorkoutScreen() {
+  const router = useRouter();
+  const { sessionId, state, timer, opponentSessionId, setState, setTimer, clear } = useWorkoutStore();
+  const elapsed = useWorkoutTimer(timer, async (ms) => {
+    if (!sessionId || !state || state.phase !== 'active') return;
+    await saveSessionState(sessionId, state, {
+      elapsedActiveMs: ms,
+      pausedAccumulatedMs: timer.pausedAccumulatedMs,
+      lastPausedAt: timer.lastPausedAt,
+      status: 'active',
+      startedAt: timer.startedAt,
+    });
+  });
+  const opponentCheckpoints = useRef<{ checkpointKey: string; label: string; elapsedActiveMs: number }[]>([]);
+  const opponentFinalMs = useRef(0);
