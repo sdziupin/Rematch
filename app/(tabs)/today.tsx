@@ -58,3 +58,18 @@ export default function TodayScreen() {
           last={last}
           color={workout.identityColor}
           onPress={() => {}}
+        />
+
+        <Button title="START REMATCH" onPress={() => router.push(`/workout/${workout.id}`)} style={styles.cta} />
+        <Button title="Just Train" variant="secondary" onPress={() => router.push(`/workout/${workout.id}?mode=train`)} />
+        <Button title="CHALLENGE ME" variant="ghost" onPress={() => router.push('/challenge')} style={{ marginTop: spacing.sm }} />
+
+        <View style={styles.footer}>
+          <Text style={styles.footerLabel}>Quick alternative</Text>
+          <Pressable onPress={() => router.push('/challenge?minutes=8')}>
+            <Text style={styles.footerLink}>8 min →</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/(tabs)/library')} style={{ marginTop: spacing.sm }}>
+            <Text style={styles.footerLink}>Browse workouts</Text>
+          </Pressable>
+        </View>
