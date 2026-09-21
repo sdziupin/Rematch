@@ -1,0 +1,22 @@
+{
+  "tagline": "You vs. you.",
+  "today": {
+    "title": "TODAY",
+    "startRematch": "START REMATCH",
+    "justTrain": "Just Train",
+    "browseWorkouts": "Browse workouts",
+    "quickAlternative": "Quick alternative"
+  },
+  "challengeMe": {
+    "title": "CHALLENGE ME",
+    "subtitle": "Pick your time. We'll pick the workout.",
+    "start": "START"
+  },
+  "rematch": {
+    "rematchPb": "REMATCH PB",
+    "rematchLast": "REMATCH LAST",
+    "chooseOpponent": "Choose Opponent",
+    "rematchThis": "REMATCH THIS",
+    "justTrain": "JUST TRAIN",
+    "ahead": "AHEAD",
+    "behind": "BEHIND",
