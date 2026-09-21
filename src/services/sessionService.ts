@@ -100,3 +100,23 @@ export async function getActiveSession() {
   for (const status of statuses) {
     const rows = await db
       .select()
+      .from(schema.workoutSessions)
+      .where(eq(schema.workoutSessions.status, status))
+      .limit(1);
+    if (rows[0]) return rows[0];
+  }
+  return null;
+}
+
+export async function getSession(id: string) {
+  const db = getDb();
+  const rows = await db.select().from(schema.workoutSessions).where(eq(schema.workoutSessions.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getCheckpoints(sessionId: string) {
+  const db = getDb();
+  return db
+    .select()
+    .from(schema.workoutCheckpoints)
+    .where(eq(schema.workoutCheckpoints.sessionId, sessionId))
