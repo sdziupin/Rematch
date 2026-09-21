@@ -57,3 +57,18 @@ export const workouts = sqliteTable('workouts', {
 });
 
 export const workoutVersions = sqliteTable('workout_versions', {
+  id: text('id').primaryKey(),
+  workoutId: text('workout_id').notNull().references(() => workouts.id),
+  version: integer('version').notNull(),
+  structureJson: text('structure_json').notNull(),
+  rulesJson: text('rules_json').notNull(),
+  isCurrent: integer('is_current', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull(),
+});
+
+export const workoutVariants = sqliteTable('workout_variants', {
+  id: text('id').primaryKey(),
+  workoutVersionId: text('workout_version_id').notNull().references(() => workoutVersions.id),
+  partialKey: text('partial_key').notNull(),
+  label: text('label').notNull(),
+  fraction: real('fraction').notNull(),
