@@ -95,3 +95,6 @@ function rounds(count: number, steps: WorkoutStructure['rounds'][0]['steps']): W
     format: 'fixed_rounds',
     rounds: Array.from({ length: count }, (_, i) => ({ roundNumber: i + 1, steps })),
   };
+}
+
+export const WORKOUT_SEEDS: WorkoutSeed[] = [
