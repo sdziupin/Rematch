@@ -38,3 +38,24 @@ export async function createSession(params: {
     opponentSessionId: params.opponentSessionId ?? null,
     scalingCategory: params.scalingCategory,
     status: 'countdown',
+    startedAt: null,
+    completedAt: null,
+    elapsedActiveMs: 0,
+    pausedAccumulatedMs: 0,
+    lastPausedAt: null,
+    currentStateJson: JSON.stringify(state),
+    createdAt: ts,
+    updatedAt: ts,
+  });
+  return { sessionId: id, state };
+}
+
+export async function saveSessionState(
+  sessionId: string,
+  state: ActiveWorkoutState,
+  timer: { elapsedActiveMs: number; pausedAccumulatedMs: number; lastPausedAt: number | null; status: string; startedAt: number | null },
+) {
+  const db = getDb();
+  await db
+    .update(schema.workoutSessions)
+    .set({
