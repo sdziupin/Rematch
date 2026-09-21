@@ -32,3 +32,20 @@ export default function RecoveryScreen() {
         state,
         elapsed: session.elapsedActiveMs,
         status: session.status,
+      });
+    })();
+  }, []);
+
+  if (!info) return <SafeAreaView style={styles.safe} />;
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text style={styles.title}>WORKOUT IN PROGRESS</Text>
+        <Text style={styles.name}>{info.name}</Text>
+        <Text style={styles.sub}>Started {info.startedAgo}</Text>
+        <Button title="RESUME" onPress={() => {
+          setSession(info.sessionId, info.state, null);
+          setTimer(restoreTimerFromElapsed(info.elapsed, info.status === 'paused'));
+          router.replace('/workout/active');
+        }} style={{ marginTop: spacing.xl }} />
