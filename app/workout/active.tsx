@@ -167,3 +167,17 @@ export default function ActiveWorkoutScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.top}>
+          <Text style={styles.workoutName}>{workoutName}</Text>
+          <Pressable onPress={async () => {
+            const paused = pauseTimer(timer);
+            setTimer(paused);
+            const next = { ...state, phase: 'paused' as const };
+            setState(next);
+            await appendEvent(sessionId, 'WorkoutPaused', {}, getElapsedActiveMs(paused));
+            await saveSessionState(sessionId, next, { elapsedActiveMs: getElapsedActiveMs(paused), pausedAccumulatedMs: paused.pausedAccumulatedMs, lastPausedAt: paused.lastPausedAt, status: 'paused', startedAt: paused.startedAt });
+          }} style={styles.pauseBtn} accessibilityLabel="Pause workout">
+            <Text style={styles.pauseText}>PAUSE</Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.round}>ROUND {round.roundNumber} / {state.rounds.length}</Text>
