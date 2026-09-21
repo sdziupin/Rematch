@@ -62,3 +62,24 @@ export async function seedDatabaseIfNeeded() {
       version: 1,
       structureJson: JSON.stringify(w.structure),
       rulesJson: JSON.stringify({ scoring: 'time', restBetweenRoundsSec: 0 }),
+      isCurrent: true,
+      createdAt: ts,
+    });
+
+    for (const partial of PARTIAL_FRACTIONS) {
+      const scaled: WorkoutStructure = scaleStructure(w.structure, partial.fraction);
+      await db.insert(schema.workoutVariants).values({
+        id: `${versionId}-${partial.key}`,
+        workoutVersionId: versionId,
+        partialKey: partial.key,
+        label: partial.label,
+        fraction: partial.fraction,
+        structureJson: JSON.stringify(scaled),
+        createdAt: ts,
+      });
+    }
+  }
+
+  await db.insert(schema.userProfile).values({
+    id: 'local-user',
+    goal: 'conditioning',
