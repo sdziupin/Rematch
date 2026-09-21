@@ -38,3 +38,22 @@ Implementation-ready design foundation for REMATCH — **You vs. you.**
 - `tokens/spacing.ts` — 4px grid
 - `content/workouts.json` — 30 benchmark workouts
 - `content/exercises.json` — 52 exercises with scaling
+- `copy/ui.json` — product strings
+- `screens/` — per-screen layout specs
+
+## Active Workout (Priority Screen)
+
+Thumb zone (bottom 40%): NEXT, rep stepper (−/+, large), pause.
+Top: workout name, round progress.
+Center: exercise name (large), rep count, movement visual.
+Bottom strip: elapsed timer + REMATCH delta (ahead/behind).
+
+Minimum touch target: 48pt. Timer display: 56pt+.
+
+## REMATCH Race UI
+
+Two horizontal progress rails (YOU vs opponent). Opponent marker from checkpoint telemetry — never linear interpolation.
+
+## Handoff
+
+Engineering imports tokens from `src/theme/`. Content seeds loaded into SQLite on first launch.
