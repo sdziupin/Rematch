@@ -55,3 +55,22 @@ export async function runMigrations() {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS workouts (
+      id TEXT PRIMARY KEY,
+      slug TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      symbol TEXT NOT NULL,
+      focus TEXT NOT NULL,
+      difficulty TEXT NOT NULL,
+      estimated_minutes_min INTEGER NOT NULL,
+      estimated_minutes_max INTEGER NOT NULL,
+      equipment_json TEXT NOT NULL,
+      format TEXT NOT NULL,
+      identity_color TEXT NOT NULL,
+      visual_asset TEXT NOT NULL,
+      progression_tier TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
