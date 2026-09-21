@@ -222,3 +222,24 @@ export async function getLastResult(workoutId: string, variantId: string, scalin
         eq(schema.workoutResults.workoutId, workoutId),
         eq(schema.workoutResults.workoutVariantId, variantId),
         eq(schema.workoutResults.scalingCategory, scaling),
+        eq(schema.workoutResults.isComplete, true),
+        eq(schema.workoutResults.isAbandoned, false),
+      ),
+    )
+    .orderBy(desc(schema.workoutResults.createdAt))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function listResults(workoutId: string, variantId: string, scaling: ScalingCategory) {
+  const db = getDb();
+  return db
+    .select()
+    .from(schema.workoutResults)
+    .where(
+      and(
+        eq(schema.workoutResults.workoutId, workoutId),
+        eq(schema.workoutResults.workoutVariantId, variantId),
+        eq(schema.workoutResults.scalingCategory, scaling),
+        eq(schema.workoutResults.isComplete, true),
+        eq(schema.workoutResults.isAbandoned, false),
