@@ -17,3 +17,22 @@ export function RaceRails({ youProgress, opponentProgress, youLabel = 'YOU', opp
       <Rail label={opponentLabel} progress={opponentProgress} color={colors.muted} />
     </View>
   );
+}
+
+function Rail({ label, progress, color }: { label: string; progress: number; color: string }) {
+  const pct = Math.max(0, Math.min(1, progress)) * 100;
+  return (
+    <View style={styles.railRow}>
+      <Text style={styles.railLabel}>{label}</Text>
+      <View style={styles.track}>
+        <View style={[styles.fill, { width: `${pct}%`, backgroundColor: color }]} />
+        <View style={[styles.marker, { left: `${pct}%`, borderColor: color }]} />
+      </View>
+    </View>
+  );
+}
+
+export function CheckpointBreakdown({ items }: { items: { label: string; deltaMs: number }[] }) {
+  return (
+    <View>
+      {items.map((item) => (
