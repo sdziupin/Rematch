@@ -94,3 +94,22 @@ export async function runMigrations() {
       created_at INTEGER NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS workout_sessions (
+      id TEXT PRIMARY KEY,
+      workout_id TEXT NOT NULL,
+      workout_version_id TEXT NOT NULL,
+      workout_variant_id TEXT NOT NULL,
+      opponent_session_id TEXT,
+      scaling_category TEXT NOT NULL,
+      status TEXT NOT NULL,
+      started_at INTEGER,
+      completed_at INTEGER,
+      elapsed_active_ms INTEGER NOT NULL DEFAULT 0,
+      paused_accumulated_ms INTEGER NOT NULL DEFAULT 0,
+      last_paused_at INTEGER,
+      current_state_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS workout_session_events (
