@@ -263,3 +263,22 @@ REMATCH is intentionally dark, focused, and competitive without becoming aggress
 | Role | Token |
 |---|---|
 | Canvas | `#0A0C10` |
+| Surface | `#141820` |
+| Elevated | `#1C2230` |
+| Primary text | `#E8ECF4` |
+| **Ahead / CTA** | `#4ECDC4` |
+| **Behind / challenge** | `#F4A261` |
+| **PB / success** | `#6BCB77` |
+
+**Bebas Neue** carries workout names, timers, and big performance numbers. **DM Sans** handles the interface and metadata.
+
+The design system lives in [`design/`](./design/) and the runtime tokens in [`src/theme/`](./src/theme/).
+
+## Tests and invariants
+
+A few rules are important enough to be treated as product invariants:
+
+- paused time must never leak into active elapsed time;
+- race comparison must use checkpoint telemetry;
+- RX and scaled results must never share a PB;
+- the workout engine must complete deterministic round transitions;
