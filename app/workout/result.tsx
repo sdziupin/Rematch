@@ -71,3 +71,17 @@ export default function ResultScreen() {
       </View>
     </SafeAreaView>
   );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
+  headline: { ...typography.displayMD, color: colors.accent, textAlign: 'center' },
+  time: { ...typography.displayXL, color: colors.primary, textAlign: 'center', marginVertical: spacing.md },
+  opponent: { ...typography.subheading, color: colors.muted, textAlign: 'center' },
+  pbNote: { ...typography.body, color: colors.pb, textAlign: 'center', marginTop: spacing.sm },
+  breakdown: { marginTop: spacing.xl },
+  section: { ...typography.label, color: colors.muted, marginBottom: spacing.sm },
+  feedback: { marginTop: spacing.xl },
+  feedbackRow: { gap: spacing.sm },
+});
