@@ -13,3 +13,5 @@ export interface ExerciseSeed {
   secondaryMuscles: string[];
   category: string;
   equipment: string[];
+  impactLevel: 'low' | 'medium' | 'high';
+  easierVariantId?: string;
