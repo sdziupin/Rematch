@@ -187,3 +187,22 @@ flowchart TB
 | Navigation | Expo Router |
 | Language | TypeScript 6 |
 | State | Zustand |
+| Persistence | Expo SQLite |
+| ORM | Drizzle ORM |
+| Motion | React Native Reanimated |
+| Input | React Native Gesture Handler |
+| Feedback | Expo Haptics |
+| Typography | Bebas Neue + DM Sans |
+| Tests | Node test runner via `tsx` |
+
+## Quick start
+
+### 1. Install
+
+```bash
+git clone https://github.com/sdziupin/Rematch.git
+cd Rematch
+npm ci
+```
+
+### 2. Run
