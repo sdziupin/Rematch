@@ -86,3 +86,18 @@ export const workoutSessions = sqliteTable('workout_sessions', {
   status: text('status').notNull(),
   startedAt: integer('started_at'),
   completedAt: integer('completed_at'),
+  elapsedActiveMs: integer('elapsed_active_ms').notNull().default(0),
+  pausedAccumulatedMs: integer('paused_accumulated_ms').notNull().default(0),
+  lastPausedAt: integer('last_paused_at'),
+  currentStateJson: text('current_state_json').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const workoutSessionEvents = sqliteTable('workout_session_events', {
+  id: text('id').primaryKey(),
+  sessionId: text('session_id').notNull().references(() => workoutSessions.id),
+  type: text('type').notNull(),
+  payloadJson: text('payload_json').notNull(),
+  elapsedActiveMs: integer('elapsed_active_ms').notNull(),
+  createdAt: integer('created_at').notNull(),
