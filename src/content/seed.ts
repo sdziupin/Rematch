@@ -5,3 +5,6 @@ export interface ExerciseSeed {
   name: string;
   description: string;
   instructions: string;
+  startPosition: string;
+  movementSequence: string;
+  cues: string[];
