@@ -28,3 +28,18 @@ export default function TodayScreen() {
           recentWorkoutIds: [],
           painRecent: false,
         });
+        const w = await getWorkoutById(rec.workoutId);
+        if (!w) return;
+        setWorkout(w);
+        const versionId = `${w.id}-v1`;
+        const variantId = `${versionId}-full`;
+        const pbRow = await getPb(w.id, versionId, variantId, 'rx');
+        const lastRow = await getLastResult(w.id, variantId, 'rx');
+        setPb(pbRow?.completionMs ?? null);
+        setLast(lastRow?.completionMs ?? null);
+      })();
+    }, []),
+  );
+
+  if (!workout) return <SafeAreaView style={styles.safe} />;
+
