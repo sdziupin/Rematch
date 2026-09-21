@@ -8,3 +8,5 @@ export interface ExerciseSeed {
   startPosition: string;
   movementSequence: string;
   cues: string[];
+  mistakes: string[];
+  primaryMuscles: string[];
