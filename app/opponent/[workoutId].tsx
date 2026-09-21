@@ -26,3 +26,18 @@ export default function OpponentScreen() {
       const version = await getCurrentVersion(workoutId);
       if (!version) return;
       setVersionId(version.id);
+      const variant = await getVariant(version.id, 'full');
+      if (!variant) return;
+      setVariantId(variant.id);
+      setStructure(JSON.parse(variant.structureJson));
+      const results = await listResults(workoutId, variant.id, 'rx');
+      setAttempts(results);
+    })();
+  }, [workoutId]);
+
+  const rematch = async (opponentSessionId: string) => {
+    if (!workout || !structure || !versionId || !variantId) return;
+    const { sessionId, state } = await createSession({
+      workoutId: workout.id,
+      workoutVersionId: versionId,
+      workoutVariantId: variantId,
