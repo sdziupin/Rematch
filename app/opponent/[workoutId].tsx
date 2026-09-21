@@ -41,3 +41,17 @@ export default function OpponentScreen() {
       workoutId: workout.id,
       workoutVersionId: versionId,
       workoutVariantId: variantId,
+      scalingCategory: 'rx',
+      structure,
+      partialKey: 'full',
+      opponentSessionId,
+    });
+    setSession(sessionId, state, opponentSessionId);
+    router.replace('/workout/active');
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Choose Opponent</Text>
+        <Text style={styles.sub}>{workout?.name}</Text>
