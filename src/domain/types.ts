@@ -29,3 +29,35 @@ export interface SessionExerciseState {
   exerciseId: string;
   scaledExerciseId: string;
   targetReps: number;
+  completedReps: number;
+  durationSec?: number;
+}
+
+export interface SessionRoundState {
+  roundNumber: number;
+  exercises: SessionExerciseState[];
+  completed: boolean;
+}
+
+export interface ActiveWorkoutState {
+  workoutId: string;
+  workoutVersionId: string;
+  workoutVariantId: string;
+  partialKey: PartialKey;
+  scalingCategory: ScalingCategory;
+  structure: WorkoutStructure;
+  currentRoundIndex: number;
+  currentExerciseIndex: number;
+  rounds: SessionRoundState[];
+  phase: 'countdown' | 'active' | 'paused' | 'completed';
+  countdownRemaining: number;
+}
+
+export type SessionEventType =
+  | 'WorkoutStarted'
+  | 'RoundStarted'
+  | 'ExerciseStarted'
+  | 'RepMilestone'
+  | 'ExerciseCompleted'
+  | 'RoundCompleted'
+  | 'WorkoutPaused'
