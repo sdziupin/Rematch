@@ -17,3 +17,22 @@ export function useWorkoutTimer(snapshot: TimerSnapshot, onTick?: (ms: number) =
   }, [onTick]);
 
   useEffect(() => {
+    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
+      if (next === 'active') {
+        setElapsed(getElapsedActiveMs(snapshotRef.current));
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
+  return elapsed;
+}
+
+export function useTimerControls() {
+  return {
+    start: (s: TimerSnapshot, now = Date.now()) => startTimer(s, now),
+    pause: (s: TimerSnapshot, now = Date.now()) => pauseTimer(s, now),
+    resume: (s: TimerSnapshot, now = Date.now()) => resumeTimer(s, now),
+    elapsed: getElapsedActiveMs,
+  };
+}
