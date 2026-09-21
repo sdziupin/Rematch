@@ -110,3 +110,18 @@ export default function ActiveWorkoutScreen() {
   }
 
   if (state.phase === 'paused') {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.pauseWrap}>
+          <Text style={styles.pauseTitle}>PAUSED</Text>
+          <TimerDisplay ms={elapsed} large />
+          <Button title="Resume" onPress={async () => {
+            const resumed = resumeTimer(timer);
+            setTimer(resumed);
+            const next = { ...state, phase: 'active' as const };
+            setState(next);
+            await appendEvent(sessionId, 'WorkoutResumed', {}, getElapsedActiveMs(resumed));
+            await saveSessionState(sessionId, next, { elapsedActiveMs: getElapsedActiveMs(resumed), pausedAccumulatedMs: resumed.pausedAccumulatedMs, lastPausedAt: null, status: 'active', startedAt: resumed.startedAt });
+          }} style={{ marginTop: spacing.lg }} />
+          <Button title="End Workout" variant="danger" onPress={async () => {
+            await completeSession(sessionId, elapsed, false, true);
