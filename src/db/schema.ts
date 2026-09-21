@@ -42,3 +42,18 @@ export const workouts = sqliteTable('workouts', {
   id: text('id').primaryKey(),
   slug: text('slug').notNull().unique(),
   name: text('name').notNull(),
+  symbol: text('symbol').notNull(),
+  focus: text('focus').notNull(),
+  difficulty: text('difficulty').notNull(),
+  estimatedMinutesMin: integer('estimated_minutes_min').notNull(),
+  estimatedMinutesMax: integer('estimated_minutes_max').notNull(),
+  equipmentJson: text('equipment_json').notNull(),
+  format: text('format').notNull(),
+  identityColor: text('identity_color').notNull(),
+  visualAsset: text('visual_asset').notNull(),
+  progressionTier: text('progression_tier').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const workoutVersions = sqliteTable('workout_versions', {
