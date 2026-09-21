@@ -42,3 +42,17 @@ export default function ResultScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text style={styles.headline}>
+          {isFirst ? 'FIRST RESULT' : newPb ? 'NEW PERSONAL BEST' : won ? 'YOU WON' : comparison.tied ? 'TIED' : 'SO CLOSE'}
+        </Text>
+        <Text style={styles.time}>{formatDuration(comparison.youMs)}</Text>
+        {!isFirst && comparison.opponentMs != null && (
+          <Text style={styles.opponent}>vs {formatDuration(comparison.opponentMs)} · {formatDelta(comparison.deltaMs)}</Text>
+        )}
+        {newPb && <Text style={styles.pbNote}>New opponent created.</Text>}
+        {comparison.checkpoints?.length > 0 && (
+          <View style={styles.breakdown}>
+            <Text style={styles.section}>CHECKPOINTS</Text>
+            <CheckpointBreakdown items={comparison.checkpoints.map((c: any) => ({ label: c.label, deltaMs: c.deltaMs }))} />
+          </View>
