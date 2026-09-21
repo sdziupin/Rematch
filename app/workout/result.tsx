@@ -27,3 +27,18 @@ export default function ResultScreen() {
       }
     })();
   }, [sessionId, opponentSessionId]);
+
+  const submitFeedback = async (intensity: string) => {
+    if (!sessionId || feedbackSent) return;
+    await saveFeedback(sessionId, intensity);
+    setFeedbackSent(true);
+  };
+
+  if (!comparison) return <SafeAreaView style={styles.safe} />;
+
+  const isFirst = comparison.isFirst;
+  const won = comparison.won;
+  const newPb = comparison.isNewPb;
+
+  return (
+    <SafeAreaView style={styles.safe}>
