@@ -23,3 +23,16 @@ export function ExerciseVisual({ exerciseId, category = 'default', size = 160 }:
 
   if (generated) {
     return (
+      <View style={[styles.wrap, { width: size }]} accessibilityLabel={`Exercise demonstration for ${exerciseId}`}>
+        <Image source={generated} style={[styles.image, { width: size, height: size, borderRadius: 16 }]} resizeMode="cover" />
+        <Text style={styles.caption} numberOfLines={1}>{exerciseId.replace(/-/g, ' ')}</Text>
+      </View>
+    );
+  }
+
+  const pose = POSES[category] ?? POSES.default;
+  const id = exerciseId.toLowerCase();
+
+  return (
+    <View style={[styles.wrap, { width: size, height: size }]} accessibilityLabel={`Exercise demonstration for ${exerciseId}`}>
+      <Svg width={size} height={size} viewBox="0 0 120 120">
