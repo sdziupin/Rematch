@@ -48,3 +48,15 @@ export default function LibraryScreen() {
         if (duration === '15-20' && (mid < 15 || mid > 20)) return false;
         if (duration === '20-30' && (mid < 20 || mid > 30)) return false;
         if (duration === '30+' && mid < 30) return false;
+      }
+      return true;
+    });
+  }, [workouts, query, duration, difficulty]);
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Workouts</Text>
+        <TextInput placeholder="Search" placeholderTextColor={colors.muted} value={query} onChangeText={setQuery} style={styles.search} />
+        <FilterRow options={DURATIONS} value={duration} onChange={setDuration} />
+        <FilterRow options={DIFFICULTIES} value={difficulty} onChange={setDifficulty} />
