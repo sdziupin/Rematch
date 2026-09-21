@@ -40,3 +40,17 @@ export default function ProgressScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Progress</Text>
+        <View style={styles.summary}>
+          <Text style={styles.summaryLabel}>This week</Text>
+          <Text style={styles.summaryValue}>{sessionsWeek} sessions</Text>
+        </View>
+        <Text style={styles.section}>Benchmark improvement</Text>
+        {rows.length === 0 ? (
+          <Text style={styles.empty}>Complete your first benchmark to see progress.</Text>
+        ) : (
+          rows.map((r) => {
+            const delta = r.first != null && r.latest != null ? r.latest - r.first : 0;
+            return (
+              <View key={r.name} style={styles.row}>
