@@ -8,3 +8,13 @@
     <linearGradient id="teal" x1="840" y1="120" x2="1300" y2="450" gradientUnits="userSpaceOnUse">
       <stop stop-color="#4ECDC4"/>
       <stop offset="1" stop-color="#4ECDC4" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="warm" x1="1030" y1="140" x2="1310" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F4A261" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#F4A261" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#2A3142" stroke-opacity="0.22" stroke-width="1"/>
+    </pattern>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="18"/>
