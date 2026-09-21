@@ -82,3 +82,6 @@ export interface WorkoutSeed {
   focus: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced' | 'elite';
   estimatedMinutesMin: number;
+  estimatedMinutesMax: number;
+  equipment: string[];
+  format: WorkoutStructure['format'];
