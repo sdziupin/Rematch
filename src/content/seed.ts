@@ -85,3 +85,5 @@ export interface WorkoutSeed {
   estimatedMinutesMax: number;
   equipment: string[];
   format: WorkoutStructure['format'];
+  identityColor: string;
+  progressionTier: string;
