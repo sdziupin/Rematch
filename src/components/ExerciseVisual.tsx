@@ -49,3 +49,16 @@ export function ExerciseVisual({ exerciseId, category = 'default', size = 160 }:
         ) : id.includes('plank') || id.includes('mountain') ? (
           <>
             <Line x1="30" y1="70" x2="90" y2="70" stroke={pose.color} strokeWidth="6" strokeLinecap="round" />
+            <Circle cx="95" cy="65" r="8" fill={pose.color} />
+            <Line x1="50" y1="70" x2="45" y2="95" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+            <Line x1="75" y1="70" x2="80" y2="95" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+          </>
+        ) : (
+          <>
+            <Circle cx="60" cy="35" r="10" fill={pose.color} />
+            <Line x1="60" y1="45" x2="60" y2="78" stroke={pose.color} strokeWidth="6" strokeLinecap="round" />
+            <Line x1="60" y1="55" x2="38" y2="72" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+            <Line x1="60" y1="55" x2="82" y2="72" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+            <Line x1="60" y1="78" x2="48" y2="102" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+            <Line x1="60" y1="78" x2="72" y2="102" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+          </>
