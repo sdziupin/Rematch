@@ -68,3 +68,17 @@ export default function ActiveWorkoutScreen() {
       if (!ex) return;
       const meta = await getExercise(ex.scaledExerciseId);
       setExerciseMeta(meta);
+    })();
+  }, [state?.currentRoundIndex, state?.currentExerciseIndex]);
+
+  useEffect(() => {
+    if (!state || state.phase !== 'countdown' || !sessionId) return;
+    const t = setInterval(() => {
+      const current = useWorkoutStore.getState().state;
+      const currentTimer = useWorkoutStore.getState().timer;
+      if (!current || current.phase !== 'countdown') return;
+      if (current.countdownRemaining <= 0) {
+        const started = startTimer(currentTimer);
+        setTimer(started);
+        const next = { ...current, phase: 'active' as const, countdownRemaining: 0 };
+        setState(next);
