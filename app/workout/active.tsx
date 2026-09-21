@@ -82,3 +82,17 @@ export default function ActiveWorkoutScreen() {
         setTimer(started);
         const next = { ...current, phase: 'active' as const, countdownRemaining: 0 };
         setState(next);
+        appendEvent(sessionId, 'WorkoutStarted', {}, 0);
+        saveSessionState(sessionId, next, { elapsedActiveMs: 0, pausedAccumulatedMs: 0, lastPausedAt: null, status: 'active', startedAt: Date.now() });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        return;
+      }
+      setState({ ...current, countdownRemaining: current.countdownRemaining - 1 });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [state?.phase, sessionId]);
+
+  if (!state || !sessionId) {
+    router.replace('/');
+    return null;
