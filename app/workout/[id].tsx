@@ -40,3 +40,17 @@ export default function WorkoutDetailScreen() {
       setStructure(s);
       const pbRow = await getPb(w.id, version.id, variant.id, 'rx');
       const lastRow = await getLastResult(w.id, variant.id, 'rx');
+      setPb(pbRow?.completionMs ?? null);
+      setLast(lastRow?.completionMs ?? null);
+      const ids = s.rounds[0]?.steps ?? [];
+      const names: string[] = [];
+      for (const st of ids) {
+        const ex = await getExercise(st.exerciseId);
+        const prefix = st.durationSec ? `${st.durationSec}s` : `${st.reps}`;
+        names.push(ex ? `${prefix} ${ex.name}` : st.exerciseId);
+      }
+      setExerciseNames(names);
+    })();
+  }, [id, partialKey]);
+
+  const start = async (opponentSessionId?: string | null) => {
