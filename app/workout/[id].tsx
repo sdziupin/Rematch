@@ -110,3 +110,17 @@ export default function WorkoutDetailScreen() {
         <Text style={styles.section}>Equipment</Text>
         <Text style={styles.meta}>{JSON.parse(workout.equipmentJson).join(', ') || 'None'}</Text>
 
+        <Text style={styles.section}>Variant</Text>
+        <View style={styles.variantRow}>
+          {['quarter', 'half', 'three_quarter', 'full'].map((k) => (
+            <Button key={k} title={k === 'three_quarter' ? '3/4' : k === 'quarter' ? '1/4' : k === 'half' ? '1/2' : 'FULL'} variant={partialKey === k ? 'primary' : 'secondary'} onPress={() => setPartialKey(k)} style={styles.variantBtn} />
+          ))}
+        </View>
+
+        {pb != null && <Button title="REMATCH PB" onPress={startRematchPb} style={styles.cta} />}
+        {last != null && <Button title="REMATCH LAST" variant="secondary" onPress={startRematchLast} />}
+        <Button title="JUST TRAIN" variant="ghost" onPress={() => start(null)} />
+        <Button title="Choose Opponent" variant="ghost" onPress={() => router.push(`/opponent/${workout.id}`)} />
+        <Button title="Scale" variant="ghost" onPress={() => {}} />
+      </ScrollView>
+    </SafeAreaView>
