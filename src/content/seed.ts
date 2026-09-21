@@ -90,3 +90,5 @@ export interface WorkoutSeed {
   structure: WorkoutStructure;
 }
 
+function rounds(count: number, steps: WorkoutStructure['rounds'][0]['steps']): WorkoutStructure {
+  return {
