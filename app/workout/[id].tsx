@@ -68,3 +68,17 @@ export default function WorkoutDetailScreen() {
       partialKey: partialKey as any,
       opponentSessionId: opponent ?? null,
     });
+    setSession(sessionId, state, opponent ?? null);
+    router.push('/workout/active');
+  };
+
+  const resolveDefaultOpponent = async () => {
+    const lastRow = await getLastResult(workout.id, variantId, 'rx');
+    if (lastRow) return lastRow.sessionId;
+    const pbRow = await getPb(workout.id, versionId, variantId, 'rx');
+    if (pbRow) return pbRow.sessionId;
+    return null;
+  };
+
+  const startRematchPb = async () => {
+    const pbRow = await getPb(workout.id, versionId, variantId, 'rx');
