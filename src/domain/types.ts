@@ -61,3 +61,34 @@ export type SessionEventType =
   | 'ExerciseCompleted'
   | 'RoundCompleted'
   | 'WorkoutPaused'
+  | 'WorkoutResumed'
+  | 'ExerciseScaled'
+  | 'ExerciseSubstituted'
+  | 'WorkoutCompleted'
+  | 'WorkoutAbandoned';
+
+export interface CompatibilityKey {
+  workoutId: string;
+  workoutVersionId: string;
+  workoutVariantId: string;
+  scalingCategory: ScalingCategory;
+}
+
+export interface CheckpointComparison {
+  checkpointKey: string;
+  label: string;
+  deltaMs: number;
+  youMs: number;
+  opponentMs: number;
+}
+
+export interface RematchComparison {
+  youMs: number;
+  opponentMs: number;
+  deltaMs: number;
+  won: boolean;
+  tied: boolean;
+  checkpoints: CheckpointComparison[];
+  isNewPb: boolean;
+  previousPbMs: number | null;
+}
