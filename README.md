@@ -16,3 +16,22 @@
 </p>
 
 <p align="center">
+  <a href="#the-idea">The idea</a> ·
+  <a href="#how-rematch-works">How it works</a> ·
+  <a href="#what-makes-it-different">Why REMATCH</a> ·
+  <a href="#architecture">Architecture</a> ·
+  <a href="#quick-start">Quick start</a>
+</p>
+
+---
+
+## The idea
+
+Most workout apps record a result.
+
+**REMATCH records a race.**
+
+Every completed benchmark can become an opponent for the next attempt. Instead of comparing only final times, REMATCH stores workout events and checkpoint timestamps, then uses that real telemetry during the next session to show whether you're ahead or behind **where it actually matters**.
+
+> Final time tells you **if** you improved. Checkpoints help tell you **where**.
+
