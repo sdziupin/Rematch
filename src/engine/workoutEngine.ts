@@ -93,3 +93,22 @@ export function createActiveState(
   };
 }
 
+function buildRoundsFromStructure(structure: WorkoutStructure): SessionRoundState[] {
+  return structure.rounds.map((round) => ({
+    roundNumber: round.roundNumber,
+    completed: false,
+    exercises: round.steps.map((step) => ({
+      exerciseId: step.exerciseId,
+      scaledExerciseId: step.exerciseId,
+      targetReps: step.reps ?? 0,
+      completedReps: 0,
+      durationSec: step.durationSec,
+    })),
+  }));
+}
+
+export function scaleExercise(state: ActiveWorkoutState, scaledExerciseId: string): ActiveWorkoutState {
+  const rounds = state.rounds.map((r, ri) =>
+    ri !== state.currentRoundIndex
+      ? r
+      : {
