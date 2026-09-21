@@ -85,3 +85,16 @@ export default function LibraryScreen() {
 function FilterRow({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
   return (
     <View style={styles.filterRow}>
+      {options.map((o) => (
+        <Pressable key={o} onPress={() => onChange(o)} style={[styles.chip, value === o && styles.chipOn]}>
+          <Text style={[styles.chipText, value === o && styles.chipTextOn]}>{o}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: spacing.lg },
+  title: { ...typography.displayMD, color: colors.primary, marginBottom: spacing.md },
