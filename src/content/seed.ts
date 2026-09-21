@@ -136,3 +136,6 @@ WORKOUT_SEEDS.find((w) => w.slug === 'pulse')!.structure.rounds[0].steps[0].exer
 
 export const PARTIAL_FRACTIONS = [
   { key: 'full', label: 'FULL', fraction: 1 },
+  { key: 'three_quarter', label: '3/4', fraction: 0.75 },
+  { key: 'half', label: '1/2', fraction: 0.5 },
+  { key: 'quarter', label: '1/4', fraction: 0.25 },
