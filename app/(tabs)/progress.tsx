@@ -68,3 +68,17 @@ export default function ProgressScreen() {
   );
 }
 
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { padding: spacing.lg },
+  title: { ...typography.displayMD, color: colors.primary },
+  summary: { backgroundColor: colors.surface, padding: spacing.lg, borderRadius: 12, marginVertical: spacing.md },
+  summaryLabel: { ...typography.label, color: colors.muted },
+  summaryValue: { ...typography.heading, color: colors.primary },
+  section: { ...typography.label, color: colors.muted, marginBottom: spacing.sm },
+  empty: { ...typography.body, color: colors.muted },
+  row: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  rowName: { ...typography.subheading, color: colors.primary },
+  rowMeta: { ...typography.caption, color: colors.muted },
+  rowDelta: { ...typography.bodyBold, marginTop: 4 },
+});
