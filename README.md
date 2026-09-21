@@ -168,3 +168,22 @@ flowchart TB
 
 | Surface | Purpose |
 |---|---|
+| **Onboarding** | Goal, level, available equipment, typical workout time, weekly frequency |
+| **Today** | Recommended session and fast entry into the next challenge |
+| **Challenge Me** | Time-boxed recommendation: 5 / 10 / 15 / 20 / 30 minutes |
+| **Library** | Browse the benchmark catalog |
+| **Workout** | Structure, variant, scaling, opponent, and start |
+| **Active** | Timer, reps, exercise visual, race delta, progress rails |
+| **Results** | Final comparison, checkpoint breakdown, PB state, workout feedback |
+| **Progress** | Attempts and first → latest performance trend |
+| **Profile** | Training preferences and workout behavior settings |
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| App | React Native 0.86 + React 19 |
+| Runtime | Expo 57 |
+| Navigation | Expo Router |
+| Language | TypeScript 6 |
+| State | Zustand |
