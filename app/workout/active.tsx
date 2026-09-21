@@ -139,3 +139,17 @@ export default function ActiveWorkoutScreen() {
     ? getLiveDelta(elapsed, opponentCheckpoints.current, getCheckpointKey(state))
     : null;
   const youProgress = state.rounds.filter((r) => r.completed).length / state.rounds.length;
+  const oppProgress = opponentSessionId
+    ? getOpponentProgress(opponentCheckpoints.current, opponentFinalMs.current, elapsed)
+    : 0;
+
+  const handleNext = async () => {
+    const { state: nextState, checkpoint } = nextStep(state);
+    if (checkpoint) {
+      await addCheckpoint(sessionId, checkpoint.key, checkpoint.label, elapsed);
+      await appendEvent(sessionId, 'RoundCompleted', checkpoint, elapsed);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      await appendEvent(sessionId, 'ExerciseCompleted', { exerciseId: current?.scaledExerciseId }, elapsed);
+    }
+    if (nextState.phase === 'completed') {
