@@ -34,3 +34,21 @@ export function recommendWorkout(input: RecommendationInput): Recommendation {
     const bMid = (b.estimatedMinutesMin + b.estimatedMinutesMax) / 2;
     return Math.abs(aMid - input.minutes) - Math.abs(bMid - input.minutes);
   });
+  const pick = sorted[0];
+  return {
+    workoutId: pick.id,
+    reason: `${input.minutes} min · ${pick.focus.replace('_', ' ')} · ${pick.difficulty}`,
+  };
+}
+
+export function recommendTodayWorkout(input: RecommendationInput): Recommendation {
+  return recommendWorkout({ ...input, minutes: input.minutes || 15 });
+}
+
+export function difficultyLabel(d: Difficulty): string {
+  return d.charAt(0).toUpperCase() + d.slice(1);
+}
+
+export function focusLabel(focus: string): string {
+  return focus.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
