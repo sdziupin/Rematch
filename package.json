@@ -21,3 +21,26 @@
     "react-native-gesture-handler": "^3.2.1",
     "react-native-reanimated": "^4.6.0",
     "react-native-safe-area-context": "^5.9.1",
+    "react-native-screens": "^4.27.0",
+    "react-native-svg": "^15.15.5",
+    "uuid": "^14.0.2",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "tsx": "^4.19.0",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "npx tsx --test src/**/*.test.ts",
+    "generate:assets": "node scripts/generate-gemini-assets.mjs",
+    "generate:assets:icon": "node scripts/generate-gemini-assets.mjs --type icon",
+    "generate:assets:exercises": "node scripts/generate-gemini-assets.mjs --type exercises --all",
+    "generate:assets:workouts": "node scripts/generate-gemini-assets.mjs --type workouts --all"
+  },
+  "private": true
+}
