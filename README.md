@@ -73,3 +73,22 @@ A previous attempt is not simulated as a smooth, imaginary pace. The race UI adv
 | | Capability | What it means in practice |
 |---|---|---|
 | **↯** | **Real rematch telemetry** | Live ahead/behind comparison is based on recorded checkpoints, not linear interpolation. |
+| **◎** | **Any past attempt can race you** | Historical completed sessions are selectable as opponents, so “past you” is a concrete performance. |
+| **◆** | **PBs stay comparable** | Personal bests are isolated by workout version, workout variant, and scaling category. |
+| **↺** | **Workout recovery** | Active and paused sessions persist their state and can be resumed after leaving the workout flow. |
+| **⌁** | **Offline-first core** | Workouts, sessions, events, checkpoints, results, feedback, and PBs live in local SQLite. |
+| **⚡** | **Challenge Me** | Pick 5, 10, 15, 20, or 30 minutes and the recommendation engine chooses a suitable benchmark. |
+| **◫** | **Progress, not just history** | Results can be compared across attempts to surface improvement from first to latest performance. |
+| **✦** | **Workout-native UX** | Haptics, keep-awake behavior, large touch targets, countdowns, rep controls, and pause/resume are built around training. |
+
+## Training library
+
+REMATCH ships with **31 original benchmark workouts** — including **TEMPEST, EMBER, RIPTIDE, AVALANCHE, SUMMIT, VORTEX, APEX, NOVA, ONYX, AURORA** and more.
+
+The current seed contains **52 exercises** with movement metadata and scaling relationships.
+
+### Workout model
+
+- **Formats:** fixed rounds, chipper, ladder, intervals, AMRAP
+- **Difficulty:** beginner, intermediate, advanced, elite
+- **Scaling:** RX, scaled, modified
