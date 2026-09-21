@@ -12,3 +12,18 @@ export default function ResultScreen() {
   const { sessionId, opponentSessionId } = useLocalSearchParams<{ sessionId: string; opponentSessionId?: string }>();
   const router = useRouter();
   const [comparison, setComparison] = useState<any>(null);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      if (!sessionId) return;
+      if (opponentSessionId) {
+        const cmp = await buildRematchComparison(sessionId, opponentSessionId);
+        setComparison(cmp);
+      } else {
+        const { getSession } = await import('../../src/services/sessionService');
+        const s = await getSession(sessionId);
+        setComparison({ youMs: s?.elapsedActiveMs ?? 0, isFirst: true });
+      }
+    })();
+  }, [sessionId, opponentSessionId]);
