@@ -202,3 +202,23 @@ export async function getPb(workoutId: string, versionId: string, variantId: str
     .from(schema.personalBests)
     .where(
       and(
+        eq(schema.personalBests.workoutId, workoutId),
+        eq(schema.personalBests.workoutVersionId, versionId),
+        eq(schema.personalBests.workoutVariantId, variantId),
+        eq(schema.personalBests.scalingCategory, scaling),
+      ),
+    )
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getLastResult(workoutId: string, variantId: string, scaling: ScalingCategory) {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(schema.workoutResults)
+    .where(
+      and(
+        eq(schema.workoutResults.workoutId, workoutId),
+        eq(schema.workoutResults.workoutVariantId, variantId),
+        eq(schema.workoutResults.scalingCategory, scaling),
