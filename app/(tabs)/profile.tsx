@@ -25,3 +25,17 @@ export default function ProfileScreen() {
   );
 
   const save = async (patch: Record<string, boolean>) => {
+    await updateProfile(patch);
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.tagline}>You vs. you.</Text>
+        <Setting label="Haptics" value={haptics} onChange={(v) => { setHaptics(v); save({ hapticsEnabled: v }); }} />
+        <Setting label="Sound cues" value={sound} onChange={(v) => { setSound(v); save({ soundEnabled: v }); }} />
+        <Setting label="Voice cues" value={voice} onChange={(v) => { setVoice(v); save({ voiceEnabled: v }); }} />
+        <Setting label="Keep screen awake during workout" value={keepAwake} onChange={(v) => { setKeepAwake(v); save({ keepAwakeEnabled: v }); }} />
+        <View style={styles.disclaimer}>
+          <Text style={styles.disclaimerTitle}>Training safety</Text>
