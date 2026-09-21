@@ -20,3 +20,26 @@
     "justTrain": "JUST TRAIN",
     "ahead": "AHEAD",
     "behind": "BEHIND",
+    "tied": "TIED"
+  },
+  "results": {
+    "youWon": "YOU WON",
+    "soClose": "SO CLOSE",
+    "newPb": "NEW PERSONAL BEST",
+    "firstResult": "FIRST RESULT",
+    "newOpponent": "New opponent created",
+    "previousPb": "Previous PB",
+    "readyRematch": "Ready for a rematch?",
+    "firstChallenge": "YOUR FIRST CHALLENGE",
+    "firstRematch": "YOUR FIRST REMATCH"
+  },
+  "workout": {
+    "paused": "PAUSED",
+    "resume": "Resume",
+    "endWorkout": "End Workout",
+    "inProgress": "WORKOUT IN PROGRESS",
+    "round": "ROUND",
+    "next": "NEXT",
+    "go": "GO"
+  },
+  "feedback": {
