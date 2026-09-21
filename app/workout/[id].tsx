@@ -96,3 +96,17 @@ export default function WorkoutDetailScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.container}>
         <WorkoutArtwork slug={workout.slug} symbol={workout.symbol} color={workout.identityColor} size={96} />
+        <Text style={styles.name}>{workout.name}</Text>
+        <Text style={styles.meta}>{difficultyLabel(workout.difficulty)} · {focusLabel(workout.focus)}</Text>
+        <Text style={styles.duration}>≈ {workout.estimatedMinutesMin}–{workout.estimatedMinutesMax} min</Text>
+        <View style={styles.stats}>
+          <Stat label="PB" value={pb != null ? formatDuration(pb) : '—'} highlight />
+          <Stat label="LAST" value={last != null ? formatDuration(last) : '—'} />
+        </View>
+        <Text style={styles.section}>{structure.rounds.length} rounds</Text>
+        {exerciseNames.map((line, i) => (
+          <Text key={i} style={styles.exerciseLine}>{line}</Text>
+        ))}
+        <Text style={styles.section}>Equipment</Text>
+        <Text style={styles.meta}>{JSON.parse(workout.equipmentJson).join(', ') || 'None'}</Text>
+
