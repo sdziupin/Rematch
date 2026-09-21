@@ -54,3 +54,17 @@ export default function WorkoutDetailScreen() {
   }, [id, partialKey]);
 
   const start = async (opponentSessionId?: string | null) => {
+    if (!workout || !structure || !versionId || !variantId) return;
+    let opponent = opponentSessionId;
+    if (opponent === undefined && mode !== 'train') {
+      opponent = await resolveDefaultOpponent();
+    }
+    const { sessionId, state } = await createSession({
+      workoutId: workout.id,
+      workoutVersionId: versionId,
+      workoutVariantId: variantId,
+      scalingCategory: 'rx',
+      structure,
+      partialKey: partialKey as any,
+      opponentSessionId: opponent ?? null,
+    });
