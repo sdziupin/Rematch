@@ -105,3 +105,24 @@ export async function getProfile() {
 }
 
 export async function updateProfile(patch: Partial<typeof schema.userProfile.$inferInsert>) {
+  const db = getDb();
+  const profile = await getProfile();
+  if (!profile) return;
+  await db.update(schema.userProfile).set({ ...patch, updatedAt: now() }).where(eq(schema.userProfile.id, profile.id));
+}
+
+export async function listWorkouts() {
+  const db = getDb();
+  return db.select().from(schema.workouts);
+}
+
+export async function getWorkoutById(id: string) {
+  const db = getDb();
+  const rows = await db.select().from(schema.workouts).where(eq(schema.workouts.id, id)).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function getCurrentVersion(workoutId: string) {
+  const db = getDb();
+  const rows = await db
+    .select()
