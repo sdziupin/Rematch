@@ -45,3 +45,19 @@ export default function Onboarding() {
 
         <Section title="Focus">
           <Row options={GOALS} value={goal} onChange={setGoal} />
+        </Section>
+        <Section title="Level">
+          <Row options={LEVELS} value={level} onChange={setLevel} />
+        </Section>
+        <Section title="Equipment">
+          <Wrap options={EQUIPMENT} selected={equipment} onToggle={toggleEquip} />
+        </Section>
+        <Section title="Typical time">
+          <NumRow options={TIMES} value={minutes} onChange={setMinutes} suffix=" min" />
+        </Section>
+        <Section title="Days per week">
+          <NumRow options={FREQ} value={freq} onChange={setFreq} suffix="+" />
+        </Section>
+
+        <Button title="YOUR FIRST CHALLENGE" onPress={finish} style={{ marginTop: spacing.xl }} />
+      </ScrollView>
