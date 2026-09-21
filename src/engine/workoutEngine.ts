@@ -55,3 +55,22 @@ export function nextStep(state: ActiveWorkoutState): { state: ActiveWorkoutState
   checkpoint = {
     key: `round-${round.roundNumber}`,
     label: `Round ${round.roundNumber}`,
+  };
+
+  const rounds = s.rounds.map((r, i) => (i === s.currentRoundIndex ? { ...r, completed: true } : r));
+  s = { ...s, rounds };
+
+  const hasMoreRounds = s.currentRoundIndex < s.rounds.length - 1;
+  if (hasMoreRounds) {
+    s = { ...s, currentRoundIndex: s.currentRoundIndex + 1, currentExerciseIndex: 0 };
+    return { state: s, checkpoint };
+  }
+
+  s = { ...s, phase: 'completed' };
+  return { state: s, checkpoint };
+}
+
+export function createActiveState(
+  workoutId: string,
+  workoutVersionId: string,
+  workoutVariantId: string,
