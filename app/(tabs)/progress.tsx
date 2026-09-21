@@ -26,3 +26,17 @@ export default function ProgressScreen() {
           const sorted = [...results].sort((a, b) => a.createdAt - b.createdAt);
           out.push({
             name: w.name,
+            first: sorted[0].completionMs,
+            latest: sorted[sorted.length - 1].completionMs,
+            count: results.length,
+          });
+          weekCount += results.filter((r) => r.createdAt >= weekAgo).length;
+        }
+        setRows(out);
+        setSessionsWeek(weekCount);
+      })();
+    }, []),
+  );
+
+  return (
+    <SafeAreaView style={styles.safe}>
