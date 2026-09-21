@@ -15,3 +15,6 @@ export interface ExerciseSeed {
   equipment: string[];
   impactLevel: 'low' | 'medium' | 'high';
   easierVariantId?: string;
+  harderVariantId?: string;
+  visualAsset: string;
+}
