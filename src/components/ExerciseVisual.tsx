@@ -62,3 +62,15 @@ export function ExerciseVisual({ exerciseId, category = 'default', size = 160 }:
             <Line x1="60" y1="78" x2="48" y2="102" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
             <Line x1="60" y1="78" x2="72" y2="102" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
           </>
+        )}
+      </Svg>
+      <Text style={styles.caption} numberOfLines={1}>{exerciseId.replace(/-/g, ' ')}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { alignItems: 'center', justifyContent: 'center' },
+  image: { backgroundColor: colors.surfaceElevated },
+  caption: { ...typography.caption, color: colors.muted, marginTop: 8, textTransform: 'capitalize' },
+});
