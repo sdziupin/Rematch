@@ -56,3 +56,18 @@ export default function ResultScreen() {
             <Text style={styles.section}>CHECKPOINTS</Text>
             <CheckpointBreakdown items={comparison.checkpoints.map((c: any) => ({ label: c.label, deltaMs: c.deltaMs }))} />
           </View>
+        )}
+        {!feedbackSent && (
+          <View style={styles.feedback}>
+            <Text style={styles.section}>HOW WAS IT?</Text>
+            <View style={styles.feedbackRow}>
+              <Button title="Too easy" variant="secondary" onPress={() => submitFeedback('too_easy')} />
+              <Button title="Good" variant="secondary" onPress={() => submitFeedback('good')} />
+              <Button title="Too hard" variant="secondary" onPress={() => submitFeedback('too_hard')} />
+            </View>
+          </View>
+        )}
+        <Button title={isFirst ? 'Done' : 'Ready for another rematch?'} onPress={() => router.replace('/(tabs)/today')} style={{ marginTop: spacing.xl }} />
+      </View>
+    </SafeAreaView>
+  );
