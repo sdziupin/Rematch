@@ -15,3 +15,20 @@ test('timer tracks pause without drift', () => {
   snap = pauseTimer(snap, now);
   now += 60_000;
   assert.equal(getElapsedActiveMs(snap, now), 5000);
+  snap = resumeTimer(snap, now);
+  now += 2000;
+  assert.equal(getElapsedActiveMs(snap, now), 7000);
+});
+
+test('rematch uses checkpoint telemetry not linear guess', () => {
+  const result = compareCheckpoints(
+    [
+      { checkpointKey: 'round-1', label: 'Round 1', elapsedActiveMs: 120_000 },
+      { checkpointKey: 'round-2', label: 'Round 2', elapsedActiveMs: 250_000 },
+    ],
+    [
+      { checkpointKey: 'round-1', label: 'Round 1', elapsedActiveMs: 125_000 },
+      { checkpointKey: 'round-2', label: 'Round 2', elapsedActiveMs: 260_000 },
+    ],
+    500_000,
+    510_000,
