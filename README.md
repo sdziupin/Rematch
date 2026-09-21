@@ -149,3 +149,22 @@ flowchart TB
     DB --> PB["Personal bests"]
     DB --> HISTORY["History / progress"]
     DB --> RECOVERY["Session recovery"]
+    PB --> UI
+    HISTORY --> UI
+    RECOVERY --> UI
+```
+
+### Design principles
+
+**Local first.** The important path from tapping **START** to finishing a workout does not depend on a remote service.
+
+**History must stay honest.** Workout versions, variants, and scaling are part of result compatibility instead of being flattened into one misleading PB.
+
+**The timer is part of the domain.** Pauses are accumulated explicitly so elapsed active time stays stable across pause/resume cycles.
+
+**Workout controls beat decoration.** The active screen keeps high-priority actions in reach with large touch targets and avoids blocking animation.
+
+## Product flow
+
+| Surface | Purpose |
+|---|---|
