@@ -109,3 +109,18 @@ function NumRow({ options, value, onChange, suffix = '' }: { options: number[]; 
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  brand: { ...typography.displayLG, color: colors.primary },
+  tagline: { ...typography.subheading, color: colors.accent, marginBottom: spacing.md },
+  intro: { ...typography.body, color: colors.muted, marginBottom: spacing.lg },
+  section: { marginBottom: spacing.lg },
+  sectionTitle: { ...typography.label, color: colors.muted, marginBottom: spacing.sm },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  chipActive: { borderColor: colors.accent, backgroundColor: colors.surfaceElevated },
+  chipText: { ...typography.caption, color: colors.muted, textTransform: 'capitalize' },
+  chipTextActive: { color: colors.primary },
+});
