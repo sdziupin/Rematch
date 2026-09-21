@@ -36,3 +36,22 @@ export function completeCurrentExercise(state: ActiveWorkoutState): ActiveWorkou
               ? e
               : { ...e, completedReps: e.durationSec ? 1 : e.targetReps },
           ),
+        },
+  );
+  return { ...state, rounds };
+}
+
+export function nextStep(state: ActiveWorkoutState): { state: ActiveWorkoutState; checkpoint?: { key: string; label: string } } {
+  let s = completeCurrentExercise(state);
+  let checkpoint: { key: string; label: string } | undefined;
+
+  const round = s.rounds[s.currentRoundIndex];
+  const hasMoreExercises = s.currentExerciseIndex < round.exercises.length - 1;
+  if (hasMoreExercises) {
+    s = { ...s, currentExerciseIndex: s.currentExerciseIndex + 1 };
+    return { state: s };
+  }
+
+  checkpoint = {
+    key: `round-${round.roundNumber}`,
+    label: `Round ${round.roundNumber}`,
