@@ -13,3 +13,19 @@ const TIMES = [10, 15, 20, 30];
 const FREQ = [2, 3, 4, 5];
 
 export default function Onboarding() {
+  const router = useRouter();
+  const [goal, setGoal] = useState('conditioning');
+  const [level, setLevel] = useState('intermediate');
+  const [equipment, setEquipment] = useState<string[]>(['bodyweight', 'mat']);
+  const [minutes, setMinutes] = useState(15);
+  const [freq, setFreq] = useState(3);
+
+  const toggleEquip = (e: string) => {
+    setEquipment((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
+  };
+
+  const finish = async () => {
+    await updateProfile({
+      goal,
+      level,
+      typicalMinutes: minutes,
