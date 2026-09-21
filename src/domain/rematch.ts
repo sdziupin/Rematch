@@ -42,3 +42,25 @@ export function compareCheckpoints(
 
 export function getLiveDelta(
   yourElapsedMs: number,
+  opponentCheckpoints: OpponentCheckpoint[],
+  currentCheckpointKey: string,
+): number | null {
+  const lastCompleted = [...opponentCheckpoints]
+    .filter((c) => c.checkpointKey <= currentCheckpointKey)
+    .sort((a, b) => b.elapsedActiveMs - a.elapsedActiveMs)[0];
+  if (!lastCompleted) return null;
+  return yourElapsedMs - lastCompleted.elapsedActiveMs;
+}
+
+export function getOpponentProgress(
+  opponentCheckpoints: OpponentCheckpoint[],
+  opponentFinalMs: number,
+  yourElapsedMs: number,
+): number {
+  if (opponentCheckpoints.length === 0) return 0;
+  let idx = 0;
+  for (let i = 0; i < opponentCheckpoints.length; i++) {
+    if (yourElapsedMs >= opponentCheckpoints[i].elapsedActiveMs) idx = i + 1;
+  }
+  return Math.min(1, idx / opponentCheckpoints.length);
+}
