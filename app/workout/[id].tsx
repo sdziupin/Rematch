@@ -82,3 +82,17 @@ export default function WorkoutDetailScreen() {
 
   const startRematchPb = async () => {
     const pbRow = await getPb(workout.id, versionId, variantId, 'rx');
+    await start(pbRow?.sessionId ?? null);
+  };
+
+  const startRematchLast = async () => {
+    const lastRow = await getLastResult(workout.id, variantId, 'rx');
+    await start(lastRow?.sessionId ?? null);
+  };
+
+  if (!workout || !structure) return <SafeAreaView style={styles.safe} />;
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <WorkoutArtwork slug={workout.slug} symbol={workout.symbol} color={workout.identityColor} size={96} />
