@@ -144,3 +144,5 @@ export const PARTIAL_FRACTIONS = [
 export function scaleStructure(structure: WorkoutStructure, fraction: number): WorkoutStructure {
   if (fraction >= 1) return structure;
   const roundCount = Math.max(1, Math.round(structure.rounds.length * fraction));
+  return {
+    ...structure,
