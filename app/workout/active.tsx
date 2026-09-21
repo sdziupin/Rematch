@@ -195,3 +195,17 @@ export default function ActiveWorkoutScreen() {
         {!current?.durationSec && (
           <View style={styles.repControls}>
             <Pressable style={styles.repBtn} onPress={() => setState(advanceRep(state, -1))} accessibilityLabel="Decrease reps">
+              <Text style={styles.repBtnText}>−</Text>
+            </Pressable>
+            <Text style={styles.repCount}>{current?.completedReps ?? 0}</Text>
+            <Pressable style={styles.repBtn} onPress={() => setState(advanceRep(state, 1))} accessibilityLabel="Increase reps">
+              <Text style={styles.repBtnText}>+</Text>
+            </Pressable>
+          </View>
+        )}
+
+        <View style={styles.bottom}>
+          <TimerDisplay ms={elapsed} large />
+          {opponentSessionId && <RematchBar deltaMs={delta} />}
+          {opponentSessionId && <RaceRails youProgress={youProgress} opponentProgress={oppProgress} />}
+          <Button title="NEXT" onPress={handleNext} style={styles.nextBtn} />
