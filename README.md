@@ -130,3 +130,22 @@ Negative delta means you're ahead. Positive delta means the old you is making yo
 ```mermaid
 flowchart TB
     UI["Expo Router screens"] --> STORE["Zustand active workout state"]
+    UI --> REC["Recommendation service"]
+
+    STORE --> ENGINE["Workout engine"]
+    STORE --> TIMER["Drift-safe timer domain"]
+    ENGINE --> SESSION["Session service"]
+    TIMER --> SESSION
+
+    SESSION --> EVENTS["Events + checkpoints"]
+    EVENTS --> RACE["REMATCH comparator"]
+    RACE --> UI
+
+    SESSION --> ORM["Drizzle ORM"]
+    REC --> DATA["Seeded workout content"]
+    DATA --> ORM
+    ORM --> DB[("SQLite")]
+
+    DB --> PB["Personal bests"]
+    DB --> HISTORY["History / progress"]
+    DB --> RECOVERY["Session recovery"]
