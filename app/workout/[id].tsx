@@ -26,3 +26,17 @@ export default function WorkoutDetailScreen() {
   const [exerciseNames, setExerciseNames] = useState<string[]>([]);
 
   useEffect(() => {
+    (async () => {
+      const w = await getWorkoutById(id);
+      if (!w) return;
+      setWorkout(w);
+      const version = await getCurrentVersion(w.id);
+      if (!version) return;
+      setVersionId(version.id);
+      const variant = await getVariant(version.id, partialKey);
+      if (!variant) return;
+      setVariantId(variant.id);
+      const s = JSON.parse(variant.structureJson) as WorkoutStructure;
+      setStructure(s);
+      const pbRow = await getPb(w.id, version.id, variant.id, 'rx');
+      const lastRow = await getLastResult(w.id, variant.id, 'rx');
