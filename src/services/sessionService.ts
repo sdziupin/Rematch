@@ -79,3 +79,24 @@ export async function appendEvent(sessionId: string, type: string, payload: Reco
     payloadJson: JSON.stringify(payload),
     elapsedActiveMs,
     createdAt: now(),
+  });
+}
+
+export async function addCheckpoint(sessionId: string, checkpointKey: string, label: string, elapsedActiveMs: number) {
+  const db = getDb();
+  await db.insert(schema.workoutCheckpoints).values({
+    id: uuid(),
+    sessionId,
+    checkpointKey,
+    label,
+    elapsedActiveMs,
+    createdAt: now(),
+  });
+}
+
+export async function getActiveSession() {
+  const db = getDb();
+  const statuses = ['active', 'paused', 'countdown'] as const;
+  for (const status of statuses) {
+    const rows = await db
+      .select()
