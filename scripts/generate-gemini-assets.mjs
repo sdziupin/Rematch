@@ -35,3 +35,22 @@ const STYLE_PREFIX = `Premium REMATCH fitness app visual. Dark charcoal backgrou
 function parseArgs() {
   const args = process.argv.slice(2);
   const opts = { type: 'exercises', limit: 5, all: false, id: null };
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--type') opts.type = args[++i];
+    else if (args[i] === '--limit') opts.limit = Number(args[++i]);
+    else if (args[i] === '--all') opts.all = true;
+    else if (args[i] === '--id') opts.id = args[++i];
+  }
+  return opts;
+}
+
+async function generateImage(prompt, aspectRatio = '1:1') {
+  if (!API_KEY) throw new Error('GEMINI_API_KEY is not set');
+
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseModalities: ['TEXT', 'IMAGE'],
+      imageConfig: { aspectRatio },
+    },
+  };
