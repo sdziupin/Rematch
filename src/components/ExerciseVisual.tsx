@@ -36,3 +36,16 @@ export function ExerciseVisual({ exerciseId, category = 'default', size = 160 }:
   return (
     <View style={[styles.wrap, { width: size, height: size }]} accessibilityLabel={`Exercise demonstration for ${exerciseId}`}>
       <Svg width={size} height={size} viewBox="0 0 120 120">
+        <Rect x="0" y="0" width="120" height="120" rx="16" fill={colors.surfaceElevated} />
+        {id.includes('squat') || id.includes('lunge') ? (
+          <>
+            <Circle cx="60" cy="28" r="10" fill={pose.color} />
+            <Line x1="60" y1="38" x2="60" y2="70" stroke={pose.color} strokeWidth="6" strokeLinecap="round" />
+            <Line x1="60" y1="48" x2="40" y2="58" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+            <Line x1="60" y1="48" x2="80" y2="58" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+            <Line x1="60" y1="70" x2="42" y2="92" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+            <Line x1="60" y1="70" x2="78" y2="92" stroke={pose.color} strokeWidth="5" strokeLinecap="round" />
+          </>
+        ) : id.includes('plank') || id.includes('mountain') ? (
+          <>
+            <Line x1="30" y1="70" x2="90" y2="70" stroke={pose.color} strokeWidth="6" strokeLinecap="round" />
