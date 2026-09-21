@@ -34,3 +34,20 @@ export function resumeTimer(snapshot: TimerSnapshot, now = Date.now()): TimerSna
     pausedAccumulatedMs: snapshot.pausedAccumulatedMs + pauseDuration,
   };
 }
+
+export function getElapsedActiveMs(snapshot: TimerSnapshot, now = Date.now()): number {
+  if (snapshot.startedAt === null) return 0;
+  const pauseExtra = snapshot.isPaused && snapshot.lastPausedAt
+    ? now - snapshot.lastPausedAt
+    : 0;
+  return Math.max(0, now - snapshot.startedAt - snapshot.pausedAccumulatedMs - pauseExtra);
+}
+
+export function restoreTimerFromElapsed(elapsedActiveMs: number, isPaused: boolean, now = Date.now()): TimerSnapshot {
+  return {
+    startedAt: now - elapsedActiveMs,
+    pausedAccumulatedMs: 0,
+    lastPausedAt: isPaused ? now : null,
+    isPaused,
+  };
+}
