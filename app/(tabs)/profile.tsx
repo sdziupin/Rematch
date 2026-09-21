@@ -39,3 +39,17 @@ export default function ProfileScreen() {
         <Setting label="Keep screen awake during workout" value={keepAwake} onChange={(v) => { setKeepAwake(v); save({ keepAwakeEnabled: v }); }} />
         <View style={styles.disclaimer}>
           <Text style={styles.disclaimerTitle}>Training safety</Text>
+          <Text style={styles.disclaimerText}>Stop if you feel pain. Scale exercises as needed. REMATCH does not provide medical advice.</Text>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Setting({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <View style={styles.setting}>
+      <Text style={styles.settingLabel}>{label}</Text>
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent }} />
+    </View>
+  );
