@@ -153,3 +153,17 @@ export default function ActiveWorkoutScreen() {
       await appendEvent(sessionId, 'ExerciseCompleted', { exerciseId: current?.scaledExerciseId }, elapsed);
     }
     if (nextState.phase === 'completed') {
+      await appendEvent(sessionId, 'WorkoutCompleted', {}, elapsed);
+      await completeSession(sessionId, elapsed, true);
+      clear();
+      router.replace({ pathname: '/workout/result', params: { sessionId, opponentSessionId: opponentSessionId ?? '' } });
+      return;
+    }
+    setState(nextState);
+    await saveSessionState(sessionId, nextState, { elapsedActiveMs: elapsed, pausedAccumulatedMs: timer.pausedAccumulatedMs, lastPausedAt: timer.lastPausedAt, status: 'active', startedAt: timer.startedAt });
+  };
+
+  return (
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <View style={styles.top}>
