@@ -80,3 +80,5 @@ export interface WorkoutSeed {
   name: string;
   symbol: string;
   focus: string;
+  difficulty: 'beginner' | 'intermediate' | 'advanced' | 'elite';
+  estimatedMinutesMin: number;
