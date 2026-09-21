@@ -23,3 +23,15 @@ export default function LibraryScreen() {
     useCallback(() => {
       (async () => {
         const rows = await listWorkouts();
+        setWorkouts(rows);
+        const map: Record<string, { pb?: number; last?: number }> = {};
+        for (const w of rows) {
+          const versionId = `${w.id}-v1`;
+          const variantId = `${versionId}-full`;
+          const pb = await getPb(w.id, versionId, variantId, 'rx');
+          const last = await getLastResult(w.id, variantId, 'rx');
+          map[w.id] = { pb: pb?.completionMs, last: last?.completionMs };
+        }
+        setStats(map);
+      })();
+    }, []),
