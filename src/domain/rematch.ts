@@ -20,3 +20,25 @@ export function compareCheckpoints(
     if (!opp) continue;
     comparisons.push({
       checkpointKey: yours.checkpointKey,
+      label: yours.label,
+      youMs: yours.elapsedActiveMs,
+      opponentMs: opp.elapsedActiveMs,
+      deltaMs: yours.elapsedActiveMs - opp.elapsedActiveMs,
+    });
+  }
+
+  const deltaMs = yourFinalMs - opponentFinalMs;
+  return {
+    youMs: yourFinalMs,
+    opponentMs: opponentFinalMs,
+    deltaMs,
+    won: deltaMs < 0,
+    tied: deltaMs === 0,
+    checkpoints: comparisons,
+    isNewPb: false,
+    previousPbMs: null,
+  };
+}
+
+export function getLiveDelta(
+  yourElapsedMs: number,
