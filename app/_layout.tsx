@@ -14,3 +14,20 @@ export default function RootLayout() {
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_600SemiBold,
+    DMSans_700Bold,
+  });
+
+  useEffect(() => {
+    (async () => {
+      runMigrations();
+      await seedDatabaseIfNeeded();
+      setReady(true);
+    })();
+  }, []);
+
+  if (!fontsLoaded || !ready) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator color={colors.accent} />
+      </View>
+    );
