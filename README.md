@@ -282,3 +282,21 @@ A few rules are important enough to be treated as product invariants:
 - race comparison must use checkpoint telemetry;
 - RX and scaled results must never share a PB;
 - the workout engine must complete deterministic round transitions;
+- recommendations must return a valid duration-compatible workout when possible.
+
+Run the suite with:
+
+```bash
+npm test
+```
+
+## License
+
+Licensed under the [MIT License](./LICENSE).
+
+---
+
+<p align="center">
+  <strong>REMATCH</strong><br/>
+  <sub>Your best competition already knows all your excuses.</sub>
+</p>
