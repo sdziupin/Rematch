@@ -141,3 +141,23 @@ export async function completeSession(sessionId: string, completionMs: number, i
     isComplete,
     isAbandoned: abandoned,
     createdAt: ts,
+  });
+
+  await db
+    .update(schema.workoutSessions)
+    .set({ status: abandoned ? 'abandoned' : 'completed', completedAt: ts, elapsedActiveMs: completionMs, updatedAt: ts })
+    .where(eq(schema.workoutSessions.id, sessionId));
+
+  if (isComplete && !abandoned) {
+    await maybeUpdatePb(session, resultId, completionMs, ts);
+  }
+
+  return resultId;
+}
+
+async function maybeUpdatePb(
+  session: typeof schema.workoutSessions.$inferSelect,
+  resultId: string,
+  completionMs: number,
+  ts: number,
+) {
