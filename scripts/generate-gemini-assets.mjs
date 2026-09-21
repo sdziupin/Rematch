@@ -130,3 +130,22 @@ async function generateExercises(limit, singleId) {
   const exercises = manifest?.exercises ?? [
     { id: 'push-up', name: 'Push-up', category: 'push' },
     { id: 'air-squat', name: 'Air Squat', category: 'squat' },
+    { id: 'burpee', name: 'Burpee', category: 'conditioning' },
+    { id: 'plank-hold', name: 'Plank Hold', category: 'core' },
+  ];
+
+  const list = singleId ? exercises.filter((e) => e.id === singleId) : exercises.slice(0, limit);
+  for (const ex of list) {
+    const out = path.join(ROOT, `assets/generated/exercises/${ex.id}.png`);
+    if (fs.existsSync(out)) {
+      console.log(`– skip ${ex.id} (exists)`);
+      continue;
+    }
+    try {
+      await saveImage(exercisePrompt(ex.name, ex.category), out);
+      await sleep(1500);
+    } catch (e) {
+      console.error(`✗ ${ex.id}: ${e.message}`);
+      if (e.code === 429 || e.message.includes('quota')) {
+        console.error('\nGemini image quota exhausted. Enable billing at https://ai.google.dev/');
+        process.exit(1);
