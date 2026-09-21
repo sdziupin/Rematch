@@ -36,3 +36,22 @@ export async function runMigrations() {
     );
 
     CREATE TABLE IF NOT EXISTS exercises (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      instructions TEXT NOT NULL,
+      start_position TEXT NOT NULL,
+      movement_sequence TEXT NOT NULL,
+      cues_json TEXT NOT NULL,
+      mistakes_json TEXT NOT NULL,
+      primary_muscles_json TEXT NOT NULL,
+      secondary_muscles_json TEXT NOT NULL,
+      category TEXT NOT NULL,
+      equipment_json TEXT NOT NULL,
+      impact_level TEXT NOT NULL,
+      easier_variant_id TEXT,
+      harder_variant_id TEXT,
+      visual_asset TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
