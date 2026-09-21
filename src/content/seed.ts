@@ -10,3 +10,6 @@ export interface ExerciseSeed {
   cues: string[];
   mistakes: string[];
   primaryMuscles: string[];
+  secondaryMuscles: string[];
+  category: string;
+  equipment: string[];
