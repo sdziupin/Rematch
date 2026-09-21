@@ -87,3 +87,6 @@ export interface WorkoutSeed {
   format: WorkoutStructure['format'];
   identityColor: string;
   progressionTier: string;
+  structure: WorkoutStructure;
+}
+
