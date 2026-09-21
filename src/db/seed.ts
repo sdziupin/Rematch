@@ -40,3 +40,25 @@ export async function seedDatabaseIfNeeded() {
     await db.insert(schema.workouts).values({
       id: w.id,
       slug: w.slug,
+      name: w.name,
+      symbol: w.symbol,
+      focus: w.focus,
+      difficulty: w.difficulty,
+      estimatedMinutesMin: w.estimatedMinutesMin,
+      estimatedMinutesMax: w.estimatedMinutesMax,
+      equipmentJson: JSON.stringify(w.equipment),
+      format: w.format,
+      identityColor: w.identityColor,
+      visualAsset: `workouts/${w.slug}`,
+      progressionTier: w.progressionTier,
+      createdAt: ts,
+      updatedAt: ts,
+    });
+
+    const versionId = `${w.id}-v1`;
+    await db.insert(schema.workoutVersions).values({
+      id: versionId,
+      workoutId: w.id,
+      version: 1,
+      structureJson: JSON.stringify(w.structure),
+      rulesJson: JSON.stringify({ scoring: 'time', restBetweenRoundsSec: 0 }),
