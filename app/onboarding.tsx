@@ -61,3 +61,19 @@ export default function Onboarding() {
 
         <Button title="YOUR FIRST CHALLENGE" onPress={finish} style={{ marginTop: spacing.xl }} />
       </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
+function Row({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
+  return (
+    <View style={styles.row}>
