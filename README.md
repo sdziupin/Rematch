@@ -225,3 +225,22 @@ npm run android
 npm run web
 ```
 
+### 3. Test
+
+```bash
+npm test
+```
+
+The current domain suite covers timer pause accuracy, checkpoint-based rematching, PB compatibility, workout completion, and recommendation selection.
+
+## Project structure
+
+```text
+Rematch/
+├── app/                      # Expo Router screens and flows
+│   ├── (tabs)/               # Today, Library, Progress, Profile
+│   ├── opponent/             # Historical opponent selection
+│   └── workout/              # Detail, active, recovery, results
+├── src/
+│   ├── components/           # Workout and race UI
+│   ├── content/              # 31 workouts + 52 exercise seeds
