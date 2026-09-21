@@ -77,3 +77,6 @@ export const EXERCISE_SEEDS: ExerciseSeed[] = [
 export interface WorkoutSeed {
   id: string;
   slug: string;
+  name: string;
+  symbol: string;
+  focus: string;
