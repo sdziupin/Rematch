@@ -18,3 +18,23 @@ export async function createSession(params: {
   structure: WorkoutStructure;
   partialKey: ActiveWorkoutState['partialKey'];
   opponentSessionId?: string | null;
+}) {
+  const db = getDb();
+  const id = uuid();
+  const state = buildState(
+    params.workoutId,
+    params.workoutVersionId,
+    params.workoutVariantId,
+    params.partialKey,
+    params.scalingCategory,
+    params.structure,
+  );
+  const ts = now();
+  await db.insert(schema.workoutSessions).values({
+    id,
+    workoutId: params.workoutId,
+    workoutVersionId: params.workoutVersionId,
+    workoutVariantId: params.workoutVariantId,
+    opponentSessionId: params.opponentSessionId ?? null,
+    scalingCategory: params.scalingCategory,
+    status: 'countdown',
