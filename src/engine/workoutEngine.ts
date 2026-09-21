@@ -74,3 +74,22 @@ export function createActiveState(
   workoutId: string,
   workoutVersionId: string,
   workoutVariantId: string,
+  partialKey: ActiveWorkoutState['partialKey'],
+  scalingCategory: ScalingCategory,
+  structure: WorkoutStructure,
+): ActiveWorkoutState {
+  return {
+    workoutId,
+    workoutVersionId,
+    workoutVariantId,
+    partialKey,
+    scalingCategory,
+    structure,
+    currentRoundIndex: 0,
+    currentExerciseIndex: 0,
+    rounds: buildRoundsFromStructure(structure),
+    phase: 'countdown',
+    countdownRemaining: 3,
+  };
+}
+
