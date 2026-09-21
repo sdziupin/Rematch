@@ -243,3 +243,23 @@ export async function listResults(workoutId: string, variantId: string, scaling:
         eq(schema.workoutResults.scalingCategory, scaling),
         eq(schema.workoutResults.isComplete, true),
         eq(schema.workoutResults.isAbandoned, false),
+      ),
+    )
+    .orderBy(desc(schema.workoutResults.createdAt));
+}
+
+export async function buildRematchComparison(sessionId: string, opponentSessionId: string): Promise<RematchComparison | null> {
+  const session = await getSession(sessionId);
+  const opponent = await getSession(opponentSessionId);
+  if (!session || !opponent) return null;
+
+  const yourCheckpoints = await getCheckpoints(sessionId);
+  const oppCheckpoints = await getCheckpoints(opponentSessionId);
+  const yourResult = (await getDb().select().from(schema.workoutResults).where(eq(schema.workoutResults.sessionId, sessionId)).limit(1))[0];
+  const oppResult = (await getDb().select().from(schema.workoutResults).where(eq(schema.workoutResults.sessionId, opponentSessionId)).limit(1))[0];
+  if (!yourResult || !oppResult) return null;
+
+  const comparison = compareCheckpoints(
+    yourCheckpoints.map((c) => ({ checkpointKey: c.checkpointKey, label: c.label, elapsedActiveMs: c.elapsedActiveMs })),
+    oppCheckpoints.map((c) => ({ checkpointKey: c.checkpointKey, label: c.label, elapsedActiveMs: c.elapsedActiveMs })),
+    yourResult.completionMs,
