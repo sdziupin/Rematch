@@ -18,3 +18,24 @@ export function RematchBar({ deltaMs, opponentLabel = 'OPP' }: RematchBarProps) 
   return (
     <View style={styles.container} accessibilityLabel={`${label} ${formatDelta(deltaMs)} versus ${opponentLabel}`}>
       <Text style={styles.label}>REMATCH</Text>
+      <Text style={[styles.delta, { color }]}>{tied ? 'TIED' : formatDelta(deltaMs)}</Text>
+      <Text style={[styles.status, { color }]}>{label}</Text>
+    </View>
+  );
+}
+
+export function TimerDisplay({ ms, large }: { ms: number; large?: boolean }) {
+  return (
+    <Text style={[large ? styles.timerLarge : styles.timer, { color: colors.primary }]} accessibilityLabel={`Elapsed time ${formatDuration(ms)}`}>
+      {formatDuration(ms)}
+    </Text>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.surfaceElevated,
+    paddingHorizontal: 16,
