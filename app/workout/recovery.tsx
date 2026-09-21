@@ -49,3 +49,20 @@ export default function RecoveryScreen() {
           setTimer(restoreTimerFromElapsed(info.elapsed, info.status === 'paused'));
           router.replace('/workout/active');
         }} style={{ marginTop: spacing.xl }} />
+        <Button title="END WORKOUT" variant="danger" onPress={async () => {
+          const { completeSession } = await import('../../src/services/sessionService');
+          await completeSession(info.sessionId, info.elapsed, false, true);
+          router.replace('/(tabs)/today');
+        }} style={{ marginTop: spacing.md }} />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  container: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
+  title: { ...typography.label, color: colors.accent },
+  name: { ...typography.displayLG, color: colors.primary, marginTop: spacing.md },
+  sub: { ...typography.body, color: colors.muted, marginTop: spacing.sm },
+});
