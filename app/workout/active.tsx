@@ -12,3 +12,17 @@ import { getExercise, getProfile, getWorkoutById } from '../../src/db/seed';
 import { advanceRep, getCurrentExercise, nextStep } from '../../src/engine/workoutEngine';
 import { getLiveDelta, getOpponentProgress } from '../../src/domain/rematch';
 import { getElapsedActiveMs, pauseTimer, resumeTimer, startTimer } from '../../src/domain/timer';
+import { useWorkoutTimer } from '../../src/hooks/useWorkoutTimer';
+import {
+  addCheckpoint,
+  appendEvent,
+  completeSession,
+  getCheckpoints,
+  getSession,
+  saveSessionState,
+} from '../../src/services/sessionService';
+import { useWorkoutStore } from '../../src/store/workoutStore';
+import { colors, spacing, typography, touchTarget } from '../../src/theme';
+import { getCheckpointKey } from '../../src/engine/workoutEngine';
+
+export default function ActiveWorkoutScreen() {
