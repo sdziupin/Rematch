@@ -131,3 +131,6 @@ export const WORKOUT_SEEDS: WorkoutSeed[] = [
   { id: 'w-reef', slug: 'reef', name: 'REEF', symbol: '❋', focus: 'low_impact', difficulty: 'beginner', estimatedMinutesMin: 10, estimatedMinutesMax: 14, equipment: ['mat'], format: 'fixed_rounds', identityColor: '#14B8A6', progressionTier: 'foundation', structure: rounds(4, [{ exerciseId: 'box-breather', durationSec: 30 }, { exerciseId: 'dead-bug', reps: 12 }, { exerciseId: 'reverse-lunge', reps: 10 }]) },
 ];
 
+// Fix pulse workout exercise reference
+WORKOUT_SEEDS.find((w) => w.slug === 'pulse')!.structure.rounds[0].steps[0].exerciseId = 'high-knees';
+
