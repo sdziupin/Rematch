@@ -13,3 +13,18 @@ import { focusLabel, difficultyLabel } from '../../src/services/recommendationSe
 export default function TodayScreen() {
   const router = useRouter();
   const [workout, setWorkout] = useState<any>(null);
+  const [pb, setPb] = useState<number | null>(null);
+  const [last, setLast] = useState<number | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const profile = await getProfile();
+        const rec = recommendTodayWorkout({
+          minutes: profile?.typicalMinutes ?? 15,
+          level: profile?.level ?? 'intermediate',
+          goal: profile?.goal ?? 'conditioning',
+          equipment: JSON.parse(profile?.equipmentJson ?? '["bodyweight"]'),
+          recentWorkoutIds: [],
+          painRecent: false,
+        });
