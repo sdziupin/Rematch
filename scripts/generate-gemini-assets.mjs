@@ -149,3 +149,22 @@ async function generateExercises(limit, singleId) {
       if (e.code === 429 || e.message.includes('quota')) {
         console.error('\nGemini image quota exhausted. Enable billing at https://ai.google.dev/');
         process.exit(1);
+      }
+    }
+  }
+}
+
+async function generateWorkouts(limit, singleId) {
+  const manifest = loadSeed();
+  const workouts = manifest?.workouts ?? [{ id: 'tempest', name: 'TEMPEST', symbol: 'storm', focus: 'full body' }];
+  const list = singleId ? workouts.filter((w) => w.id === singleId || w.slug === singleId) : workouts.slice(0, limit);
+
+  for (const w of list) {
+    const slug = w.slug || w.id.replace(/^w-/, '');
+    const out = path.join(ROOT, `assets/generated/workouts/${slug}.png`);
+    if (fs.existsSync(out)) {
+      console.log(`– skip ${slug} (exists)`);
+      continue;
+    }
+    try {
+      await saveImage(workoutPrompt(w.name, w.symbol, w.focus), out);
