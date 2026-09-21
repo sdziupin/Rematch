@@ -37,3 +37,22 @@ export function WorkoutHeroCard({ name, symbol, meta, duration, pb, last, color,
       </View>
     </View>
   );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    padding: spacing.lg,
+    borderWidth: 1,
+  },
+  header: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
+  symbol: { fontSize: 40, width: 48, textAlign: 'center' },
+  name: { ...typography.displayMD, color: colors.primary },
+  meta: { ...typography.caption, color: colors.muted, textTransform: 'capitalize' },
+  duration: { ...typography.body, color: colors.muted },
+  stats: { flexDirection: 'row', gap: spacing.xl, marginTop: spacing.lg },
+  stat: {},
+  statLabel: { ...typography.label, color: colors.muted },
+  statValue: { ...typography.heading, color: colors.primary },
+});
