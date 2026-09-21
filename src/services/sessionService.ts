@@ -161,3 +161,23 @@ async function maybeUpdatePb(
   completionMs: number,
   ts: number,
 ) {
+  const db = getDb();
+  const existing = await db
+    .select()
+    .from(schema.personalBests)
+    .where(
+      and(
+        eq(schema.personalBests.workoutId, session.workoutId),
+        eq(schema.personalBests.workoutVersionId, session.workoutVersionId),
+        eq(schema.personalBests.workoutVariantId, session.workoutVariantId),
+        eq(schema.personalBests.scalingCategory, session.scalingCategory),
+      ),
+    )
+    .limit(1);
+
+  if (!existing[0] || completionMs < existing[0].completionMs) {
+    if (existing[0]) {
+      await db.delete(schema.personalBests).where(eq(schema.personalBests.id, existing[0].id));
+    }
+    await db.insert(schema.personalBests).values({
+      id: uuid(),
