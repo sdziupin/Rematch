@@ -12,3 +12,16 @@ interface WorkoutStore {
   setState: (state: ActiveWorkoutState) => void;
   setTimer: (timer: TimerSnapshot) => void;
   clear: () => void;
+}
+
+export const useWorkoutStore = create<WorkoutStore>((set) => ({
+  sessionId: null,
+  state: null,
+  timer: createTimerSnapshot(),
+  opponentSessionId: null,
+  setSession: (sessionId, state, opponentSessionId = null) =>
+    set({ sessionId, state, opponentSessionId, timer: createTimerSnapshot() }),
+  setState: (state) => set({ state }),
+  setTimer: (timer) => set({ timer }),
+  clear: () => set({ sessionId: null, state: null, timer: createTimerSnapshot(), opponentSessionId: null }),
+}));
