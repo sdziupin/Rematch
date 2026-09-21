@@ -124,3 +124,17 @@ export default function WorkoutDetailScreen() {
         <Button title="Scale" variant="ghost" onPress={() => {}} />
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <View>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, highlight && { color: colors.pb }]}>{value}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
