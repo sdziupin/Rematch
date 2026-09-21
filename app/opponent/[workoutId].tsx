@@ -55,3 +55,17 @@ export default function OpponentScreen() {
       <View style={styles.container}>
         <Text style={styles.title}>Choose Opponent</Text>
         <Text style={styles.sub}>{workout?.name}</Text>
+        <FlatList
+          data={attempts}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => (
+            <Pressable style={styles.row} onPress={() => rematch(item.sessionId)}>
+              <Text style={styles.time}>{formatDuration(item.completionMs)}</Text>
+              <Text style={styles.label}>{index === 0 ? 'Last' : index === attempts.length - 1 ? 'First attempt' : ''}</Text>
+              <Text style={styles.action}>REMATCH THIS</Text>
+            </Pressable>
+          )}
+          ListEmptyComponent={<Text style={styles.empty}>No attempts yet.</Text>}
+        />
+      </View>
+    </SafeAreaView>
