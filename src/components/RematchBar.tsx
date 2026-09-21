@@ -39,3 +39,23 @@ const styles = StyleSheet.create({
     gap: 8,
     backgroundColor: colors.surfaceElevated,
     paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  label: {
+    ...typography.label,
+    color: colors.muted,
+  },
+  delta: {
+    ...typography.subheading,
+  },
+  status: {
+    ...typography.caption,
+  },
+  timer: {
+    ...typography.displayMD,
+  },
+  timerLarge: {
+    ...typography.displayXL,
+  },
+});
