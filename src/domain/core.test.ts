@@ -32,3 +32,20 @@ test('rematch uses checkpoint telemetry not linear guess', () => {
     ],
     500_000,
     510_000,
+  );
+  assert.equal(result.won, true);
+  assert.equal(result.checkpoints[0].deltaMs, -5000);
+});
+
+test('pb compatibility rejects scaled vs rx', () => {
+  const rx = { workoutId: 'w1', workoutVersionId: 'v1', workoutVariantId: 'full', scalingCategory: 'rx' as const };
+  const scaled = { ...rx, scalingCategory: 'scaled' as const };
+  assert.equal(areCompatible(rx, scaled), false);
+});
+
+test('workout engine completes rounds', () => {
+  const structure: WorkoutStructure = {
+    format: 'fixed_rounds',
+    rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'push-up', reps: 5 }] }],
+  };
+  let state = createActiveState('w', 'v', 'var', 'full', 'rx', structure);
