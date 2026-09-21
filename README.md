@@ -35,3 +35,22 @@ Every completed benchmark can become an opponent for the next attempt. Instead o
 
 > Final time tells you **if** you improved. Checkpoints help tell you **where**.
 
+No social leaderboard. No stranger to chase. No backend required for the core training loop.
+
+**You vs. you.**
+
+<table>
+  <tr>
+    <td align="center"><strong>31</strong><br/>original benchmarks</td>
+    <td align="center"><strong>52</strong><br/>exercises</td>
+    <td align="center"><strong>5</strong><br/>workout formats</td>
+    <td align="center"><strong>4</strong><br/>distance variants</td>
+  </tr>
+</table>
+
+## How REMATCH works
+
+```mermaid
+flowchart LR
+    A["Pick a benchmark"] --> B["Choose your past attempt"]
+    B --> C["3 · 2 · 1 · GO"]
