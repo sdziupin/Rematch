@@ -112,3 +112,21 @@ export function scaleExercise(state: ActiveWorkoutState, scaledExerciseId: strin
     ri !== state.currentRoundIndex
       ? r
       : {
+          ...r,
+          exercises: r.exercises.map((e, ei) =>
+            ei !== state.currentExerciseIndex ? e : { ...e, scaledExerciseId },
+          ),
+        },
+  );
+  return { ...state, rounds };
+}
+
+export function getCurrentExercise(state: ActiveWorkoutState) {
+  return state.rounds[state.currentRoundIndex]?.exercises[state.currentExerciseIndex];
+}
+
+export function getCheckpointKey(state: ActiveWorkoutState): string {
+  const round = state.currentRoundIndex + 1;
+  const ex = state.currentExerciseIndex + 1;
+  return `r${round}-e${ex}`;
+}
