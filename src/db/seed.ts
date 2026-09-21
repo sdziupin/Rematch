@@ -83,3 +83,25 @@ export async function seedDatabaseIfNeeded() {
   await db.insert(schema.userProfile).values({
     id: 'local-user',
     goal: 'conditioning',
+    level: 'intermediate',
+    typicalMinutes: 15,
+    frequencyDays: 3,
+    restrictions: null,
+    equipmentJson: JSON.stringify(['bodyweight', 'mat']),
+    onboardingComplete: false,
+    hapticsEnabled: true,
+    soundEnabled: true,
+    voiceEnabled: false,
+    keepAwakeEnabled: true,
+    createdAt: ts,
+    updatedAt: ts,
+  });
+}
+
+export async function getProfile() {
+  const db = getDb();
+  const rows = await db.select().from(schema.userProfile).limit(1);
+  return rows[0] ?? null;
+}
+
+export async function updateProfile(patch: Partial<typeof schema.userProfile.$inferInsert>) {
