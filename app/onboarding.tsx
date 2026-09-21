@@ -77,3 +77,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Row({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
   return (
     <View style={styles.row}>
+      {options.map((o) => (
+        <Pressable key={o} onPress={() => onChange(o)} style={[styles.chip, value === o && styles.chipActive]}>
+          <Text style={[styles.chipText, value === o && styles.chipTextActive]}>{o.replace(/_/g, ' ')}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function Wrap({ options, selected, onToggle }: { options: string[]; selected: string[]; onToggle: (v: string) => void }) {
+  return (
+    <View style={[styles.row, { flexWrap: 'wrap' }]}>
+      {options.map((o) => (
+        <Pressable key={o} onPress={() => onToggle(o)} style={[styles.chip, selected.includes(o) && styles.chipActive]}>
+          <Text style={[styles.chipText, selected.includes(o) && styles.chipTextActive]}>{o}</Text>
+        </Pressable>
