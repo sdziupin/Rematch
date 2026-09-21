@@ -98,3 +98,5 @@ function rounds(count: number, steps: WorkoutStructure['rounds'][0]['steps']): W
 }
 
 export const WORKOUT_SEEDS: WorkoutSeed[] = [
+  { id: 'w-tempest', slug: 'tempest', name: 'TEMPEST', symbol: '⛈', focus: 'full_body', difficulty: 'advanced', estimatedMinutesMin: 12, estimatedMinutesMax: 18, equipment: ['bodyweight'], format: 'fixed_rounds', identityColor: '#4ECDC4', progressionTier: 'standard', structure: rounds(5, [{ exerciseId: 'air-squat', reps: 20 }, { exerciseId: 'push-up', reps: 15 }, { exerciseId: 'burpee', reps: 10 }]) },
+  { id: 'w-ember', slug: 'ember', name: 'EMBER', symbol: '🔥', focus: 'core', difficulty: 'intermediate', estimatedMinutesMin: 10, estimatedMinutesMax: 14, equipment: ['mat'], format: 'fixed_rounds', identityColor: '#F4A261', progressionTier: 'foundation', structure: rounds(4, [{ exerciseId: 'walking-lunge', reps: 12 }, { exerciseId: 'sit-up', reps: 12 }, { exerciseId: 'plank-hold', durationSec: 30 }]) },
