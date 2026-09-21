@@ -113,3 +113,22 @@ export async function runMigrations() {
     );
 
     CREATE TABLE IF NOT EXISTS workout_session_events (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES workout_sessions(id),
+      type TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      elapsed_active_ms INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS workout_checkpoints (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES workout_sessions(id),
+      checkpoint_key TEXT NOT NULL,
+      label TEXT NOT NULL,
+      elapsed_active_ms INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS workout_results (
+      id TEXT PRIMARY KEY,
