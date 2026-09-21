@@ -43,3 +43,25 @@
     "go": "GO"
   },
   "feedback": {
+    "howWasIt": "HOW WAS IT?",
+    "tooEasy": "Too easy",
+    "good": "Good",
+    "tooHard": "Too hard",
+    "technique": "TECHNIQUE?",
+    "clean": "Clean",
+    "struggled": "Struggled",
+    "pain": "Pain / discomfort"
+  },
+  "onboarding": {
+    "welcome": "Welcome to REMATCH",
+    "subtitle": "Every workout becomes your next opponent.",
+    "goal": "What's your focus?",
+    "level": "Current level",
+    "equipment": "Equipment available",
+    "time": "Typical session length",
+    "frequency": "Training days per week",
+    "restrictions": "Any restrictions? (optional)",
+    "continue": "Continue",
+    "start": "START"
+  }
+}
