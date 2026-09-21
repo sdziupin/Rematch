@@ -12,3 +12,17 @@ import type { WorkoutStructure } from '../../src/domain/types';
 export default function OpponentScreen() {
   const { workoutId } = useLocalSearchParams<{ workoutId: string }>();
   const router = useRouter();
+  const setSession = useWorkoutStore((s) => s.setSession);
+  const [attempts, setAttempts] = useState<any[]>([]);
+  const [workout, setWorkout] = useState<any>(null);
+  const [versionId, setVersionId] = useState('');
+  const [variantId, setVariantId] = useState('');
+  const [structure, setStructure] = useState<WorkoutStructure | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const w = await getWorkoutById(workoutId);
+      setWorkout(w);
+      const version = await getCurrentVersion(workoutId);
+      if (!version) return;
+      setVersionId(version.id);
