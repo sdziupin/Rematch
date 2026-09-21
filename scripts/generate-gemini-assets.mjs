@@ -73,3 +73,22 @@ async function generateImage(prompt, aspectRatio = '1:1') {
     const inline = part.inlineData || part.inline_data;
     if (inline?.data) {
       return {
+        buffer: Buffer.from(inline.data, 'base64'),
+        mime: inline.mimeType || inline.mime_type || 'image/png',
+      };
+    }
+  }
+  throw new Error('No image in Gemini response');
+}
+
+function extForMime(mime) {
+  if (mime.includes('png')) return '.png';
+  if (mime.includes('jpeg') || mime.includes('jpg')) return '.jpg';
+  if (mime.includes('webp')) return '.webp';
+  return '.png';
+}
+
+async function saveImage(prompt, outPath, aspectRatio = '1:1') {
+  const { buffer, mime } = await generateImage(prompt, aspectRatio);
+  fs.mkdirSync(path.dirname(outPath), { recursive: true });
+  const finalPath = outPath.replace(/\.[^.]+$/, '') + extForMime(mime);
