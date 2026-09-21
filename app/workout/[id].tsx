@@ -12,3 +12,17 @@ import { formatDuration } from '../../src/domain/utils';
 import type { WorkoutStructure } from '../../src/domain/types';
 import { useWorkoutStore } from '../../src/store/workoutStore';
 
+export default function WorkoutDetailScreen() {
+  const { id, mode } = useLocalSearchParams<{ id: string; mode?: string }>();
+  const [partialKey, setPartialKey] = useState('full');
+  const router = useRouter();
+  const setSession = useWorkoutStore((s) => s.setSession);
+  const [workout, setWorkout] = useState<any>(null);
+  const [structure, setStructure] = useState<WorkoutStructure | null>(null);
+  const [pb, setPb] = useState<number | null>(null);
+  const [last, setLast] = useState<number | null>(null);
+  const [versionId, setVersionId] = useState('');
+  const [variantId, setVariantId] = useState('');
+  const [exerciseNames, setExerciseNames] = useState<string[]>([]);
+
+  useEffect(() => {
