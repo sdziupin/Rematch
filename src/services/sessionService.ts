@@ -263,3 +263,23 @@ export async function buildRematchComparison(sessionId: string, opponentSessionI
     yourCheckpoints.map((c) => ({ checkpointKey: c.checkpointKey, label: c.label, elapsedActiveMs: c.elapsedActiveMs })),
     oppCheckpoints.map((c) => ({ checkpointKey: c.checkpointKey, label: c.label, elapsedActiveMs: c.elapsedActiveMs })),
     yourResult.completionMs,
+    oppResult.completionMs,
+  );
+
+  const pb = await getPb(session.workoutId, session.workoutVersionId, session.workoutVariantId, session.scalingCategory as ScalingCategory);
+  comparison.isNewPb = pb?.sessionId === sessionId;
+  comparison.previousPbMs = pb && pb.sessionId === sessionId && comparison.deltaMs < 0 ? comparison.opponentMs : null;
+  return comparison;
+}
+
+export async function saveFeedback(sessionId: string, intensity?: string, technique?: string, painReported = false) {
+  const db = getDb();
+  await db.insert(schema.postWorkoutFeedback).values({
+    id: uuid(),
+    sessionId,
+    intensity: intensity ?? null,
+    technique: technique ?? null,
+    painReported,
+    createdAt: now(),
+  });
+}
