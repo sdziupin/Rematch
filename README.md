@@ -236,7 +236,7 @@ npm run serve:web   # local server with SPA fallback on http://localhost:8080
 ### 4. Test
 
 ```bash
-npm test          # 58+ tests: engine, race, scoring, stats, DB lifecycle, migrations, backup, content, motions
+npm test          # 357 tests: engine, race, scoring, stats, DB lifecycle, migrations, backup, content, animations
 npm run typecheck
 ```
 
