@@ -117,6 +117,8 @@ export interface Body {
   footR?: number;
   /** Hanging: pin the hands (anchorY) at their world height instead of grounding. */
   hang?: boolean;
+  /** Hanging from a fixed height: pin the hands at exactly this y (blends linearly). */
+  anchorY?: number;
   /**
    * A planted point the hip swings around (e.g. the ankle of a straight-legged plank).
    * When both blended bodies have one, the hip travels on an arc instead of a straight line.
@@ -217,6 +219,10 @@ export function solveBody(view: View, b: Body): Pose {
     if (b.air) p.lift = b.air;
     return p;
   }
+  if (b.anchorY !== undefined) {
+    p.anchorY = b.anchorY;
+    return p;
+  }
   const raw = solveRaw(p, view);
   if (b.hang) {
     p.anchorY = Math.round((b.y + (raw.wristL.y + raw.wristR.y) / 2) * 100) / 100;
@@ -280,6 +286,7 @@ export function blendBodies(view: View, a: Body, b: Body, k: number): Pose {
     footL: isTarget(legL) && legL.foot !== undefined ? undefined : base.footL,
     footR: isTarget(legR) && legR.foot !== undefined ? undefined : base.footR,
     hang: a.hang || b.hang,
+    anchorY: a.anchorY !== undefined && b.anchorY !== undefined ? lerp(a.anchorY, b.anchorY, k) : undefined,
     pivot: a.pivot && b.pivot ? { x: lerp(a.pivot.x, b.pivot.x, k), y: lerp(a.pivot.y, b.pivot.y, k) } : undefined,
   };
   return solveBody(view, mixed);

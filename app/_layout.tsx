@@ -6,6 +6,7 @@ import { useFonts, BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { openExpoDriver } from '../src/db/expoDriver';
+import { claimTab, takeOverTab } from '../src/db/tabLock';
 import { initDatabase } from '../src/db/seed';
 import { getProfile } from '../src/db/repository';
 import { useSettings } from '../src/store/settingsStore';
@@ -13,9 +14,9 @@ import { DialogHost } from '../src/components/Dialogs';
 import { Button } from '../src/components/Button';
 import { colors, spacing, typography } from '../src/theme';
 
-type Boot = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string };
+type Boot = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string } | { status: 'elsewhere' } | { status: 'no-storage' };
 
-let bootPromise: Promise<void> | null = null;
+let bootPromise: Promise<'ready' | 'elsewhere' | 'no-storage'> | null = null;
 
 function registerServiceWorker() {
   // Production web builds work offline after the first visit (see public/sw.js).
@@ -23,11 +24,14 @@ function registerServiceWorker() {
   navigator.serviceWorker.register('/sw.js').catch(() => undefined);
 }
 
-async function boot() {
+async function boot(): Promise<'ready' | 'elsewhere' | 'no-storage'> {
   registerServiceWorker();
+  const tab = await claimTab();
+  if (tab !== 'owner') return tab;
   const driver = await openExpoDriver();
   await initDatabase(driver);
   useSettings.getState().applyProfile(await getProfile());
+  return 'ready';
 }
 
 export default function RootLayout() {
@@ -44,7 +48,7 @@ export default function RootLayout() {
     setBoot({ status: 'loading' });
     bootPromise ??= boot();
     bootPromise
-      .then(() => setBoot({ status: 'ready' }))
+      .then((status) => setBoot({ status }))
       .catch((error: unknown) => {
         bootPromise = null;
         console.error('[rematch] startup failed', error);
@@ -58,6 +62,27 @@ export default function RootLayout() {
 
   // Fonts that fail to load fall back to system fonts rather than blocking the app.
   const fontsReady = fontsLoaded || !!fontError;
+
+  if (boot_.status === 'elsewhere') {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.title}>REMATCH is open in another tab</Text>
+        <Text style={styles.body}>Your data can only be open in one tab at a time.</Text>
+        <Button title="Use REMATCH here" onPress={() => void takeOverTab()} style={{ marginTop: spacing.lg }} />
+      </View>
+    );
+  }
+
+  if (boot_.status === 'no-storage') {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.title}>Storage isn't available</Text>
+        <Text style={styles.body}>
+          REMATCH keeps your workouts in this browser's private storage, which this window doesn't allow (private browsing often blocks it). Open REMATCH in a regular window.
+        </Text>
+      </View>
+    );
+  }
 
   if (boot_.status === 'error') {
     return (

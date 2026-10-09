@@ -2,7 +2,9 @@ import type { Motion } from './skeleton';
 import { CARDIO_MOTIONS } from './motions/cardio';
 import { CORE_MOTIONS } from './motions/core';
 import { LEG_MOTIONS } from './motions/legs';
+import { PULL_MOTIONS } from './motions/pull';
 import { PUSH_MOTIONS } from './motions/push';
+import { WEIGHT_MOTIONS } from './motions/weights';
 import { FOREARM_PLANK, HALF_SQUAT, HANG, PLANK_HIGH, PLANK_LOW, SQUAT_BOTTOM, STAND, STAND_FRONT, SUPINE, cycle, hold, pose } from './poses';
 
 /**
@@ -82,6 +84,8 @@ export const MOTIONS: Record<string, Motion> = {
   ...LEG_MOTIONS,
   ...CORE_MOTIONS,
   ...CARDIO_MOTIONS,
+  ...PULL_MOTIONS,
+  ...WEIGHT_MOTIONS,
 };
 
 /** Used when an exercise has no dedicated motion yet. */

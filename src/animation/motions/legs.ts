@@ -309,9 +309,9 @@ const curtsyLunge = animate(
   3400,
   [
     key(0, curtsyStand),
-    key(0.25, { x: 47, y: 73.5, torso: 182, head: 180, ...prayer(46, 57.5), legL: ankle(46.5), legR: { x: 36, y: 87, bend: -1 } }),
+    key(0.25, { x: 48, y: 68, torso: 183, head: 180, ...prayer(47, 52), legL: { x: 46.5, y: FLOOR, bend: 1 }, legR: { x: 34, y: 86.5, bend: -1 } }),
     key(0.5, curtsyStand),
-    key(0.75, { x: 53, y: 73.5, torso: 178, head: 180, ...prayer(54, 57.5), legR: ankle(53.5), legL: { x: 64, y: 87, bend: 1 } }),
+    key(0.75, { x: 52, y: 68, torso: 177, head: 180, ...prayer(53, 52), legR: { x: 53.5, y: FLOOR, bend: -1 }, legL: { x: 66, y: 86.5, bend: 1 } }),
   ],
   { thumbT: 0.25 },
 );

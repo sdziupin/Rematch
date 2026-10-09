@@ -231,7 +231,7 @@ npm run build:web   # static export to dist/
 npm run serve:web   # local server with SPA fallback on http://localhost:8080
 ```
 
-`dist/` is a single-page app that works on any static host. Configure a fallback to `index.html` for unknown routes, and serve it from the domain root (`/sw.js` handles offline caching). The data lives in the browser's origin-private file system. In a private window, or with REMATCH already open in another tab, the app falls back to temporary storage and says so in Profile.
+`dist/` is a single-page app that works on any static host. Configure a fallback to `index.html` for unknown routes, and serve it from the domain root (`/sw.js` handles offline caching). The data lives in the browser's origin-private file system. It can be open in one tab at a time: a second tab offers to take over, and windows that block storage (some private modes) get a clear message instead of a broken app.
 
 ### 4. Test
 

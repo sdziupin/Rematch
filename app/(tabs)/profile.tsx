@@ -170,12 +170,8 @@ export default function ProfileScreen() {
     <Card style={styles.card}>
       <SectionTitle style={styles.noTop}>Your data</SectionTitle>
       <View style={styles.storage}>
-        <Icon name="info" size={18} color={storage?.persistent === false ? colors.behind : colors.secondary} />
-        <Text style={[styles.hint, storage?.persistent === false && { color: colors.behind }]}>
-          {storage?.persistent === false
-            ? 'Temporary storage: this browser tab could not open persistent storage (private window, or REMATCH is open in another tab). Export a backup before closing.'
-            : `Stored ${storage?.description?.toLowerCase() ?? 'on this device'}. No account, no server — export a backup to move it.`}
-        </Text>
+        <Icon name="info" size={18} color={colors.secondary} />
+        <Text style={styles.hint}>Stored {storage?.description ?? 'on this device'}. No account, no server — export a backup to move it.</Text>
       </View>
       <View style={styles.row}>
         <Button title="Export backup" icon="download" variant="secondary" onPress={exportData} loading={busy === 'export'} style={styles.flex} />

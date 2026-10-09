@@ -702,7 +702,12 @@ function UpNext({ state, meta }: { state: ActiveWorkoutState; meta: Meta }) {
           <Text style={styles.upNextText} numberOfLines={1}>
             {describeTarget(ex, state.scoring)} · {meta.get(ex.scaledExerciseId)?.name ?? ex.scaledExerciseId}
           </Text>
-          {round !== state.currentRoundIndex + 1 && <Text style={styles.capLabel}>R{round}</Text>}
+          {round !== state.currentRoundIndex + 1 && (
+            <Text style={styles.capLabel}>
+              {state.structure.format === 'emom' ? 'M' : state.structure.format === 'intervals' ? 'I' : 'R'}
+              {round}
+            </Text>
+          )}
         </View>
       ))}
     </View>

@@ -27,21 +27,10 @@ function wrap(db: SQLite.SQLiteDatabase, description: string, persistent: boolea
   };
 }
 
-/**
- * Opens the app database. On the web the persistent store (OPFS) can be
- * unavailable — private windows, or the app already open in another tab — so
- * the app falls back to an in-memory database instead of failing to start.
- */
+/** Opens the app database (native SQLite, or OPFS-backed SQLite on the web). */
 export async function openExpoDriver(name = 'rematch.db'): Promise<SqlDriver> {
-  try {
-    const db = await SQLite.openDatabaseAsync(name);
-    await db.execAsync('PRAGMA foreign_keys = ON;');
-    if (Platform.OS !== 'web') await db.execAsync('PRAGMA journal_mode = WAL;');
-    return wrap(db, Platform.OS === 'web' ? 'This browser (origin private file system)' : 'On this device (SQLite)', true);
-  } catch (error) {
-    if (Platform.OS !== 'web') throw error;
-    console.warn('[rematch] persistent storage unavailable, using memory', error);
-    const db = await SQLite.openDatabaseAsync(':memory:');
-    return wrap(db, 'Temporary (this tab only)', false);
-  }
+  const db = await SQLite.openDatabaseAsync(name);
+  await db.execAsync('PRAGMA foreign_keys = ON;');
+  if (Platform.OS !== 'web') await db.execAsync('PRAGMA journal_mode = WAL;');
+  return wrap(db, Platform.OS === 'web' ? 'in this browser (origin private file system)' : 'on this device (SQLite)', true);
 }

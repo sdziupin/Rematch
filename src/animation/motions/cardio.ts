@@ -176,7 +176,7 @@ const squatHands = (footX = 46): Body => ({
   legL: ankle(footX + 1),
   legR: ankle(footX),
 });
-const jumpUp: Body = { x: 46, air: 6, torso: 178, head: 180, armL: [158, 168], armR: [152, 162], legL: [3, 0], legR: [1, -2], footL: 32, footR: 32 };
+const jumpUp: Body = { x: 46, air: 5, torso: 178, head: 180, armL: [146, 156], armR: [140, 150], legL: [3, 0], legR: [1, -2], footL: 32, footR: 32 };
 const landSoft: Body = { x: 43, y: 64, torso: 160, head: 172, armL: [40, 60], armR: [36, 56], legL: ankle(47), legR: ankle(46) };
 
 const burpee = animate(
