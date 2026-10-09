@@ -17,7 +17,14 @@ type Boot = { status: 'loading' } | { status: 'ready' } | { status: 'error'; mes
 
 let bootPromise: Promise<void> | null = null;
 
+function registerServiceWorker() {
+  // Production web builds work offline after the first visit (see public/sw.js).
+  if (Platform.OS !== 'web' || __DEV__ || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+}
+
 async function boot() {
+  registerServiceWorker();
   const driver = await openExpoDriver();
   await initDatabase(driver);
   useSettings.getState().applyProfile(await getProfile());

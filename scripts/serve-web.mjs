@@ -1,15 +1,17 @@
 #!/usr/bin/env node
-// Serves the exported web build (`npm run build:web`) with the cross-origin
-// isolation headers expo-sqlite needs for SharedArrayBuffer on the web.
+// Serves the exported web build (`npm run build:web`) as a single-page app.
+// It also sends the cross-origin isolation headers the expo-sqlite web docs
+// recommend. Only expo-sqlite's sync API needs them; REMATCH uses the async API,
+// so any static host with an index.html fallback works too.
 //
-//   node scripts/serve-web.mjs [dir=dist] [--port 8081]
+//   node scripts/serve-web.mjs [dir=dist] [--port 8080]
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
 const args = process.argv.slice(2);
 const portFlag = args.indexOf('--port');
-const port = Number(portFlag >= 0 ? args[portFlag + 1] : process.env.PORT ?? 8081);
+const port = Number(portFlag >= 0 ? args[portFlag + 1] : process.env.PORT ?? 8080);
 const root = resolve(args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--port') ?? 'dist');
 
 const MIME = {

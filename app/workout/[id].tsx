@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { getWorkoutImage } from '../../src/assets/imageRegistry';
 import { Button } from '../../src/components/Button';
 import { TrendChart } from '../../src/components/charts';
 import { confirmAction, showToast } from '../../src/components/Dialogs';
@@ -19,7 +20,7 @@ import { archiveCustomWorkout } from '../../src/services/customWorkoutService';
 import { difficultyLabel } from '../../src/services/recommendationService';
 import { getPb, listResults } from '../../src/services/sessionService';
 import { getWorkoutTrend, type TrendPoint } from '../../src/services/statsService';
-import { beginWorkout } from '../../src/services/startWorkout';
+import { beginWorkout, resolveDanglingSession } from '../../src/services/startWorkout';
 import { colors, readable, spacing, typography, withAlpha } from '../../src/theme';
 
 const VARIANTS: PartialKey[] = ['full', 'three_quarter', 'half', 'quarter'];
@@ -93,6 +94,7 @@ export default function WorkoutDetailScreen() {
   const w = { ...plan.workout, identityColor: readable(plan.workout.identityColor) };
   const structure: WorkoutStructure = plan.structure;
   const isBenchmark = (w.kind ?? 'benchmark') === 'benchmark';
+  const artwork = getWorkoutImage(w.slug);
   const uniqueMoves = [...new Set(plan.fullStructure.rounds.flatMap((r) => r.steps.map((s) => s.exerciseId)))];
   const scalable = uniqueMoves.filter((id) => chainOf(id).length > 1);
   const last = results[0] ?? null;
@@ -103,6 +105,14 @@ export default function WorkoutDetailScreen() {
     if (starting) return;
     setStarting(true);
     try {
+      const proceed = await resolveDanglingSession((name) =>
+        confirmAction({
+          title: `${name} is still in progress`,
+          message: 'Starting a new workout ends it. What you did is kept as an unfinished result.',
+          confirmLabel: 'Start new',
+        }),
+      );
+      if (!proceed) return;
       await beginWorkout({ workoutId: w.id, partialKey, scalingCategory: scaling, swaps, opponentSessionId, ...program });
       router.push('/workout/active');
     } catch (error) {
@@ -138,7 +148,11 @@ export default function WorkoutDetailScreen() {
   const headerBlock = (
     <View style={styles.hero}>
       <View style={[styles.symbolWrap, { backgroundColor: withAlpha(w.identityColor, 0.16), borderColor: withAlpha(w.identityColor, 0.5) }]}>
-        <Text style={[styles.symbol, { color: w.identityColor }]}>{w.symbol}</Text>
+        {artwork ? (
+          <Image source={artwork} style={styles.artwork} accessibilityIgnoresInvertColors accessibilityLabel={`${w.name} artwork`} />
+        ) : (
+          <Text style={[styles.symbol, { color: w.identityColor }]}>{w.symbol}</Text>
+        )}
       </View>
       <View style={styles.flex}>
         <Text style={styles.name} accessibilityRole="header">
@@ -285,8 +299,9 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   row: { flexDirection: 'row', gap: 4 },
   hero: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', marginBottom: spacing.md },
-  symbolWrap: { width: 84, height: 84, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  symbolWrap: { width: 84, height: 84, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, overflow: 'hidden' },
   symbol: { fontSize: 44 },
+  artwork: { width: 84, height: 84, borderRadius: 24 },
   name: { ...typography.displayLG, color: colors.primary },
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 4 },
   duration: { ...typography.body, color: colors.secondary },

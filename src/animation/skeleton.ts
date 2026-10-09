@@ -109,7 +109,8 @@ export function solveRaw(pose: Pose, view: View = 'side'): Joints {
   let hipL = hip;
   let hipR = hip;
   if (view === 'front') {
-    const across = pose.torso + 90;
+    // Unit vector toward screen-right for an upright torso, so L is screen-left.
+    const across = pose.torso - 90;
     shoulderL = add(neck, across, -SEGMENT.shoulderHalf);
     shoulderR = add(neck, across, SEGMENT.shoulderHalf);
     hipL = add(hip, across, -SEGMENT.hipHalf);
@@ -403,9 +404,15 @@ function propShapes(motion: Motion, j: Joints, t: number, dx: number): PropShape
         const theta = 2 * Math.PI * t;
         const apexY = (top + bottom) / 2 + ((bottom - top) / 2) * Math.cos(theta);
         if (motion.view === 'front') {
-          // Quadratic through the apex: control point mirrored about the apex.
-          const ctrlY = 2 * apexY - mid.y;
-          out.push({ type: 'path', d: `M ${j.wristL.x} ${j.wristL.y} Q ${mid.x} ${ctrlY} ${j.wristR.x} ${j.wristR.y}`, width: 1.6 });
+          // Cubic through the apex whose handles bow outward, so the rope arcs around the body.
+          const d = (apexY - mid.y) * (4 / 3);
+          const bow = 5;
+          const f = (n: number) => n.toFixed(2);
+          out.push({
+            type: 'path',
+            d: `M ${f(j.wristL.x)} ${f(j.wristL.y)} C ${f(j.wristL.x - bow)} ${f(j.wristL.y + d)} ${f(j.wristR.x + bow)} ${f(j.wristR.y + d)} ${f(j.wristR.x)} ${f(j.wristR.y)}`,
+            width: 1.6,
+          });
         } else {
           const apexX = mid.x + 12 * Math.sin(theta);
           const spread = 5;

@@ -15,7 +15,7 @@ import { formatLabel } from '../../src/engine/workoutEngine';
 import { useLayout } from '../../src/hooks/useLayout';
 import { getActiveProgram, type ActiveProgram } from '../../src/services/programService';
 import { difficultyLabel, focusLabel, recommendTodayWorkout } from '../../src/services/recommendationService';
-import { getRecentWorkoutIds, getWorkoutStatsMap, hadPainRecently } from '../../src/services/sessionService';
+import { getActiveSession, getRecentWorkoutIds, getWorkoutStatsMap, hadPainRecently } from '../../src/services/sessionService';
 import { getRecentPbs, getTrainingStats, type TrainingStats } from '../../src/services/statsService';
 import { useSettings } from '../../src/store/settingsStore';
 import { colors, readable, spacing, typography, withAlpha } from '../../src/theme';
@@ -42,12 +42,13 @@ export default function TodayScreen() {
   const [program, setProgram] = useState<ActiveProgram | null>(null);
   const [programWorkout, setProgramWorkout] = useState<WorkoutRow | null>(null);
   const [pbs, setPbs] = useState<Awaited<ReturnType<typeof getRecentPbs>>>([]);
+  const [inProgress, setInProgress] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
       (async () => {
-        const [profile, workouts, statsMap, recent, pain, active, recentPbs, t] = await Promise.all([
+        const [profile, workouts, statsMap, recent, pain, activeProgram, recentPbs, t] = await Promise.all([
           getProfile(),
           listWorkouts(),
           getWorkoutStatsMap(),
@@ -59,6 +60,8 @@ export default function TodayScreen() {
         ]);
         if (cancelled) return;
         const byId = new Map(workouts.map((w) => [w.id, w]));
+        const active = await getActiveSession();
+        setInProgress(active ? byId.get(active.workoutId)?.name ?? 'Workout' : null);
         const rec = recommendTodayWorkout({
           minutes: profile?.typicalMinutes ?? 15,
           level: profile?.level ?? 'intermediate',
@@ -78,8 +81,8 @@ export default function TodayScreen() {
         setStats(statsMap);
         setTraining(t);
         setPbs(recentPbs);
-        setProgram(active && !active.progress.complete ? active : null);
-        setProgramWorkout(active?.progress.next ? byId.get(active.progress.next.workoutId) ?? null : null);
+        setProgram(activeProgram && !activeProgram.progress.complete ? activeProgram : null);
+        setProgramWorkout(activeProgram?.progress.next ? byId.get(activeProgram.progress.next.workoutId) ?? null : null);
       })();
       return () => {
         cancelled = true;
@@ -100,6 +103,17 @@ export default function TodayScreen() {
       attempts={stats[w.id]?.attempts}
       onPress={() => router.push(`/workout/${w.id}`)}
     />
+  );
+
+  const resumeCard = inProgress && (
+    <Card onPress={() => router.push('/workout/recovery')} accent={colors.accent} style={styles.resume} accessibilityLabel={`${inProgress} is in progress. Resume.`}>
+      <Icon name="play" color={colors.accent} />
+      <View style={styles.flex}>
+        <Text style={styles.label}>IN PROGRESS</Text>
+        <Text style={styles.weekTitle}>{inProgress}</Text>
+      </View>
+      <Text style={styles.resumeText}>RESUME</Text>
+    </Card>
   );
 
   const weekCard = (
@@ -220,6 +234,7 @@ export default function TodayScreen() {
       {isWide ? (
         <View style={styles.columns}>
           <View style={styles.main}>
+            {resumeCard}
             {programCard}
             {pickCard}
             {nextUp}
@@ -233,6 +248,7 @@ export default function TodayScreen() {
         </View>
       ) : (
         <View style={styles.stack}>
+          {resumeCard}
           {weekCard}
           {programCard}
           {pickCard}
@@ -280,6 +296,8 @@ const styles = StyleSheet.create({
   pbRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 10 },
   pbSymbol: { fontSize: 20, width: 28, textAlign: 'center' },
   pbName: { ...typography.bodyBold, color: colors.primary, flex: 1 },
+  resume: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm, backgroundColor: withAlpha(colors.accent, 0.08) },
+  resumeText: { ...typography.label, color: colors.accent },
   teaser: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: withAlpha(colors.accentWarm, 0.06) },
   teaserTitle: { ...typography.subheading, color: colors.primary },
 });

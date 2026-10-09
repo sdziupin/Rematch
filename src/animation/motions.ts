@@ -1,4 +1,5 @@
 import type { Motion } from './skeleton';
+import { CARDIO_MOTIONS } from './motions/cardio';
 import { CORE_MOTIONS } from './motions/core';
 import { LEG_MOTIONS } from './motions/legs';
 import { PUSH_MOTIONS } from './motions/push';
@@ -80,6 +81,7 @@ export const MOTIONS: Record<string, Motion> = {
   ...PUSH_MOTIONS,
   ...LEG_MOTIONS,
   ...CORE_MOTIONS,
+  ...CARDIO_MOTIONS,
 };
 
 /** Used when an exercise has no dedicated motion yet. */

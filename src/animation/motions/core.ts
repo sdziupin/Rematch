@@ -202,7 +202,7 @@ const jackLegs = (lift: number, spread: number): Partial<Body> => ({
 function mcLeg() {
   return lineFrom(A, PLANK.up).legAngle;
 }
-const plankJack = loop('side', 900, [highPlank(jackLegs(0, 1.5)), highPlank(jackLegs(3, 4)), highPlank(jackLegs(0, 8)), highPlank(jackLegs(3, 4))], { thumbT: 0.5 });
+const plankJack = loop('side', 900, [highPlank(jackLegs(0, 1.5)), highPlank({ ...jackLegs(4, 6), y: lineFrom(A, PLANK.up).y - 1.5 }), highPlank(jackLegs(0, 12)), highPlank({ ...jackLegs(4, 6), y: lineFrom(A, PLANK.up).y - 1.5 })], { thumbT: 0.5 });
 
 const fp = forearmPlank(FOREARM_ANGLE, 96);
 const midLine = lineFrom(A, 104);
@@ -241,17 +241,17 @@ const climber = (front: 'L' | 'R'): Body => ({
 });
 const mountainClimber = loop('side', 760, [climber('R'), climber('L')], { thumbT: 0 });
 
-// Side plank (front view, lying on the left side): forearm down, top arm up.
+// Side plank (front view, lying on the near-floor R side): forearm down, top arm up.
 const SIDE_T = 105;
 const sidePlankBody = (dip: number): Body => ({
   x: 48,
   y: 78.1 + dip,
   torso: SIDE_T - dip * 0.6,
   head: SIDE_T - 8,
-  armL: [0, 90],
-  armR: [176, 178],
-  legL: [-75 - dip * 0.6, -75 - dip * 0.6],
-  legR: [-72.5 - dip * 0.6, -72.5 - dip * 0.6],
+  armR: [0, 90],
+  armL: [176, 178],
+  legR: [-75 - dip * 0.6, -75 - dip * 0.6],
+  legL: [-72.5 - dip * 0.6, -72.5 - dip * 0.6],
 });
 const sidePlank = holdBody('front', sidePlankBody(0), sidePlankBody(1.2), { props: MAT });
 
@@ -274,22 +274,31 @@ const reversePlankBody = (angle: number, head: number): Body => {
 };
 const reversePlank = holdBody('side', reversePlankBody(-114.3, -140), reversePlankBody(-112.5, -136), { props: MAT });
 
-// Russian twist (front view): seated, feet up, hands sweep side to side.
-const twist = (dir: 1 | -1): Body => {
-  const x = 50;
-  const hands: Target = { x: x + dir * 14, y: 81 };
-  return {
-    x,
-    y: SEAT,
-    torso: 180 - dir * 9,
-    head: 180 - dir * 14,
-    armL: { ...hands, x: hands.x - 0.6 },
-    armR: { ...hands, x: hands.x + 0.6 },
-    legL: [-148, 58],
-    legR: [148, -58],
-  };
-};
-const russianTwist = loop('front', 1800, [twist(1), twist(-1)], { props: MAT, thumbT: 0 });
+// Russian twist (side view): seated V with feet up; clasped hands sweep from hip to hip.
+const twist = (hands: { x: number; y: number }, torso: number, head: number): Body => ({
+  x: 50,
+  y: SEAT,
+  torso,
+  head,
+  spine: 12,
+  armL: { x: hands.x + 0.8, y: hands.y },
+  armR: hands,
+  legL: [131, 76],
+  legR: [129, 74],
+  footL: 120,
+  footR: 120,
+});
+const russianTwist = animate(
+  'side',
+  2000,
+  [
+    key(0, twist({ x: 51, y: 84.5 }, -136, -120)),
+    key(0.25, twist({ x: 44, y: 70 }, -142, -150)),
+    key(0.5, twist({ x: 41, y: 84 }, -146, -165)),
+    key(0.75, twist({ x: 44, y: 70 }, -142, -150)),
+  ],
+  { props: MAT, thumbT: 0 },
+);
 
 export const CORE_MOTIONS: Record<string, Motion> = {
   'sit-up': sitUp,

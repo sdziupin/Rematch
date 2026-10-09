@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { CheckpointBreakdown } from '../../src/components/RaceRails';
@@ -29,6 +29,7 @@ export default function ResultScreen() {
   const [missing, setMissing] = useState(false);
   const [intensity, setIntensity] = useState<string | null>(null);
   const [pain, setPain] = useState(false);
+  const [note, setNote] = useState('');
   const [programNote, setProgramNote] = useState<string | null>(null);
   const scale = useRef(new Animated.Value(fresh ? 0.6 : 1)).current;
   const isFresh = fresh === '1';
@@ -43,6 +44,7 @@ export default function ResultScreen() {
     setSummary(s);
     setIntensity(s.feedback?.intensity ?? null);
     setPain(s.feedback?.painReported ?? false);
+    setNote(s.feedback?.note ?? '');
     if (isFresh && s.session.programEnrollmentId) {
       const active = await getActiveProgram();
       if (active?.progress.complete) setProgramNote(`Program complete: ${active.program.name}. Every session done.`);
@@ -114,9 +116,9 @@ export default function ResultScreen() {
       : null;
   const improved = previousBest ? compareScores(toScore(result), toScore(previousBest)) > 0 : false;
 
-  const submitFeedback = async (key: string, painReported = pain) => {
-    setIntensity(key);
-    await saveFeedback(result.sessionId, key, undefined, painReported);
+  const submitFeedback = async (key: string | null, painReported = pain, text = note) => {
+    if (key) setIntensity(key);
+    await saveFeedback(result.sessionId, key ?? intensity ?? undefined, undefined, painReported, text.trim() || undefined);
   };
 
   const onDelete = async () => {
@@ -207,6 +209,17 @@ export default function ResultScreen() {
         />
       </View>
       {pain && <Text style={styles.note}>We'll suggest low-impact sessions for the next few days. Stop if anything feels sharp, and talk to a professional if pain persists.</Text>}
+      <TextInput
+        value={note}
+        onChangeText={setNote}
+        onBlur={() => void submitFeedback(null)}
+        placeholder="Add a note (pacing, how the burpees felt…)"
+        placeholderTextColor={colors.muted}
+        style={styles.noteInput}
+        multiline
+        maxLength={400}
+        accessibilityLabel="Session note"
+      />
     </Card>
   );
 
@@ -278,6 +291,7 @@ const styles = StyleSheet.create({
   pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 6 },
   note: { ...typography.body, color: colors.secondary, textAlign: 'center', marginTop: 6 },
   noTop: { marginTop: 0 },
+  noteInput: { ...typography.body, color: colors.primary, backgroundColor: colors.background, borderRadius: 12, padding: spacing.sm, marginTop: spacing.md, minHeight: 64, textAlignVertical: 'top' },
   splitRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   splitLabel: { ...typography.body, color: colors.primary },
   splitValue: { ...typography.bodyBold, color: colors.primary, fontVariant: ['tabular-nums'] },

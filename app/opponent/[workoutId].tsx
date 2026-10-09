@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { showToast } from '../../src/components/Dialogs';
+import { confirmAction, showToast } from '../../src/components/Dialogs';
 import { Card, EmptyState, Pill, Screen, ScreenHeader } from '../../src/components/ui';
 import { Icon } from '../../src/components/Icon';
 import { loadWorkoutPlan } from '../../src/db/repository';
 import type { PartialKey, ScalingCategory } from '../../src/domain/types';
 import { formatScore, relativeDay } from '../../src/domain/utils';
 import { listOpponents } from '../../src/services/sessionService';
-import { beginWorkout } from '../../src/services/startWorkout';
+import { beginWorkout, resolveDanglingSession } from '../../src/services/startWorkout';
 import { colors, spacing, typography } from '../../src/theme';
 
 type Opponent = Awaited<ReturnType<typeof listOpponents>>[number];
@@ -35,6 +35,17 @@ export default function OpponentScreen() {
     if (busy) return;
     setBusy(true);
     try {
+      const proceed = await resolveDanglingSession((name) =>
+        confirmAction({
+          title: `${name} is still in progress`,
+          message: 'Starting a new workout ends it. What you did is kept as an unfinished result.',
+          confirmLabel: 'Start new',
+        }),
+      );
+      if (!proceed) {
+        setBusy(false);
+        return;
+      }
       let swaps: Record<string, string> = {};
       try {
         swaps = params.swaps ? (JSON.parse(params.swaps) as Record<string, string>) : {};

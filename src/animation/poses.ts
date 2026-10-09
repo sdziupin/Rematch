@@ -104,6 +104,8 @@ export interface Body {
   x: number;
   /** Hip y. Omit to let the solver ground the figure (only when no limb is a target). */
   y?: number;
+  /** With no hip y: height of the lowest point above the floor (jumps). */
+  air?: number;
   torso: number;
   head?: number;
   spine?: number;
@@ -177,7 +179,7 @@ function anglesOf(view: View, b: Body, y: number): Pose {
   let hL = hip;
   let hR = hip;
   if (view === 'front') {
-    const across = b.torso + 90;
+    const across = b.torso - 90;
     sL = along(neck, across, -SEGMENT.shoulderHalf);
     sR = along(neck, across, SEGMENT.shoulderHalf);
     hL = along(hip, across, -SEGMENT.hipHalf);
@@ -204,7 +206,7 @@ function anglesOf(view: View, b: Body, y: number): Pose {
 function worldY(view: View, b: Body): number {
   if (b.y !== undefined) return b.y;
   if ([b.armL, b.armR, b.legL, b.legR].some(isTarget)) throw new Error('A body with IK targets needs a hip y');
-  return GROUND_Y - lowestPoint(solveRaw(anglesOf(view, b, 0), view));
+  return GROUND_Y - (b.air ?? 0) - lowestPoint(solveRaw(anglesOf(view, b, 0), view));
 }
 
 /** Converts a world-space body into a Pose that reproduces it (via lift / anchorY). */
@@ -212,6 +214,7 @@ export function solveBody(view: View, b: Body): Pose {
   const p = anglesOf(view, b, b.y ?? 0);
   if (b.y === undefined) {
     worldY(view, b);
+    if (b.air) p.lift = b.air;
     return p;
   }
   const raw = solveRaw(p, view);
@@ -262,9 +265,11 @@ export function blendBodies(view: View, a: Body, b: Body, k: number): Pose {
     hx = h.x;
     hy = h.y;
   }
+  const grounded = a.y === undefined && b.y === undefined && !(a.pivot && b.pivot);
   const mixed: Body = {
     x: hx,
-    y: a.y === undefined && b.y === undefined && !(a.pivot && b.pivot) ? undefined : hy,
+    y: grounded ? undefined : hy,
+    air: grounded ? lerp(a.air ?? 0, b.air ?? 0, k) : undefined,
     torso: base.torso,
     head: base.head,
     spine: base.spine,
@@ -332,6 +337,22 @@ export function loop(view: View, durationMs: number, bodies: Body[], extra: Moti
 /** A held position with a slow breathing sway between two bodies. */
 export function holdBody(view: View, a: Body, b: Body, extra: MotionExtra & { durationMs?: number } = {}): Motion {
   return animate(view, extra.durationMs ?? 4000, [key(0, a), key(0.5, b)], { thumbT: 0, ...extra });
+}
+
+/** Shifts a body horizontally so that one of its joints lands on x. */
+export function alignX(view: View, b: Body, joint: string, x: number): Body {
+  const j = jointsOf(view, b);
+  const dx = x - j[joint].x;
+  const move = (s: LimbSpec): LimbSpec => (isTarget(s) ? { ...s, x: s.x + dx } : s);
+  return {
+    ...b,
+    x: b.x + dx,
+    armL: move(b.armL),
+    armR: move(b.armR),
+    legL: move(b.legL),
+    legR: move(b.legR),
+    pivot: b.pivot ? { x: b.pivot.x + dx, y: b.pivot.y } : undefined,
+  };
 }
 
 /** Overrides for a body (shallow). */

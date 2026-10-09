@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useNavigation, useRouter, type Href } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -92,6 +92,7 @@ export default function ActiveWorkoutScreen() {
   const finishing = useRef(false);
   const lastSave = useRef(0);
   const lastBeep = useRef<string>('');
+  const flash = useRef(new Animated.Value(0)).current;
   /** Set when the screen leaves on purpose; navigation happens in an effect so the leave guard is already off. */
   const [exitTo, setExitTo] = useState<Href | null>(null);
 
@@ -173,8 +174,15 @@ export default function ActiveWorkoutScreen() {
     [],
   );
 
+  const pulse = useCallback(() => {
+    // A visual cue for loud gyms and muted phones.
+    flash.setValue(0.35);
+    Animated.timing(flash, { toValue: 0, duration: 450, useNativeDriver: Platform.OS !== 'web' }).start();
+  }, [flash]);
+
   const cues = useCallback(
     (events: EngineEvent[], s: ActiveWorkoutState) => {
+      if (events.some((e) => e.type === 'RestEnded' || e.type === 'RestStarted' || (e.type === 'Checkpoint' && e.kind === 'round'))) pulse();
       for (const e of events) {
         if (e.type === 'Checkpoint' && e.kind === 'round') {
           playSound('done');
@@ -194,7 +202,7 @@ export default function ActiveWorkoutScreen() {
         }
       }
     },
-    [meta],
+    [meta, pulse],
   );
 
   const apply = useCallback(
@@ -645,6 +653,7 @@ export default function ActiveWorkoutScreen() {
         )}
       </View>
 
+      <Animated.View pointerEvents="none" style={[styles.flash, { opacity: flash }]} />
       {paused && (
         <View style={styles.pauseOverlay} accessibilityViewIsModal>
           <View style={styles.pauseCard}>
@@ -742,6 +751,7 @@ const styles = StyleSheet.create({
   wideStage: { backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.border },
   wideSide: { width: 400, gap: spacing.lg, paddingVertical: spacing.md },
   shortcuts: { ...typography.caption, color: colors.muted, textAlign: 'center' },
+  flash: { ...StyleSheet.absoluteFill, backgroundColor: colors.accent },
   pauseOverlay: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(colors.background, 0.92), alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   pauseCard: { width: '100%', maxWidth: 420, gap: spacing.md, alignItems: 'stretch' },
   pauseTitle: { ...typography.displayLG, color: colors.primary, textAlign: 'center' },

@@ -2,7 +2,9 @@ import { loadWorkoutPlan } from '../db/repository';
 import type { PartialKey, ScalingCategory } from '../domain/types';
 import { useSettings } from '../store/settingsStore';
 import { useWorkoutStore } from '../store/workoutStore';
-import { createSession } from './sessionService';
+import { abandonSession, createSession, getActiveSession } from './sessionService';
+import { getWorkoutById } from '../db/repository';
+import type { ActiveWorkoutState } from '../domain/types';
 
 export interface StartOptions {
   workoutId: string;
@@ -33,4 +35,24 @@ export async function beginWorkout(options: StartOptions): Promise<string> {
   });
   useWorkoutStore.getState().setSession(sessionId, state, options.opponentSessionId ?? null);
   return sessionId;
+}
+
+/**
+ * If another workout is still in progress, asks (via `confirm`) whether to end
+ * it. Its work is kept as an unfinished result. Returns false to cancel.
+ */
+export async function resolveDanglingSession(confirm: (name: string) => Promise<boolean>): Promise<boolean> {
+  const active = await getActiveSession();
+  if (!active) return true;
+  const workout = await getWorkoutById(active.workoutId);
+  const ok = await confirm(workout?.name ?? 'A workout');
+  if (!ok) return false;
+  let state: ActiveWorkoutState | null = null;
+  try {
+    state = JSON.parse(active.currentStateJson) as ActiveWorkoutState;
+  } catch {
+    state = null;
+  }
+  await abandonSession(active.id, state, active.elapsedActiveMs);
+  return true;
 }
