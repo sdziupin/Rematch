@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ExerciseRow } from '../db/schema';
 import type { WorkoutExerciseStep, WorkoutStructure } from '../domain/types';
 import { describeStructure } from '../engine/workoutEngine';
-import { colors, spacing, typography } from '../theme';
+import { colors, fonts, radius, spacing, typography } from '../theme';
 import { ExerciseAnimation } from './ExerciseAnimation';
 import { Icon } from './Icon';
 
@@ -32,7 +32,7 @@ function StepRow({ step, structure, exercises, swaps, onPress }: { step: Workout
       accessibilityLabel={`${stepText(step, structure)} ${ex?.name ?? id}`}
       style={(s) => [styles.step, (s as { hovered?: boolean }).hovered && styles.stepHover]}
     >
-      <ExerciseAnimation exerciseId={id} category={ex?.category} size={52} playing={false} />
+      <ExerciseAnimation exerciseId={id} category={ex?.category} size={48} playing={false} />
       <Text style={styles.amount}>{stepText(step, structure)}</Text>
       <View style={styles.flex}>
         <Text style={styles.name} numberOfLines={1}>
@@ -40,7 +40,7 @@ function StepRow({ step, structure, exercises, swaps, onPress }: { step: Workout
         </Text>
         {swapped && <Text style={styles.swapped}>scaled from {exercises.get(step.exerciseId)?.name ?? step.exerciseId}</Text>}
       </View>
-      {onPress && <Icon name="forward" size={18} color={colors.muted} />}
+      {onPress && <Icon name="forward" size={16} color={colors.textMuted} />}
     </Pressable>
   );
 }
@@ -85,20 +85,21 @@ export function StructurePreview({ structure, exercises, swaps, onExercisePress 
   return (
     <View style={styles.wrap}>
       <Text style={styles.summary}>{describeStructure(structure)}</Text>
-      {body}
+      <View style={styles.list}>{body}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: 6 },
+  wrap: { gap: spacing.sm + 4 },
+  list: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, paddingVertical: 6, overflow: 'hidden' },
   flex: { flex: 1 },
-  summary: { ...typography.bodyBold, color: colors.accent, marginBottom: 4 },
-  group: { gap: 6, marginBottom: 6 },
-  groupTitle: { ...typography.label, color: colors.muted, marginTop: 6, textTransform: 'uppercase' },
-  step: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: 6, borderRadius: 12, backgroundColor: colors.surface },
-  stepHover: { backgroundColor: colors.surfaceElevated },
-  amount: { ...typography.displayMD, fontSize: 26, lineHeight: 30, color: colors.primary, minWidth: 44, textAlign: 'right' },
-  name: { ...typography.bodyBold, color: colors.primary },
-  swapped: { ...typography.caption, color: colors.accentWarm },
+  summary: { ...typography.callout, color: colors.textSecondary },
+  group: { marginBottom: 2 },
+  groupTitle: { ...typography.overline, color: colors.textMuted, paddingHorizontal: spacing.md, paddingTop: spacing.sm + 4, paddingBottom: 6 },
+  step: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 6, paddingHorizontal: 10 },
+  stepHover: { backgroundColor: colors.surfaceRaised },
+  amount: { fontFamily: fonts.display, fontSize: 17, lineHeight: 22, letterSpacing: -0.3, color: colors.text, minWidth: 40, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  name: { ...typography.callout, color: colors.text },
+  swapped: { ...typography.caption, color: colors.behind },
 });

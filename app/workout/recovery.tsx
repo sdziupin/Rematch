@@ -83,15 +83,18 @@ export default function RecoveryScreen() {
   return (
     <Screen narrow scroll={false} contentStyle={styles.center}>
       <Card style={styles.card}>
-        <Text style={styles.kicker}>WORKOUT IN PROGRESS</Text>
+        <View style={styles.kickerRow}>
+          <View style={styles.dot} />
+          <Text style={styles.kicker}>Workout in progress</Text>
+        </View>
         <Text style={styles.name}>{info.name}</Text>
         <Text style={styles.sub}>
           {formatDuration(info.elapsed)} done · last active {relativeDay(info.updatedAt).toLowerCase()}
           {info.opponentSessionId ? ' · rematch' : ''}
         </Text>
         <View style={styles.actions}>
-          <Button title="RESUME" icon="play" size="lg" onPress={resume} loading={busy} />
-          <Button title="End workout" variant="ghost" icon="flag" onPress={end} disabled={busy} />
+          <Button title="Resume" icon="play" size="lg" onPress={resume} loading={busy} />
+          <Button title="End workout" variant="ghost" onPress={end} disabled={busy} />
         </View>
       </Card>
     </Screen>
@@ -101,8 +104,10 @@ export default function RecoveryScreen() {
 const styles = StyleSheet.create({
   center: { justifyContent: 'center' },
   card: { padding: spacing.xl, gap: spacing.sm },
-  kicker: { ...typography.label, color: colors.accent },
-  name: { ...typography.displayLG, color: colors.primary },
-  sub: { ...typography.body, color: colors.secondary },
+  kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent },
+  kicker: { ...typography.overline, color: colors.textSecondary },
+  name: { ...typography.display, color: colors.text, marginTop: spacing.sm },
+  sub: { ...typography.body, color: colors.textSecondary },
   actions: { gap: spacing.sm, marginTop: spacing.lg },
 });

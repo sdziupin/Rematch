@@ -1,22 +1,33 @@
+/**
+ * REMATCH colour tokens. One neutral ramp, one signal colour, and a small set of
+ * race semantics. Anything else on screen is a workout's own identity colour.
+ */
 export const colors = {
-  background: '#0A0C10',
-  surface: '#141820',
-  surfaceElevated: '#1C2230',
-  surfaceHover: '#232A3A',
-  primary: '#E8ECF4',
-  secondary: '#A3ACBD',
-  accent: '#4ECDC4',
-  accentDim: '#1F4F4C',
-  accentWarm: '#F4A261',
-  success: '#6BCB77',
-  danger: '#E76F51',
-  muted: '#6B7280',
-  border: '#2A3142',
-  overlay: 'rgba(10, 12, 16, 0.85)',
-  ahead: '#4ECDC4',
-  behind: '#F4A261',
-  pb: '#6BCB77',
-  rest: '#5B8DEF',
+  // Neutrals, darkest to lightest.
+  background: '#09090B',
+  surface: '#111113',
+  surfaceRaised: '#18181B',
+  surfaceHover: '#202024',
+  border: '#1F1F23',
+  borderStrong: '#2E2E33',
+
+  // Text.
+  text: '#F4F4F1',
+  textSecondary: '#A1A1A8',
+  textMuted: '#6A6A72',
+
+  // Signal: the primary action, and "you".
+  accent: '#D6F45B',
+  onAccent: '#0B0C06',
+
+  // Race semantics.
+  ahead: '#D6F45B',
+  behind: '#FF7A59',
+  pb: '#F3C766',
+  rest: '#8BA8FF',
+  danger: '#FF5F5F',
+
+  overlay: 'rgba(5, 5, 7, 0.82)',
 } as const;
 
 export type ColorName = keyof typeof colors;

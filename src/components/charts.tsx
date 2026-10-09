@@ -13,7 +13,7 @@ export function ProgressRing({
   size = 200,
   stroke = 12,
   color = colors.accent,
-  track = colors.border,
+  track = colors.surfaceHover,
   children,
 }: {
   progress: number;
@@ -58,15 +58,15 @@ export function Heatmap({ columns, cell = 13, gap = 3, color = colors.accent }: 
   const height = 7 * (cell + gap);
   const fill = (count: number, future: boolean) => {
     if (future) return 'transparent';
-    if (count === 0) return colors.surfaceElevated;
-    return withAlpha(color, count >= 3 ? 1 : count === 2 ? 0.7 : 0.4);
+    if (count === 0) return colors.surfaceRaised;
+    return withAlpha(color, count >= 3 ? 1 : count === 2 ? 0.75 : 0.5);
   };
   const total = columns.flat().reduce((s, c) => s + c.count, 0);
   return (
     <View accessible accessibilityLabel={`Training calendar: ${total} sessions in the last ${columns.length} weeks`}>
       <Svg width={width} height={height}>
         {columns.map((col, x) =>
-          col.map((c, y) => <Rect key={`${x}-${y}`} x={x * (cell + gap)} y={y * (cell + gap)} width={cell} height={cell} rx={3} fill={fill(c.count, c.future)} />),
+          col.map((c, y) => <Rect key={`${x}-${y}`} x={x * (cell + gap)} y={y * (cell + gap)} width={cell} height={cell} rx={cell * 0.28} fill={fill(c.count, c.future)} />),
         )}
       </Svg>
     </View>
@@ -79,7 +79,7 @@ export function Heatmap({ columns, cell = 13, gap = 3, color = colors.accent }: 
 
 export function WeeklyBars({ weeks, goal, height = 110, color = colors.accent }: { weeks: WeekBucket[]; goal: number; height?: number; color?: string }) {
   const max = Math.max(goal, ...weeks.map((w) => w.count), 1);
-  const barW = 18;
+  const barW = 16;
   const gap = 10;
   const width = weeks.length * (barW + gap);
   const chartH = height - 18;
@@ -92,15 +92,15 @@ export function WeeklyBars({ weeks, goal, height = 110, color = colors.accent }:
           const met = w.count >= goal;
           return (
             <G key={w.weekStart}>
-              <Rect x={i * (barW + gap)} y={0} width={barW} height={chartH} rx={5} fill={colors.surfaceElevated} />
-              {h > 0 && <Rect x={i * (barW + gap)} y={chartH - h} width={barW} height={h} rx={5} fill={met ? color : withAlpha(color, 0.45)} />}
-              <SvgText x={i * (barW + gap) + barW / 2} y={height - 2} fontSize={10} fill={colors.muted} textAnchor="middle">
+              <Rect x={i * (barW + gap)} y={0} width={barW} height={chartH} rx={4} fill={colors.surfaceRaised} />
+              {h > 0 && <Rect x={i * (barW + gap)} y={chartH - h} width={barW} height={h} rx={4} fill={met ? color : withAlpha(color, 0.55)} />}
+              <SvgText x={i * (barW + gap) + barW / 2} y={height - 2} fontSize={10} fill={colors.textMuted} fontFamily="Inter_500Medium" textAnchor="middle">
                 {w.count}
               </SvgText>
             </G>
           );
         })}
-        <Line x1={0} y1={goalY} x2={width - gap} y2={goalY} stroke={colors.pb} strokeWidth={1.5} strokeDasharray="4 4" />
+        <Line x1={0} y1={goalY} x2={width - gap} y2={goalY} stroke={colors.textSecondary} strokeWidth={1} strokeDasharray="3 4" />
       </Svg>
     </View>
   );
@@ -129,11 +129,11 @@ export function TrendChart({ values, lowerIsBetter, width = 300, height = 120, c
   return (
     <View>
       <Svg width={width} height={height}>
-        <Line x1={pad} y1={pad} x2={width - pad} y2={pad} stroke={colors.border} strokeDasharray="3 5" />
-        <Line x1={pad} y1={height - pad} x2={width - pad} y2={height - pad} stroke={colors.border} strokeDasharray="3 5" />
-        {values.length > 1 && <Polyline points={points} stroke={color} strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
+        <Line x1={pad} y1={pad} x2={width - pad} y2={pad} stroke={colors.borderStrong} strokeDasharray="2 6" />
+        <Line x1={pad} y1={height - pad} x2={width - pad} y2={height - pad} stroke={colors.borderStrong} strokeDasharray="2 6" />
+        {values.length > 1 && <Polyline points={points} stroke={color} strokeWidth={2} fill="none" strokeLinejoin="round" strokeLinecap="round" />}
         {values.map((v, i) => (
-          <Circle key={i} cx={x(i)} cy={y(v)} r={i === bestIdx ? 5.5 : 3.5} fill={i === bestIdx ? colors.pb : color} />
+          <Circle key={i} cx={x(i)} cy={y(v)} r={i === bestIdx ? 5 : 3} fill={i === bestIdx ? colors.pb : colors.background} stroke={i === bestIdx ? colors.pb : color} strokeWidth={2} />
         ))}
       </Svg>
       <View style={chartStyles.legend}>
@@ -182,7 +182,7 @@ const BACK: Record<string, Shape[]> = {
 };
 
 function Silhouette() {
-  const body = colors.surfaceElevated;
+  const body = colors.surfaceRaised;
   return (
     <G>
       <Circle cx={50} cy={17} r={10} fill={body} />
@@ -202,7 +202,7 @@ function MuscleShapes({ map, load, color }: { map: Record<string, Shape[]>; load
       {Object.entries(map).flatMap(([muscle, shapes]) =>
         shapes.map((s, i) => {
           const v = load[muscle] ?? 0;
-          const fill = v > 0 ? withAlpha(color, 0.25 + 0.75 * v) : withAlpha(colors.muted, 0.18);
+          const fill = v > 0 ? withAlpha(color, 0.25 + 0.75 * v) : withAlpha(colors.textMuted, 0.16);
           return s.kind === 'ellipse' ? (
             <Ellipse key={`${muscle}${i}`} cx={s.cx} cy={s.cy} rx={s.rx} ry={s.ry} fill={fill} />
           ) : (
@@ -238,7 +238,7 @@ export function BodyMap({ load, height = 220, color = colors.accent, labels = tr
 
 const chartStyles = StyleSheet.create({
   legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
-  legendText: { ...typography.caption, color: colors.muted },
+  legendText: { ...typography.caption, color: colors.textMuted },
   bodyRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
   bodyCol: { alignItems: 'center', gap: 4 },
 });

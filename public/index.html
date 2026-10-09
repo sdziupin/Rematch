@@ -17,10 +17,26 @@
       html,
       body {
         height: 100%;
-        background-color: #0a0c10;
+        background-color: #09090b;
       }
       body {
         overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+      }
+      ::selection {
+        background: rgba(214, 244, 91, 0.3);
+      }
+      input,
+      textarea {
+        outline: none;
+        caret-color: #d6f45b;
+      }
+      [role='button']:focus-visible,
+      [role='tab']:focus-visible {
+        outline: 2px solid rgba(214, 244, 91, 0.6);
+        outline-offset: 2px;
       }
       #root {
         display: flex;

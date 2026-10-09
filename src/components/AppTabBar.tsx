@@ -2,8 +2,9 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, layout, spacing, typography, withAlpha } from '../theme';
+import { colors, fonts, layout, radius, spacing, typography } from '../theme';
 import { Icon, type IconName } from './Icon';
+import { Wordmark } from './Wordmark';
 
 export const TAB_ICONS: Record<string, IconName> = {
   today: 'today',
@@ -37,8 +38,9 @@ export function AppTabBar({ state, descriptors, navigation, sidebar }: BottomTab
   if (sidebar) {
     return (
       <View style={[styles.sidebar, { paddingTop: insets.top + spacing.lg }]} accessibilityRole="tablist">
-        <Text style={styles.brand}>REMATCH</Text>
-        <Text style={styles.tagline}>You vs. you.</Text>
+        <View style={styles.wordmark}>
+          <Wordmark />
+        </View>
         <View style={styles.sideItems}>
           {items.map(({ route, focused, label, onPress, icon }) => (
             <Pressable
@@ -49,14 +51,16 @@ export function AppTabBar({ state, descriptors, navigation, sidebar }: BottomTab
               accessibilityLabel={label}
               style={(s) => [styles.sideItem, focused && styles.sideItemActive, (s as { hovered?: boolean }).hovered && !focused && styles.sideItemHover]}
             >
-              <Icon name={icon} size={20} color={focused ? colors.accent : colors.secondary} />
-              <Text style={[styles.sideLabel, focused && { color: colors.primary }]}>{label}</Text>
+              <Icon name={icon} size={19} color={focused ? colors.text : colors.textMuted} />
+              <Text style={[styles.sideLabel, focused && { color: colors.text }]}>{label}</Text>
             </Pressable>
           ))}
         </View>
         <View style={styles.sideFooter}>
-          <Icon name="keyboard" size={16} color={colors.muted} />
-          <Text style={styles.sideFooterText}>Space = next · P = pause during workouts</Text>
+          <Text style={styles.sideFooterTitle}>Shortcuts</Text>
+          <Shortcut keys="Space" label="Next" />
+          <Shortcut keys="↑ ↓" label="Count reps" />
+          <Shortcut keys="P" label="Pause" />
         </View>
       </View>
     );
@@ -73,26 +77,49 @@ export function AppTabBar({ state, descriptors, navigation, sidebar }: BottomTab
           accessibilityLabel={label}
           style={styles.bottomItem}
         >
-          <Icon name={icon} size={22} color={focused ? colors.accent : colors.muted} />
-          <Text style={[styles.bottomLabel, focused && { color: colors.accent }]}>{label}</Text>
+          <Icon name={icon} size={22} color={focused ? colors.text : colors.textMuted} />
+          <Text style={[styles.bottomLabel, focused && { color: colors.text }]}>{label}</Text>
         </Pressable>
       ))}
     </View>
   );
 }
 
+function Shortcut({ keys, label }: { keys: string; label: string }) {
+  return (
+    <View style={styles.shortcut}>
+      <Text style={styles.kbd}>{keys}</Text>
+      <Text style={styles.shortcutLabel}>{label}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  bottom: { flexDirection: 'row', backgroundColor: colors.surface, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 },
-  bottomItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 48 },
-  bottomLabel: { ...typography.label, fontSize: 11, letterSpacing: 0.4, color: colors.muted },
-  sidebar: { width: layout.sidebarWidth, backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border, paddingHorizontal: spacing.md },
-  brand: { ...typography.displayMD, color: colors.primary, paddingHorizontal: spacing.sm },
-  tagline: { ...typography.caption, color: colors.accent, paddingHorizontal: spacing.sm, marginBottom: spacing.xl },
-  sideItems: { gap: 4 },
-  sideItem: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.sm + 4, minHeight: 46, borderRadius: 12 },
-  sideItemActive: { backgroundColor: withAlpha(colors.accent, 0.12) },
-  sideItemHover: { backgroundColor: colors.surfaceElevated },
-  sideLabel: { ...typography.bodyBold, color: colors.secondary },
-  sideFooter: { marginTop: 'auto', marginBottom: spacing.lg, flexDirection: 'row', gap: 8, alignItems: 'center', paddingHorizontal: spacing.sm },
-  sideFooterText: { ...typography.caption, color: colors.muted, flex: 1 },
+  bottom: { flexDirection: 'row', backgroundColor: colors.background, borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 6 },
+  bottomItem: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, minHeight: 50 },
+  bottomLabel: { fontFamily: fonts.medium, fontSize: 10.5, lineHeight: 13, color: colors.textMuted },
+  sidebar: { width: layout.sidebarWidth, backgroundColor: colors.background, borderRightWidth: 1, borderRightColor: colors.border, paddingHorizontal: spacing.md },
+  wordmark: { paddingHorizontal: spacing.sm + 2, marginBottom: spacing.xl },
+  sideItems: { gap: 2 },
+  sideItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: spacing.sm + 4, minHeight: 40, borderRadius: radius.md },
+  sideItemActive: { backgroundColor: colors.surfaceRaised },
+  sideItemHover: { backgroundColor: colors.surface },
+  sideLabel: { ...typography.callout, color: colors.textSecondary },
+  sideFooter: { marginTop: 'auto', marginBottom: spacing.lg, gap: 8, paddingHorizontal: spacing.sm + 4 },
+  sideFooterTitle: { ...typography.overline, color: colors.textMuted, marginBottom: 2 },
+  shortcut: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  kbd: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    color: colors.textSecondary,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    borderRadius: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    minWidth: 26,
+    textAlign: 'center',
+    overflow: 'hidden',
+  },
+  shortcutLabel: { ...typography.caption, color: colors.textMuted },
 });

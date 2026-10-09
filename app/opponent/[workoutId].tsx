@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { confirmAction, showToast } from '../../src/components/Dialogs';
-import { Card, EmptyState, Pill, Screen, ScreenHeader } from '../../src/components/ui';
+import { EmptyState, Pill, Screen, ScreenHeader } from '../../src/components/ui';
 import { Icon } from '../../src/components/Icon';
 import { loadWorkoutPlan } from '../../src/db/repository';
 import type { PartialKey, ScalingCategory } from '../../src/domain/types';
 import { formatScore, relativeDay } from '../../src/domain/utils';
 import { listOpponents } from '../../src/services/sessionService';
 import { beginWorkout, resolveDanglingSession } from '../../src/services/startWorkout';
-import { colors, spacing, typography } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography } from '../../src/theme';
 
 type Opponent = Awaited<ReturnType<typeof listOpponents>>[number];
 
@@ -72,22 +72,28 @@ export default function OpponentScreen() {
     <Screen narrow>
       <ScreenHeader title="Choose your opponent" subtitle={`${name} · every attempt you've finished can race you`} onBack={() => router.back()} />
       {attempts && attempts.length === 0 && <EmptyState icon="trophy" title="No finished attempts yet" body="Finish this workout once and it becomes your first opponent." />}
-      <View style={styles.list}>
-        {attempts?.map((a) => (
-          <Card key={a.id} onPress={() => rematch(a.sessionId)} style={styles.row} accessibilityLabel={`Rematch attempt ${a.attemptNumber}, ${formatScore(a)}`}>
+      <View style={attempts?.length ? styles.list : null}>
+        {attempts?.map((a, i) => (
+          <Pressable
+            key={a.id}
+            onPress={() => rematch(a.sessionId)}
+            style={(st) => [styles.row, i > 0 && styles.divider, (st as { hovered?: boolean }).hovered && styles.hover]}
+            accessibilityRole="button"
+            accessibilityLabel={`Rematch attempt ${a.attemptNumber}, ${formatScore(a)}`}
+          >
             <View style={styles.flex}>
               <View style={styles.titleRow}>
                 <Text style={styles.score}>{formatScore(a)}</Text>
                 {a.isPb && <Pill label="PB" color={colors.pb} />}
-                {a.timeCapped && <Pill label="CAPPED" color={colors.behind} />}
+                {a.timeCapped && <Pill label="Capped" color={colors.behind} />}
               </View>
               <Text style={styles.meta}>
                 Attempt {a.attemptNumber} · {relativeDay(a.createdAt)}
               </Text>
             </View>
-            <Text style={styles.action}>RACE</Text>
-            <Icon name="forward" color={colors.accent} />
-          </Card>
+            <Text style={styles.action}>Race</Text>
+            <Icon name="forward" size={16} color={colors.textMuted} />
+          </Pressable>
         ))}
       </View>
     </Screen>
@@ -96,10 +102,12 @@ export default function OpponentScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  list: { gap: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  list: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, paddingVertical: 14, paddingHorizontal: spacing.md + 2 },
+  divider: { borderTopWidth: 1, borderTopColor: colors.border },
+  hover: { backgroundColor: colors.surfaceRaised },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  score: { ...typography.heading, color: colors.primary, fontVariant: ['tabular-nums'] },
-  meta: { ...typography.caption, color: colors.secondary },
-  action: { ...typography.label, color: colors.accent },
+  score: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, letterSpacing: -0.5, color: colors.text, fontVariant: ['tabular-nums'] },
+  meta: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  action: { ...typography.callout, fontFamily: fonts.semibold, color: colors.accent },
 });

@@ -7,7 +7,7 @@ import { showToast } from '../src/components/Dialogs';
 import { ExerciseAnimation } from '../src/components/ExerciseAnimation';
 import { Icon } from '../src/components/Icon';
 import { StructurePreview } from '../src/components/StructurePreview';
-import { Card, Chip, ChipRow, Screen, ScreenHeader, SectionTitle } from '../src/components/ui';
+import { Card, Chip, ChipRow, Screen, ScreenHeader, SearchField, SectionTitle, WorkoutMark } from '../src/components/ui';
 import { getWorkoutById, listExercises, loadWorkoutPlan, parseJsonArray } from '../src/db/repository';
 import type { ExerciseRow } from '../src/db/schema';
 import type { Difficulty, WorkoutExerciseStep, WorkoutFormat } from '../src/domain/types';
@@ -16,7 +16,7 @@ import { estimateStructureMinutes, formatLabel } from '../src/engine/workoutEngi
 import { useLayout } from '../src/hooks/useLayout';
 import { buildStructure, CUSTOM_COLORS, CUSTOM_SYMBOLS, saveCustomWorkout, validateStructure } from '../src/services/customWorkoutService';
 import { useSettings } from '../src/store/settingsStore';
-import { colors, spacing, typography, withAlpha } from '../src/theme';
+import { colors, fonts, radius, spacing, typography } from '../src/theme';
 
 const FORMATS = ['fixed_rounds', 'chipper', 'amrap', 'emom', 'intervals'] as const;
 const DIFFICULTIES: Difficulty[] = ['beginner', 'intermediate', 'advanced', 'elite'];
@@ -31,12 +31,12 @@ let stepKey = 0;
 function Stepper({ value, onChange, min = 0, max = 999, step = 1, suffix = '', label }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string; label: string }) {
   return (
     <View style={styles.stepper}>
-      <IconButton icon="minus" label={`Decrease ${label}`} size={36} onPress={() => onChange(Math.max(min, value - step))} />
+      <IconButton icon="minus" label={`Decrease ${label}`} size={34} onPress={() => onChange(Math.max(min, value - step))} />
       <Text style={styles.stepperValue}>
         {value}
         {suffix}
       </Text>
-      <IconButton icon="plus" label={`Increase ${label}`} size={36} onPress={() => onChange(Math.min(max, value + step))} />
+      <IconButton icon="plus" label={`Increase ${label}`} size={34} onPress={() => onChange(Math.min(max, value + step))} />
     </View>
   );
 }
@@ -142,28 +142,24 @@ export default function BuilderScreen() {
   const editor = (
     <View style={styles.stack}>
       <Card style={styles.stack}>
+        <Text style={styles.fieldLabel}>Name</Text>
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="NAME YOUR WORKOUT"
-          placeholderTextColor={colors.muted}
+          placeholder="NAME IT"
+          placeholderTextColor={colors.textMuted}
           style={styles.nameInput}
           maxLength={24}
           autoCapitalize="characters"
           accessibilityLabel="Workout name"
         />
-        <View style={styles.wrap}>
-          {CUSTOM_SYMBOLS.map((s) => (
-            <Pressable key={s} onPress={() => setSymbol(s)} style={[styles.swatch, symbol === s && { borderColor: color }]} accessibilityRole="button" accessibilityLabel={`Symbol ${s}`}>
-              <Text style={[styles.swatchText, { color }]}>{s}</Text>
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.fieldLabel}>Colour</Text>
         <View style={styles.wrap}>
           {CUSTOM_COLORS.map((c) => (
             <Pressable key={c} onPress={() => setColor(c)} style={[styles.colorDot, { backgroundColor: c }, color === c && styles.colorDotOn]} accessibilityRole="button" accessibilityLabel={`Colour ${c}`} />
           ))}
         </View>
+        <Text style={styles.fieldLabel}>Level</Text>
         <ChipRow options={DIFFICULTIES} value={difficulty} onChange={setDifficulty} format={titleCase} />
       </Card>
 
@@ -207,7 +203,7 @@ export default function BuilderScreen() {
         )}
       </Card>
 
-      <SectionTitle right={<Button title="Add movement" icon="plus" size="sm" variant="outline" onPress={() => setPicking(true)} />}>Movements</SectionTitle>
+      <SectionTitle right={<Button title="Add movement" icon="plus" size="sm" variant="secondary" onPress={() => setPicking(true)} />}>Movements</SectionTitle>
       {steps.length === 0 && <Text style={styles.hint}>Add the movements in the order you'll do them.</Text>}
       {steps.map((s, i) => {
         const ex = byId.get(s.exerciseId);
@@ -232,7 +228,7 @@ export default function BuilderScreen() {
               ))}
             <View style={styles.reorder}>
               <IconButton icon="back" label="Move up" size={32} onPress={() => move(s.key, -1)} disabled={i === 0} style={{ transform: [{ rotate: '90deg' }] }} />
-              <IconButton icon="close" label="Remove" size={32} onPress={() => setSteps((all) => all.filter((x) => x.key !== s.key))} />
+              <IconButton icon="close" label="Remove" size={32} color={colors.textSecondary} onPress={() => setSteps((all) => all.filter((x) => x.key !== s.key))} />
             </View>
           </Card>
         );
@@ -251,9 +247,17 @@ export default function BuilderScreen() {
 
   const preview = (
     <Card style={styles.stack}>
-      <SectionTitle style={{ marginTop: 0 }}>Preview · about {estimateStructureMinutes(structure)} min</SectionTitle>
+      <View style={styles.previewHead}>
+        <WorkoutMark name={name || '?'} color={color} size={40} />
+        <View style={styles.flex}>
+          <Text style={styles.previewName} numberOfLines={1}>
+            {name || 'Untitled'}
+          </Text>
+          <Text style={styles.hint}>About {estimateStructureMinutes(structure)} min</Text>
+        </View>
+      </View>
       {steps.length ? <StructurePreview structure={structure} exercises={byId} /> : <Text style={styles.hint}>Your workout appears here.</Text>}
-      <Button title={id ? 'SAVE CHANGES' : 'CREATE WORKOUT'} icon="check" size="lg" onPress={save} loading={saving} tint={color} />
+      <Button title={id ? 'Save changes' : 'Create workout'} icon="check" size="lg" onPress={save} loading={saving} />
       {id && <Text style={styles.hint}>Changing movements, reps or format starts a new version, so earlier results stay comparable.</Text>}
     </Card>
   );
@@ -272,7 +276,7 @@ export default function BuilderScreen() {
           {preview}
         </View>
       )}
-      <ExercisePicker visible={picking} exercises={exercises} onPick={addExercise} onClose={() => setPicking(false)} accent={color} />
+      <ExercisePicker visible={picking} exercises={exercises} onPick={addExercise} onClose={() => setPicking(false)} accent={colors.accent} />
     </Screen>
   );
 }
@@ -298,20 +302,19 @@ function ExercisePicker({ visible, exercises, onPick, onClose, accent }: { visib
             <Text style={styles.modalTitle}>Add a movement</Text>
             <IconButton icon="close" label="Close" onPress={onClose} />
           </View>
-          <View style={styles.search}>
-            <Icon name="search" size={18} color={colors.muted} />
-            <TextInput value={query} onChangeText={setQuery} placeholder="Search" placeholderTextColor={colors.muted} style={styles.searchInput} accessibilityLabel="Search movements" autoFocus />
+          <View style={styles.searchRow}>
+            <SearchField value={query} onChange={setQuery} label="Search movements" />
           </View>
           <ChipRow options={CATEGORIES} value={category} onChange={setCategory} format={(c) => (c === 'all' ? 'All' : titleCase(c))} scroll />
           <ScrollView contentContainerStyle={styles.pickList}>
             {list.map((e) => (
-              <Pressable key={e.id} onPress={() => onPick(e)} style={(s) => [styles.pickRow, (s as { hovered?: boolean }).hovered && { backgroundColor: colors.surfaceElevated }]} accessibilityRole="button" accessibilityLabel={`Add ${e.name}`}>
-                <ExerciseAnimation exerciseId={e.id} category={e.category} size={44} playing={false} color={accent} />
+              <Pressable key={e.id} onPress={() => onPick(e)} style={(s) => [styles.pickRow, (s as { hovered?: boolean }).hovered && { backgroundColor: colors.surfaceRaised }]} accessibilityRole="button" accessibilityLabel={`Add ${e.name}`}>
+                <ExerciseAnimation exerciseId={e.id} category={e.category} size={44} playing={false} />
                 <View style={styles.flex}>
                   <Text style={styles.stepName}>{e.name}</Text>
                   <Text style={styles.hint}>{titleCase(e.category)}</Text>
                 </View>
-                <Icon name="plus" color={accent} />
+                <Icon name="plus" size={18} color={accent} />
               </Pressable>
             ))}
           </ScrollView>
@@ -323,30 +326,30 @@ function ExercisePicker({ visible, exercises, onPick, onClose, accent }: { visib
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  stack: { gap: spacing.sm },
+  stack: { gap: spacing.sm + 2 },
   columns: { flexDirection: 'row', gap: spacing.xl, alignItems: 'flex-start' },
   side: { width: 400 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  nameInput: { ...typography.displayMD, color: colors.primary, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border },
-  swatch: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent', backgroundColor: colors.surfaceElevated },
-  swatchText: { fontSize: 20 },
-  colorDot: { width: 32, height: 32, borderRadius: 16, borderWidth: 3, borderColor: 'transparent' },
-  colorDotOn: { borderColor: colors.primary },
+  fieldLabel: { ...typography.overline, color: colors.textMuted, marginTop: spacing.xs },
+  nameInput: { ...typography.title, letterSpacing: 0.5, color: colors.text, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border, marginBottom: spacing.xs },
+  colorDot: { width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: colors.surface },
+  colorDotOn: { borderColor: colors.text },
   optionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  optionLabel: { ...typography.bodyBold, color: colors.primary },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  stepperValue: { ...typography.subheading, color: colors.primary, minWidth: 54, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  stepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, flexWrap: 'wrap' },
-  stepName: { ...typography.bodyBold, color: colors.primary },
+  optionLabel: { ...typography.callout, fontFamily: fonts.semibold, color: colors.text },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  stepperValue: { ...typography.figure, fontSize: 17, color: colors.text, minWidth: 52, textAlign: 'center' },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 2, padding: 10, flexWrap: 'wrap' },
+  stepName: { ...typography.callout, fontFamily: fonts.semibold, color: colors.text, marginBottom: 4 },
   reorder: { flexDirection: 'row', gap: 4 },
-  hint: { ...typography.caption, color: colors.muted },
+  hint: { ...typography.caption, color: colors.textMuted },
   error: { ...typography.body, color: colors.danger },
+  previewHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, marginBottom: spacing.xs },
+  previewName: { ...typography.heading, letterSpacing: 0.3, color: colors.text },
   modalBackdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'flex-end' },
-  modal: { width: '100%', maxWidth: 640, height: '86%', backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: spacing.md, gap: spacing.sm },
+  modal: { width: '100%', maxWidth: 640, height: '86%', backgroundColor: colors.surface, borderTopLeftRadius: radius.xl + 6, borderTopRightRadius: radius.xl + 6, borderWidth: 1, borderColor: colors.border, padding: spacing.md, gap: spacing.sm + 4 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  modalTitle: { ...typography.heading, color: colors.primary },
-  search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.background, borderRadius: 14, paddingHorizontal: spacing.md, minHeight: 48 },
-  searchInput: { flex: 1, color: colors.primary, ...typography.body, paddingVertical: 10 },
-  pickList: { gap: 4, paddingBottom: spacing.xl },
-  pickRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: 8, borderRadius: 12, backgroundColor: withAlpha(colors.background, 0.4) },
+  modalTitle: { ...typography.heading, color: colors.text },
+  searchRow: { flexDirection: 'row' },
+  pickList: { gap: 2, paddingBottom: spacing.xl },
+  pickRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: 8, borderRadius: radius.md },
 });

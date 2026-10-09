@@ -2,8 +2,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useFonts, BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
-import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
+import { useFonts } from 'expo-font';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { InterTight_600SemiBold, InterTight_700Bold } from '@expo-google-fonts/inter-tight';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { openExpoDriver } from '../src/db/expoDriver';
 import { claimTab, takeOverTab } from '../src/db/tabLock';
@@ -12,7 +13,7 @@ import { getProfile } from '../src/db/repository';
 import { useSettings } from '../src/store/settingsStore';
 import { DialogHost } from '../src/components/Dialogs';
 import { Button } from '../src/components/Button';
-import { colors, spacing, typography } from '../src/theme';
+import { colors, spacing } from '../src/theme';
 
 type Boot = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string } | { status: 'elsewhere' } | { status: 'no-storage' };
 
@@ -37,11 +38,11 @@ async function boot(): Promise<'ready' | 'elsewhere' | 'no-storage'> {
 export default function RootLayout() {
   const [boot_, setBoot] = useState<Boot>({ status: 'loading' });
   const [fontsLoaded, fontError] = useFonts({
-    BebasNeue: BebasNeue_400Regular,
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_600SemiBold,
-    DMSans_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    InterTight_600SemiBold,
+    InterTight_700Bold,
   });
 
   const start = useCallback(() => {
@@ -98,7 +99,7 @@ export default function RootLayout() {
   if (!fontsReady || boot_.status !== 'ready') {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.accent} />
+        <ActivityIndicator color={colors.textMuted} />
       </View>
     );
   }
@@ -125,9 +126,10 @@ export default function RootLayout() {
   );
 }
 
+// Fonts may still be loading here, so these screens use the system font.
 const styles = StyleSheet.create({
   center: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  title: { ...typography.heading, color: colors.primary, fontFamily: undefined, fontWeight: '700' },
-  body: { ...typography.body, color: colors.secondary, fontFamily: undefined, textAlign: 'center', marginTop: spacing.sm },
-  detail: { ...typography.caption, color: colors.muted, fontFamily: undefined, textAlign: 'center', marginTop: spacing.sm },
+  title: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.4, color: colors.text, textAlign: 'center' },
+  body: { fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, maxWidth: 420 },
+  detail: { fontSize: 13, lineHeight: 18, color: colors.textMuted, textAlign: 'center', marginTop: spacing.sm },
 });

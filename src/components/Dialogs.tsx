@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Animated, Platform, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
-import { colors, spacing, typography } from '../theme';
+import { colors, radius, spacing, typography } from '../theme';
 import { Button } from './Button';
 
 /**
@@ -97,10 +97,11 @@ function Toast() {
   }, [toast, opacity]);
 
   if (!toast) return null;
-  const tone = toast.tone === 'success' ? colors.success : toast.tone === 'error' ? colors.danger : colors.accent;
+  const tone = toast.tone === 'success' ? colors.accent : toast.tone === 'error' ? colors.danger : colors.textSecondary;
   return (
     <Animated.View pointerEvents="box-none" style={[styles.toastWrap, { bottom: insets.bottom + 84, opacity }]}>
-      <View style={[styles.toast, { borderLeftColor: tone }]} accessibilityLiveRegion="polite" accessibilityRole="alert">
+      <View style={styles.toast} accessibilityLiveRegion="polite" accessibilityRole="alert">
+        <View style={[styles.toastDot, { backgroundColor: tone }]} />
         <Text style={styles.toastText}>{toast.message}</Text>
         {toast.actionLabel && (
           <Pressable
@@ -130,26 +131,25 @@ export function DialogHost() {
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  dialog: { width: '100%', maxWidth: 420, backgroundColor: colors.surfaceElevated, borderRadius: 20, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  title: { ...typography.heading, color: colors.primary },
-  message: { ...typography.body, color: colors.secondary, marginTop: spacing.sm },
+  dialog: { width: '100%', maxWidth: 400, backgroundColor: colors.surface, borderRadius: radius.xl + 2, padding: spacing.lg, borderWidth: 1, borderColor: colors.borderStrong },
+  title: { ...typography.heading, color: colors.text },
+  message: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
   action: { flex: 1, paddingHorizontal: spacing.sm },
   toastWrap: { position: 'absolute', left: 0, right: 0, alignItems: 'center', paddingHorizontal: spacing.md },
   toast: {
-    maxWidth: 520,
-    width: '100%',
+    maxWidth: 480,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: 12,
+    gap: 12,
+    backgroundColor: colors.surfaceRaised,
+    borderRadius: radius.full,
     paddingVertical: 12,
-    paddingHorizontal: spacing.md,
-    borderLeftWidth: 4,
+    paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderStrong,
   },
-  toastText: { ...typography.body, color: colors.primary, flex: 1 },
-  toastAction: { ...typography.bodyBold, letterSpacing: 1 },
+  toastDot: { width: 7, height: 7, borderRadius: 4 },
+  toastText: { ...typography.callout, color: colors.text, flexShrink: 1 },
+  toastAction: { ...typography.bodyStrong },
 });

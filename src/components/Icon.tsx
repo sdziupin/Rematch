@@ -44,7 +44,7 @@ interface IconProps {
 }
 
 /** Original line icons on a 24-unit grid. */
-export function Icon({ name, size = 22, color = colors.primary, strokeWidth = 2 }: IconProps) {
+export function Icon({ name, size = 22, color = colors.text, strokeWidth = 1.75 }: IconProps) {
   const p = { stroke: color, strokeWidth, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden importantForAccessibility="no">
@@ -58,6 +58,12 @@ type StrokeProps = { stroke: string; strokeWidth: number; strokeLinecap: 'round'
 function renderIcon(name: IconName, p: StrokeProps, color: string) {
   switch (name) {
     case 'today':
+      return (
+        <>
+          <Circle cx="12" cy="12" r="8.5" {...p} />
+          <Path d="M12 7.5V12l3 2" {...p} />
+        </>
+      );
     case 'bolt':
       return <Path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z" {...p} />;
     case 'library':

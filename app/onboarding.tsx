@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Button } from '../src/components/Button';
 import { ExerciseAnimation } from '../src/components/ExerciseAnimation';
+import { Wordmark } from '../src/components/Wordmark';
 import { Chip, ChipRow, Screen } from '../src/components/ui';
 import { EQUIPMENT, EQUIPMENT_LABELS, type EquipmentId } from '../src/content/types';
 import { getProfile, updateProfile } from '../src/db/repository';
@@ -39,60 +40,66 @@ export default function Onboarding() {
     <Screen narrow>
       <View style={[styles.hero, isWide && styles.heroWide]}>
         <View style={styles.flex}>
-          <Text style={styles.brand}>REMATCH</Text>
-          <Text style={styles.tagline}>You vs. you.</Text>
+          <Wordmark size={16} />
+          <Text style={styles.headline}>Your next opponent is you.</Text>
           <Text style={styles.intro}>
-            Every workout you finish becomes your next opponent. Race your own recorded splits, find where you gained or lost time, and beat the last version of yourself.
+            Every workout you finish becomes a recorded rival. Race your own splits, see exactly where you gained or lost time, and beat the last version of yourself.
           </Text>
         </View>
-        <ExerciseAnimation exerciseId="burpee" size={isWide ? 180 : 140} />
+        <View style={styles.demo}>
+          <ExerciseAnimation exerciseId="burpee" size={isWide ? 200 : 168} color={colors.accent} background={null} />
+        </View>
       </View>
 
+      <Text style={styles.setupTitle}>Set up in 20 seconds</Text>
       <Section title="What are you training for?">
         <ChipRow options={GOALS} value={goal} onChange={setGoal} format={titleCase} />
       </Section>
       <Section title="Your level">
         <ChipRow options={LEVELS} value={level} onChange={setLevel} format={titleCase} />
       </Section>
-      <Section title="Equipment you have">
+      <Section title="Equipment you have" hint="No equipment? Plenty of workouts need nothing at all.">
         <View style={styles.wrap}>
           {EQUIPMENT.filter((e) => e !== 'bodyweight').map((e) => (
             <Chip key={e} label={EQUIPMENT_LABELS[e]} selected={equipment.includes(e)} onPress={() => toggleEquip(e)} />
           ))}
         </View>
-        <Text style={styles.hint}>No equipment? Plenty of workouts need nothing at all.</Text>
       </Section>
       <Section title="Typical session">
         <ChipRow options={TIMES} value={minutes} onChange={setMinutes} format={(m) => `${m} min`} />
       </Section>
-      <Section title="Sessions per week">
-        <ChipRow options={FREQ} value={freq} onChange={setFreq} format={(f) => `${f}×`} />
+      <Section title="Sessions per week" last>
+        <ChipRow options={FREQ} value={freq} onChange={setFreq} format={(f) => `${f} a week`} />
       </Section>
 
-      <Button title="SHOW MY FIRST CHALLENGE" icon="bolt" size="lg" onPress={finish} loading={saving} style={{ marginTop: spacing.xl }} />
-      <Text style={[styles.hint, { textAlign: 'center', marginTop: spacing.md }]}>Everything stays on this device. Change any of this later in Profile.</Text>
+      <Button title="Show my first challenge" icon="forward" size="lg" onPress={finish} loading={saving} style={{ marginTop: spacing.xl }} />
+      <Text style={styles.footnote}>Everything stays on this device. Change any of this later in Profile.</Text>
     </Screen>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, hint, last, children }: { title: string; hint?: string; last?: boolean; children: React.ReactNode }) {
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, last && styles.sectionLast]}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {children}
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  hero: { gap: spacing.md, alignItems: 'center', marginBottom: spacing.lg },
-  heroWide: { flexDirection: 'row' },
-  brand: { ...typography.displayXL, color: colors.primary },
-  tagline: { ...typography.subheading, color: colors.accent, marginBottom: spacing.sm },
-  intro: { ...typography.body, color: colors.secondary },
-  section: { marginBottom: spacing.lg, gap: spacing.sm },
-  sectionTitle: { ...typography.label, color: colors.muted, textTransform: 'uppercase' },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  hint: { ...typography.caption, color: colors.muted },
+  hero: { gap: spacing.lg, marginBottom: spacing.xxl, marginTop: spacing.md },
+  heroWide: { flexDirection: 'row', alignItems: 'center' },
+  headline: { ...typography.display, fontSize: 44, lineHeight: 48, color: colors.text, marginTop: spacing.xl },
+  intro: { ...typography.body, fontSize: 16, lineHeight: 24, color: colors.textSecondary, marginTop: spacing.md },
+  demo: { alignSelf: 'center', borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, padding: spacing.md },
+  setupTitle: { ...typography.overline, color: colors.textMuted, marginBottom: spacing.sm },
+  section: { paddingVertical: spacing.md + 4, gap: spacing.sm + 4, borderBottomWidth: 1, borderBottomColor: colors.border },
+  sectionLast: { borderBottomWidth: 0 },
+  sectionTitle: { ...typography.subheading, color: colors.text },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  hint: { ...typography.caption, color: colors.textMuted },
+  footnote: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.md },
 });

@@ -42,7 +42,7 @@ const rows = ids.map((id) => {
 writeFileSync(
   out,
   `<!doctype html><meta charset="utf-8"><title>Motion sheet</title><style>
-  body{background:#0A0C10;color:#E8ECF4;font:12px system-ui;margin:12px}
+  body{background:#09090B;color:#F4F4F1;font:12px system-ui;margin:12px}
   .row{display:flex;gap:6px;align-items:center;margin-bottom:8px}
   .name{width:150px;font-weight:600}.name small{display:block;color:#6B7280;font-weight:400}
   .cell{display:flex;flex-direction:column;align-items:center;color:#6B7280}
