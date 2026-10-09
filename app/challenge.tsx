@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '../src/components/Button';
 import { WorkoutHeroCard } from '../src/components/WorkoutCard';
-import { ChipRow, Screen, ScreenHeader } from '../src/components/ui';
+import { Screen, ScreenHeader, Segmented } from '../src/components/ui';
 import { WORKOUT_SEEDS } from '../src/content/seed';
 import { getProfile, getWorkoutById, profileEquipment } from '../src/db/repository';
 import type { WorkoutRow } from '../src/db/schema';
@@ -46,13 +46,12 @@ export default function ChallengeScreen() {
 
   return (
     <Screen narrow>
-      <ScreenHeader title="CHALLENGE ME" subtitle="Pick your time. We'll pick the opponent." onBack={() => router.back()} />
-      <ChipRow options={DURATIONS} value={minutes} onChange={setMinutes} format={(d) => `${d} min`} />
+      <ScreenHeader title="Challenge me" subtitle="Pick your time. We'll pick the opponent." onBack={() => router.back()} />
+      <Segmented options={DURATIONS.map((d) => ({ key: String(d), label: `${d} min` }))} value={String(minutes)} onChange={(v) => setMinutes(Number(v) as (typeof DURATIONS)[number])} fill />
       <View style={{ marginTop: spacing.lg }}>
         {preview && (
           <WorkoutHeroCard
             name={preview.name}
-            symbol={preview.symbol}
             color={preview.identityColor}
             format={formatLabel(preview.format as WorkoutStructure['format'])}
             meta={`${focusLabel(preview.focus)} · ${difficultyLabel(preview.difficulty)}`}
@@ -66,8 +65,8 @@ export default function ChallengeScreen() {
       </View>
       {preview && (
         <View style={styles.actions}>
-          <Button title="LET'S GO" icon="play" size="lg" onPress={() => router.push(`/workout/${preview.id}`)} />
-          <Button title="Something else" icon="swap" variant="ghost" onPress={() => setRoll((r) => r + 1)} />
+          <Button title="Let's go" icon="play" size="lg" onPress={() => router.push(`/workout/${preview.id}`)} />
+          <Button title="Something else" icon="swap" variant="secondary" onPress={() => setRoll((r) => r + 1)} />
         </View>
       )}
       <Text style={styles.note}>Picked for your level, equipment and recent sessions. Low-impact options appear after you report pain.</Text>
@@ -76,6 +75,6 @@ export default function ChallengeScreen() {
 }
 
 const styles = StyleSheet.create({
-  actions: { gap: spacing.sm, marginTop: spacing.lg },
-  note: { ...typography.caption, color: colors.muted, textAlign: 'center', marginTop: spacing.lg },
+  actions: { gap: spacing.sm + 2, marginTop: spacing.lg },
+  note: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.lg },
 });

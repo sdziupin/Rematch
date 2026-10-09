@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, spacing, typography, withAlpha } from '../theme';
+import { colors, fonts, radius, spacing, withAlpha } from '../theme';
 import { Icon, type IconName } from './Icon';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
@@ -17,17 +17,15 @@ interface ButtonProps {
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
   accessibilityHint?: string;
-  /** Background colour override for primary buttons (workout identity colours). */
-  tint?: string;
 }
 
-const HEIGHT: Record<Size, number> = { sm: 40, md: 52, lg: 64 };
+const HEIGHT: Record<Size, number> = { sm: 36, md: 48, lg: 56 };
+const FONT: Record<Size, number> = { sm: 13.5, md: 15, lg: 16 };
 
-export function Button({ title, onPress, variant = 'primary', size = 'md', disabled, loading, icon, style, accessibilityLabel, accessibilityHint, tint }: ButtonProps) {
-  const accent = tint ?? colors.accent;
-  const bg =
-    variant === 'primary' ? accent : variant === 'danger' ? colors.danger : variant === 'secondary' ? colors.surfaceElevated : 'transparent';
-  const textColor = variant === 'primary' ? colors.background : variant === 'danger' ? colors.primary : variant === 'outline' ? accent : colors.primary;
+export function Button({ title, onPress, variant = 'primary', size = 'md', disabled, loading, icon, style, accessibilityLabel, accessibilityHint }: ButtonProps) {
+  const bg = variant === 'primary' ? colors.accent : variant === 'danger' ? colors.danger : variant === 'secondary' ? colors.surfaceRaised : 'transparent';
+  const textColor =
+    variant === 'primary' ? colors.onAccent : variant === 'danger' ? colors.text : variant === 'outline' ? colors.text : variant === 'ghost' ? colors.textSecondary : colors.text;
   const inactive = disabled || loading;
   return (
     <Pressable
@@ -38,14 +36,20 @@ export function Button({ title, onPress, variant = 'primary', size = 'md', disab
       onPress={onPress}
       disabled={inactive}
       style={(state) => {
-        const hovered = (state as { hovered?: boolean }).hovered;
+        const hovered = (state as { hovered?: boolean }).hovered && !inactive;
         const hoverBg =
-          variant === 'ghost' || variant === 'outline' ? withAlpha(colors.primary, 0.06) : variant === 'secondary' ? colors.surfaceHover : bg;
+          variant === 'ghost' || variant === 'outline'
+            ? withAlpha(colors.text, 0.06)
+            : variant === 'secondary'
+              ? colors.surfaceHover
+              : withAlpha(bg, 0.9);
         return [
           styles.base,
-          { minHeight: HEIGHT[size], backgroundColor: hovered && !inactive ? hoverBg : bg, opacity: inactive ? 0.5 : state.pressed ? 0.82 : 1 },
-          variant === 'outline' && { borderWidth: 1.5, borderColor: accent },
+          { minHeight: HEIGHT[size], backgroundColor: hovered ? hoverBg : bg, opacity: inactive ? 0.45 : 1 },
+          variant === 'outline' && styles.outline,
+          variant === 'secondary' && styles.secondary,
           size === 'sm' && styles.small,
+          state.pressed && styles.pressed,
           style,
         ];
       }}
@@ -54,8 +58,8 @@ export function Button({ title, onPress, variant = 'primary', size = 'md', disab
         <ActivityIndicator color={textColor} />
       ) : (
         <View style={styles.row}>
-          {icon && <Icon name={icon} size={size === 'lg' ? 22 : 18} color={textColor} />}
-          <Text style={[styles.text, size === 'lg' && styles.textLarge, size === 'sm' && styles.textSmall, { color: textColor }]} numberOfLines={1}>
+          {icon && <Icon name={icon} size={size === 'sm' ? 16 : 18} color={textColor} strokeWidth={2} />}
+          <Text style={[styles.text, { fontSize: FONT[size], color: textColor }]} numberOfLines={1}>
             {title}
           </Text>
         </View>
@@ -76,7 +80,7 @@ interface IconButtonProps {
 }
 
 /** Round icon-only button with a 48 pt minimum touch target. */
-export function IconButton({ icon, onPress, label, size = 48, color = colors.primary, background = colors.surfaceElevated, disabled, style }: IconButtonProps) {
+export function IconButton({ icon, onPress, label, size = 48, color = colors.text, background = colors.surfaceRaised, disabled, style }: IconButtonProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -91,30 +95,29 @@ export function IconButton({ icon, onPress, label, size = 48, color = colors.pri
           height: size,
           borderRadius: size / 2,
           backgroundColor: (state as { hovered?: boolean }).hovered ? colors.surfaceHover : background,
-          opacity: disabled ? 0.4 : state.pressed ? 0.75 : 1,
+          opacity: disabled ? 0.4 : 1,
         },
+        state.pressed && styles.pressed,
         style,
       ]}
     >
-      <Icon name={icon} size={Math.round(size * 0.46)} color={color} />
+      <Icon name={icon} size={Math.round(size * 0.42)} color={color} strokeWidth={2} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: 14,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: spacing.lg,
   },
-  small: { paddingHorizontal: spacing.md, borderRadius: 10 },
+  secondary: { borderWidth: 1, borderColor: colors.border },
+  outline: { borderWidth: 1, borderColor: colors.borderStrong },
+  small: { paddingHorizontal: 14 },
+  pressed: { opacity: 0.75, transform: [{ scale: 0.985 }] },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  text: {
-    ...typography.bodyBold,
-    letterSpacing: 1,
-  },
-  textLarge: { fontSize: 18, letterSpacing: 1.5 },
-  textSmall: { fontSize: 14, letterSpacing: 0.5 },
+  text: { fontFamily: fonts.semibold, letterSpacing: -0.15 },
   iconButton: { alignItems: 'center', justifyContent: 'center' },
 });

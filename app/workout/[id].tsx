@@ -1,13 +1,14 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { getWorkoutImage } from '../../src/assets/imageRegistry';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
 import { TrendChart } from '../../src/components/charts';
 import { confirmAction, showToast } from '../../src/components/Dialogs';
 import { ExerciseAnimation } from '../../src/components/ExerciseAnimation';
 import { StructurePreview } from '../../src/components/StructurePreview';
-import { Card, Chip, ChipRow, EmptyState, Pill, Screen, ScreenHeader, SectionTitle, Stat } from '../../src/components/ui';
+import { Icon } from '../../src/components/Icon';
+import { Card, Chip, EmptyState, Pill, Screen, ScreenHeader, SectionTitle, Segmented, Stat, WorkoutMark } from '../../src/components/ui';
 import { EQUIPMENT_LABELS, type EquipmentId } from '../../src/content/types';
 import { getExercisesByIds, loadWorkoutPlan, parseJsonArray } from '../../src/db/repository';
 import type { ExerciseRow, PersonalBestRow, ResultRow } from '../../src/db/schema';
@@ -21,7 +22,7 @@ import { difficultyLabel } from '../../src/services/recommendationService';
 import { getPb, listResults } from '../../src/services/sessionService';
 import { getWorkoutTrend, type TrendPoint } from '../../src/services/statsService';
 import { beginWorkout, resolveDanglingSession } from '../../src/services/startWorkout';
-import { colors, readable, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, fonts, radius, readable, spacing, typography } from '../../src/theme';
 
 const VARIANTS: PartialKey[] = ['full', 'three_quarter', 'half', 'quarter'];
 const VARIANT_LABEL: Record<PartialKey, string> = { full: 'Full', three_quarter: '¾', half: '½', quarter: '¼' };
@@ -32,6 +33,7 @@ export default function WorkoutDetailScreen() {
   const params = useLocalSearchParams<{ id: string; variant?: string; program?: string; key?: string }>();
   const router = useRouter();
   const { isWide } = useLayout();
+  const insets = useSafeAreaInsets();
   const [partialKey, setPartialKey] = useState<PartialKey>((VARIANTS as string[]).includes(params.variant ?? '') ? (params.variant as PartialKey) : 'full');
   const [plan, setPlan] = useState<Plan | null>(null);
   const [missing, setMissing] = useState(false);
@@ -100,7 +102,6 @@ export default function WorkoutDetailScreen() {
   const w = { ...plan.workout, identityColor: readable(plan.workout.identityColor) };
   const structure: WorkoutStructure = plan.structure;
   const isBenchmark = (w.kind ?? 'benchmark') === 'benchmark';
-  const artwork = getWorkoutImage(w.slug);
   const uniqueMoves = [...new Set(plan.structure.rounds.flatMap((r) => r.steps.map((s) => s.exerciseId)))];
   const scalable = uniqueMoves.filter((id) => chainOf(id).length > 1);
   const last = results[0] ?? null;
@@ -151,104 +152,104 @@ export default function WorkoutDetailScreen() {
   const trendValues = trend.filter((t) => t.variantId === plan.variant.id && t.scaling === scaling).map((t) => t.value);
   const scoreType = plan.version.rulesJson.includes('"reps"') ? 'reps' : 'time';
 
+  const primary = isBenchmark && pb
+    ? { title: 'Rematch your best', icon: 'trophy' as const, run: () => start(pb.sessionId) }
+    : isBenchmark && last
+      ? { title: 'Rematch last attempt', icon: 'bolt' as const, run: () => start(last.sessionId) }
+      : { title: isBenchmark ? 'Start first attempt' : 'Start', icon: 'play' as const, run: () => start(null) };
+  const secondary: { title: string; run: () => void }[] = [];
+  if (isBenchmark && pb && last && last.sessionId !== pb.sessionId) secondary.push({ title: 'Race last attempt', run: () => start(last.sessionId) });
+  if (isBenchmark && results.length > 1)
+    secondary.push({
+      title: 'Choose opponent',
+      run: () =>
+        router.push({
+          pathname: '/opponent/[workoutId]',
+          params: { workoutId: w.id, variant: partialKey, scaling, swaps: JSON.stringify(activeSwaps), ...(params.program ? { program: params.program, key: params.key } : {}) },
+        }),
+    });
+  if (results.length > 0) secondary.push({ title: 'Just train', run: () => start(null) });
+
   const headerBlock = (
     <View style={styles.hero}>
-      <View style={[styles.symbolWrap, { backgroundColor: withAlpha(w.identityColor, 0.16), borderColor: withAlpha(w.identityColor, 0.5) }]}>
-        {artwork ? (
-          <Image source={artwork} style={styles.artwork} accessibilityIgnoresInvertColors accessibilityLabel={`${w.name} artwork`} />
-        ) : (
-          <Text style={[styles.symbol, { color: w.identityColor }]}>{w.symbol}</Text>
-        )}
-      </View>
-      <View style={styles.flex}>
-        <Text style={styles.name} accessibilityRole="header">
-          {w.name}
-        </Text>
-        <View style={styles.pills}>
-          <Pill label={formatLabel(w.format as WorkoutStructure['format']).toUpperCase()} color={w.identityColor} />
-          <Pill label={difficultyLabel(w.difficulty).toUpperCase()} />
-          <Pill label={titleCase(w.focus).toUpperCase()} />
-          {w.source === 'custom' && <Pill label="CUSTOM" color={colors.accentWarm} />}
-          {!isBenchmark && <Pill label={w.kind === 'warmup' ? 'WARM-UP' : 'COOL-DOWN'} color={colors.rest} />}
-        </View>
-        <Text style={styles.duration}>
-          ≈ {w.estimatedMinutesMin}–{w.estimatedMinutesMax} min{equipment.length ? ` · ${equipment.map((e) => EQUIPMENT_LABELS[e] ?? e).join(', ')}` : ' · No equipment'}
-        </Text>
-      </View>
+      <WorkoutMark name={w.name} color={w.identityColor} size={52} />
+      <Text style={styles.eyebrow}>
+        {formatLabel(w.format as WorkoutStructure['format'])} · {difficultyLabel(w.difficulty)} · {titleCase(w.focus)}
+        {w.source === 'custom' ? ' · Custom' : ''}
+        {!isBenchmark ? (w.kind === 'warmup' ? ' · Warm-up' : ' · Cool-down') : ''}
+      </Text>
+      <Text style={styles.name} accessibilityRole="header">
+        {w.name}
+      </Text>
+      <Text style={styles.duration}>
+        {w.estimatedMinutesMin}–{w.estimatedMinutesMax} min · {equipment.length ? equipment.map((e) => EQUIPMENT_LABELS[e] ?? e).join(', ') : 'No equipment'}
+      </Text>
+      {w.description ? <Text style={styles.description}>{w.description}</Text> : null}
     </View>
   );
 
   const actions = (
     <View style={styles.actions}>
-      {isBenchmark && pb && <Button title="REMATCH YOUR PB" icon="trophy" size="lg" loading={starting} onPress={() => start(pb.sessionId)} />}
-      {isBenchmark && last && last.sessionId !== pb?.sessionId && (
-        <Button title="REMATCH LAST ATTEMPT" icon="bolt" variant={pb ? 'secondary' : 'primary'} size={pb ? 'md' : 'lg'} onPress={() => start(last.sessionId)} />
+      <Button title={primary.title} icon={primary.icon} size="lg" loading={starting} onPress={primary.run} />
+      {secondary.length > 0 && (
+        <View style={styles.secondaryRow}>
+          {secondary.map((a) => (
+            <Button key={a.title} title={a.title} variant="secondary" size="sm" onPress={a.run} style={styles.flex} />
+          ))}
+        </View>
       )}
-      {isBenchmark && results.length > 1 && (
-        <Button
-          title="CHOOSE OPPONENT"
-          icon="list"
-          variant="outline"
-          onPress={() =>
-            router.push({ pathname: '/opponent/[workoutId]', params: { workoutId: w.id, variant: partialKey, scaling, swaps: JSON.stringify(activeSwaps), ...(params.program ? { program: params.program, key: params.key } : {}) } })
-          }
-        />
-      )}
-      <Button
-        title={results.length === 0 ? (isBenchmark ? 'START FIRST ATTEMPT' : 'START') : 'JUST TRAIN (NO RACE)'}
-        icon="play"
-        variant={results.length === 0 ? 'primary' : 'ghost'}
-        size={results.length === 0 ? 'lg' : 'md'}
-        loading={starting && results.length === 0}
-        onPress={() => start(null)}
-      />
       {results.length === 0 && isBenchmark && <Text style={styles.hint}>Your first attempt becomes the opponent for every rematch after it.</Text>}
     </View>
   );
 
   const stats = isBenchmark && (
-    <Card>
+    <Card style={styles.statsCard}>
       <View style={styles.statsRow}>
-        <Stat label="PB" value={pb ? formatScore(pb) : '—'} color={colors.pb} />
-        <Stat label="Last" value={last ? formatScore(last) : '—'} />
-        <Stat label="Attempts" value={String(results.length)} />
+        <Stat label="Best" value={pb ? formatScore(pb) : '—'} color={pb ? colors.pb : undefined} style={styles.flex} />
+        <Stat label="Last" value={last ? formatScore(last) : '—'} style={styles.flex} />
+        <Stat label="Attempts" value={String(results.length)} style={styles.flex} />
       </View>
-      <Text style={styles.statsNote}>
-        {VARIANT_LABEL[partialKey]} · {SCALING_LABELS[scaling]} — scores only compare within the same version, size and scaling.
-      </Text>
       {trendValues.length >= 2 && (
-        <View style={{ marginTop: spacing.md }}>
-          <TrendChart values={trendValues} lowerIsBetter={scoreType === 'time'} width={isWide ? 420 : 300} format={(v) => (scoreType === 'reps' ? `${v}` : formatDuration(v))} />
-        </View>
+        <TrendChart values={trendValues} lowerIsBetter={scoreType === 'time'} width={isWide ? 340 : 300} format={(v) => (scoreType === 'reps' ? `${v}` : formatDuration(v))} />
       )}
+      <Text style={styles.statsNote}>
+        {VARIANT_LABEL[partialKey]} · {SCALING_LABELS[scaling]}. Scores only compare within the same version, size and scaling.
+      </Text>
     </Card>
   );
 
   const options = (
     <>
       <SectionTitle>Size</SectionTitle>
-      <ChipRow options={VARIANTS} value={partialKey} onChange={setPartialKey} format={(v) => (v === 'full' ? 'Full workout' : `${VARIANT_LABEL[v]} workout`)} />
+      <Segmented options={VARIANTS.map((v) => ({ key: v, label: VARIANT_LABEL[v] }))} value={partialKey} onChange={setPartialKey} fill />
       {isBenchmark && scalable.length > 0 && (
         <>
-          <SectionTitle right={<Pill label={SCALING_LABELS[scaling].toUpperCase()} color={scaling === 'rx' ? colors.accent : colors.accentWarm} />}>Scaling</SectionTitle>
-          <View style={styles.pills}>
+          <SectionTitle right={<Pill label={SCALING_LABELS[scaling]} color={scaling === 'rx' ? colors.accent : colors.behind} />}>Scaling</SectionTitle>
+          <View style={styles.presets}>
             <Chip label="All RX" selected={scaling === 'rx'} onPress={() => setSwaps({})} />
             <Chip label="All scaled" onPress={() => setSwaps(presetSwaps(scalable, chainOf, 1))} />
             <Chip label="All modified" onPress={() => setSwaps(presetSwaps(scalable, chainOf, 2))} />
           </View>
           <View style={styles.swapList}>
-            {scalable.map((rx) => {
+            {scalable.map((rx, i) => {
               const chosen = swaps[rx] ?? rx;
               const level = chainOf(rx).indexOf(chosen);
               return (
-                <Card key={rx} onPress={() => cycleSwap(rx)} style={styles.swapRow} accessibilityLabel={`${exercises.get(rx)?.name}: doing ${exercises.get(chosen)?.name}. Tap to change.`}>
-                  <ExerciseAnimation exerciseId={chosen} category={exercises.get(chosen)?.category} size={44} playing={false} color={level === 0 ? colors.accent : colors.accentWarm} />
+                <Pressable
+                  key={rx}
+                  onPress={() => cycleSwap(rx)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${exercises.get(rx)?.name}: doing ${exercises.get(chosen)?.name}. Tap to change.`}
+                  style={(st) => [styles.swapRow, i > 0 && styles.swapDivider, (st as { hovered?: boolean }).hovered && styles.swapHover]}
+                >
+                  <ExerciseAnimation exerciseId={chosen} category={exercises.get(chosen)?.category} size={40} playing={false} />
                   <View style={styles.flex}>
                     <Text style={styles.swapName}>{exercises.get(chosen)?.name ?? chosen}</Text>
                     <Text style={styles.swapSub}>{level === 0 ? 'As prescribed' : `Instead of ${exercises.get(rx)?.name ?? rx}`}</Text>
                   </View>
-                  <Pill label={level === 0 ? 'RX' : level === 1 ? 'SCALED' : 'MODIFIED'} color={level === 0 ? colors.accent : colors.accentWarm} />
-                </Card>
+                  <Pill label={level === 0 ? 'RX' : level === 1 ? 'Scaled' : 'Modified'} color={level === 0 ? undefined : colors.behind} />
+                  <Icon name="swap" size={16} color={colors.textMuted} />
+                </Pressable>
               );
             })}
           </View>
@@ -265,7 +266,15 @@ export default function WorkoutDetailScreen() {
   );
 
   return (
-    <Screen>
+    <Screen
+      footer={
+        isWide ? undefined : (
+          <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+            <View style={styles.footerInner}>{actions}</View>
+          </View>
+        )
+      }
+    >
       <ScreenHeader
         title=""
         onBack={() => (router.canGoBack() ? router.back() : router.replace('/library'))}
@@ -278,23 +287,24 @@ export default function WorkoutDetailScreen() {
           ) : undefined
         }
       />
-      {headerBlock}
-      {w.description ? <Text style={styles.description}>{w.description}</Text> : null}
       {isWide ? (
         <View style={styles.columns}>
-          <View style={styles.flex}>{workoutBlock}</View>
+          <View style={styles.flex}>
+            {headerBlock}
+            {workoutBlock}
+          </View>
           <View style={styles.side}>
             {stats}
             {options}
-            <View style={{ marginTop: spacing.lg }}>{actions}</View>
+            <View style={{ marginTop: spacing.xl }}>{actions}</View>
           </View>
         </View>
       ) : (
         <>
+          {headerBlock}
           {stats}
           {options}
           {workoutBlock}
-          <View style={{ marginTop: spacing.xl }}>{actions}</View>
         </>
       )}
     </Screen>
@@ -304,22 +314,26 @@ export default function WorkoutDetailScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   row: { flexDirection: 'row', gap: 4 },
-  hero: { flexDirection: 'row', gap: spacing.md, alignItems: 'center', marginBottom: spacing.md },
-  symbolWrap: { width: 84, height: 84, borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderWidth: 1, overflow: 'hidden' },
-  symbol: { fontSize: 44 },
-  artwork: { width: 84, height: 84, borderRadius: 24 },
-  name: { ...typography.displayLG, color: colors.primary },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginVertical: 4 },
-  duration: { ...typography.body, color: colors.secondary },
-  description: { ...typography.body, color: colors.primary, marginBottom: spacing.md, maxWidth: 680 },
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md },
-  statsNote: { ...typography.caption, color: colors.muted, marginTop: spacing.sm },
-  actions: { gap: spacing.sm },
-  hint: { ...typography.caption, color: colors.muted, textAlign: 'center' },
-  swapList: { gap: 8, marginTop: spacing.sm },
-  swapRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.sm },
-  swapName: { ...typography.bodyBold, color: colors.primary },
-  swapSub: { ...typography.caption, color: colors.secondary },
-  columns: { flexDirection: 'row', gap: spacing.xl, alignItems: 'flex-start' },
+  hero: { gap: 6, marginBottom: spacing.lg },
+  eyebrow: { ...typography.overline, color: colors.textMuted, marginTop: spacing.md },
+  name: { ...typography.display, fontSize: 44, lineHeight: 48, color: colors.text },
+  duration: { ...typography.callout, color: colors.textSecondary },
+  description: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm, maxWidth: 620 },
+  statsCard: { gap: spacing.md + 4 },
+  statsRow: { flexDirection: 'row', gap: spacing.md },
+  statsNote: { ...typography.caption, color: colors.textMuted },
+  actions: { gap: spacing.sm + 2 },
+  secondaryRow: { flexDirection: 'row', gap: spacing.sm },
+  hint: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
+  presets: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: spacing.sm + 4 },
+  swapList: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  swapRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, paddingVertical: 10, paddingHorizontal: 12 },
+  swapDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  swapHover: { backgroundColor: colors.surfaceRaised },
+  swapName: { ...typography.callout, fontFamily: fonts.semibold, color: colors.text },
+  swapSub: { ...typography.caption, color: colors.textMuted },
+  columns: { flexDirection: 'row', gap: spacing.xxl, alignItems: 'flex-start' },
   side: { width: 380 },
+  footer: { borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background, paddingHorizontal: spacing.md + 4, paddingTop: spacing.sm + 4 },
+  footerInner: { width: '100%', maxWidth: 720, alignSelf: 'center' },
 });

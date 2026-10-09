@@ -1,10 +1,10 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { confirmAction, showToast } from '../../src/components/Dialogs';
 import { Icon } from '../../src/components/Icon';
-import { Card, EmptyState, Grid, Pill, Screen, ScreenHeader, SectionTitle } from '../../src/components/ui';
+import { Card, EmptyState, Grid, Pill, ProgressBar, Screen, ScreenHeader, SectionTitle, WorkoutMark } from '../../src/components/ui';
 import { EQUIPMENT_LABELS } from '../../src/content/types';
 import { listWorkouts } from '../../src/db/repository';
 import type { WorkoutRow } from '../../src/db/schema';
@@ -13,7 +13,7 @@ import { useLayout } from '../../src/hooks/useLayout';
 import { completedProgramKeys, enroll, getActiveEnrollment, getProgram, leaveProgram } from '../../src/services/programService';
 import { difficultyLabel } from '../../src/services/recommendationService';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography } from '../../src/theme';
 
 const PARTIAL_LABEL: Record<string, string> = { full: '', three_quarter: '¾', half: '½', quarter: '¼' };
 
@@ -89,47 +89,51 @@ export default function ProgramScreen() {
     });
   };
 
+  const equipmentText = program.equipment.length === 0 ? 'No equipment' : program.equipment.map((e) => EQUIPMENT_LABELS[e] ?? e).join(', ');
+
   const header = (
-    <Card accent={program.identityColor} style={styles.hero}>
-      <View style={styles.heroTop}>
-        <View style={[styles.symbol, { backgroundColor: withAlpha(program.identityColor, 0.18) }]}>
-          <Text style={[styles.symbolText, { color: program.identityColor }]}>{program.symbol}</Text>
-        </View>
-        <View style={styles.flex}>
-          <Text style={styles.name}>{program.name}</Text>
-          <Text style={styles.meta}>
-            {program.weeks} weeks · {program.daysPerWeek} sessions a week · {difficultyLabel(program.level)}
-          </Text>
-        </View>
+    <View style={[styles.hero, isWide && styles.heroWide]}>
+      <View style={styles.heroText}>
+        <WorkoutMark name={program.name} color={program.identityColor} size={52} />
+        <Text style={styles.eyebrow}>
+          Program · {program.weeks} weeks · {program.daysPerWeek} a week · {difficultyLabel(program.level)}
+        </Text>
+        <Text style={styles.name}>{program.name}</Text>
+        <Text style={styles.tagline}>{program.tagline}</Text>
+        <Text style={styles.description}>{program.description}</Text>
+        <Text style={styles.meta}>{equipmentText}</Text>
       </View>
-      <Text style={styles.tagline}>{program.tagline}</Text>
-      <Text style={styles.description}>{program.description}</Text>
-      <View style={styles.pills}>
-        {program.equipment.length === 0 ? <Pill label="NO EQUIPMENT" /> : program.equipment.map((e) => <Pill key={e} label={(EQUIPMENT_LABELS[e] ?? e).toUpperCase()} />)}
-      </View>
-      {enrollmentId && progress ? (
-        <>
-          <View style={styles.bar}>
-            <View style={[styles.fill, { width: `${Math.round(progress.fraction * 100)}%`, backgroundColor: program.identityColor }]} />
-          </View>
-          <Text style={styles.meta}>
-            {progress.done} of {progress.total} sessions done
-          </Text>
-          {progress.next && (
-            <Button
-              title={`START WEEK ${progress.next.week} · DAY ${progress.next.day}`}
-              icon="play"
-              size="lg"
-              tint={program.identityColor}
-              onPress={() => openSession({ ...progress.next!, key: programSessionKey(progress.next!), done: false })}
-            />
-          )}
-          <Button title="Leave program" variant="ghost" onPress={leave} />
-        </>
-      ) : (
-        <Button title="START THIS PROGRAM" icon="calendar" size="lg" tint={program.identityColor} onPress={start} loading={busy} />
-      )}
-    </Card>
+      <Card style={[styles.actionCard, isWide && styles.actionCardWide]}>
+        {enrollmentId && progress ? (
+          <>
+            <View style={styles.progressHead}>
+              <Text style={styles.label}>Progress</Text>
+              <Text style={styles.progressValue}>
+                {progress.done}
+                <Text style={styles.progressOf}>/{progress.total}</Text>
+              </Text>
+            </View>
+            <ProgressBar progress={progress.fraction} />
+            {progress.next && (
+              <Button
+                title={`Start week ${progress.next.week}, day ${progress.next.day}`}
+                icon="play"
+                size="lg"
+                onPress={() => openSession({ ...progress.next!, key: programSessionKey(progress.next!), done: false })}
+                style={{ marginTop: spacing.sm }}
+              />
+            )}
+            <Button title="Leave program" variant="ghost" size="sm" onPress={leave} />
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>Every program opens and closes on the same benchmark</Text>
+            <Text style={styles.description}>So the last session is a rematch against the person who started.</Text>
+            <Button title="Start this program" icon="calendar" size="lg" onPress={start} loading={busy} style={{ marginTop: spacing.sm }} />
+          </>
+        )}
+      </Card>
+    </View>
   );
 
   const schedule = progress && (
@@ -137,25 +141,36 @@ export default function ProgramScreen() {
       <SectionTitle>Schedule</SectionTitle>
       <Grid columns={isWide ? 2 : 1}>
         {progress.weeks.map((week) => (
-          <Card key={week.week} style={styles.week}>
-            <Text style={styles.weekTitle}>WEEK {week.week}</Text>
-            {week.sessions.map((s) => {
-              const w = workouts.get(s.workoutId);
-              const isNext = enrollmentId && progress.next && programSessionKey(progress.next) === s.key;
-              return (
-                <Card key={s.key} onPress={() => openSession(s)} style={[styles.session, isNext ? { borderColor: program.identityColor } : null]} accessibilityLabel={`Day ${s.day}: ${w?.name ?? s.workoutId}${s.done ? ', done' : ''}`}>
-                  <View style={[styles.check, s.done && { backgroundColor: colors.pb, borderColor: colors.pb }]}>{s.done && <Icon name="check" size={14} color={colors.background} />}</View>
-                  <View style={styles.flex}>
-                    <Text style={styles.sessionName}>
-                      Day {s.day} · {w?.name ?? s.workoutId} {PARTIAL_LABEL[s.partialKey ?? 'full']}
-                    </Text>
-                    {s.note ? <Text style={styles.note}>{s.note}</Text> : null}
-                  </View>
-                  {isNext && <Pill label="NEXT" color={program.identityColor} />}
-                </Card>
-              );
-            })}
-          </Card>
+          <View key={week.week} style={styles.week}>
+            <Text style={styles.weekTitle}>Week {week.week}</Text>
+            <View style={styles.weekList}>
+              {week.sessions.map((s, i) => {
+                const w = workouts.get(s.workoutId);
+                const isNext = !!enrollmentId && !!progress.next && programSessionKey(progress.next) === s.key;
+                return (
+                  <Pressable
+                    key={s.key}
+                    onPress={() => openSession(s)}
+                    style={(st) => [styles.session, i > 0 && styles.sessionDivider, (st as { hovered?: boolean }).hovered && styles.sessionHover]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Day ${s.day}: ${w?.name ?? s.workoutId}${s.done ? ', done' : ''}`}
+                  >
+                    <View style={[styles.check, s.done && styles.checkDone, isNext && styles.checkNext]}>
+                      {s.done ? <Icon name="check" size={13} color={colors.onAccent} strokeWidth={2.5} /> : <Text style={styles.dayN}>{s.day}</Text>}
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={styles.sessionName}>
+                        {w?.name ?? s.workoutId}
+                        {s.partialKey && s.partialKey !== 'full' ? <Text style={styles.partial}> {PARTIAL_LABEL[s.partialKey]}</Text> : null}
+                      </Text>
+                      {s.note ? <Text style={styles.note}>{s.note}</Text> : null}
+                    </View>
+                    {isNext && <Pill label="Next" color={colors.accent} />}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
         ))}
       </Grid>
     </View>
@@ -172,21 +187,31 @@ export default function ProgramScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  hero: { gap: spacing.sm, padding: spacing.lg },
-  heroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  symbol: { width: 64, height: 64, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  symbolText: { fontSize: 32 },
-  name: { ...typography.displayLG, color: colors.primary },
-  meta: { ...typography.caption, color: colors.secondary },
-  tagline: { ...typography.subheading, color: colors.primary },
-  description: { ...typography.body, color: colors.secondary },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  bar: { height: 6, borderRadius: 3, backgroundColor: colors.border, overflow: 'hidden', marginTop: spacing.sm },
-  fill: { height: 6 },
-  week: { gap: 8 },
-  weekTitle: { ...typography.label, color: colors.muted },
-  session: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.sm, backgroundColor: colors.background },
-  check: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  sessionName: { ...typography.bodyBold, color: colors.primary },
-  note: { ...typography.caption, color: colors.secondary },
+  hero: { gap: spacing.lg },
+  heroWide: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xxl },
+  heroText: { flex: 1, gap: 6 },
+  eyebrow: { ...typography.overline, color: colors.textMuted, marginTop: spacing.md },
+  name: { ...typography.display, fontSize: 44, lineHeight: 48, color: colors.text },
+  tagline: { ...typography.subheading, fontSize: 18, lineHeight: 26, color: colors.text, marginTop: 4 },
+  description: { ...typography.body, color: colors.textSecondary, maxWidth: 620 },
+  meta: { ...typography.caption, color: colors.textMuted, marginTop: 4 },
+  label: { ...typography.overline, color: colors.textMuted },
+  actionCard: { gap: spacing.sm + 2, padding: spacing.lg - 4 },
+  actionCardWide: { width: 360 },
+  progressHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  progressValue: { fontFamily: fonts.display, fontSize: 26, lineHeight: 30, letterSpacing: -0.6, color: colors.text, fontVariant: ['tabular-nums'] },
+  progressOf: { color: colors.textMuted, fontSize: 18 },
+  week: { gap: spacing.sm + 2 },
+  weekTitle: { ...typography.overline, color: colors.textMuted },
+  weekList: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  session: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 6, paddingVertical: 14, paddingHorizontal: spacing.md },
+  sessionDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  sessionHover: { backgroundColor: colors.surfaceRaised },
+  check: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, borderColor: colors.borderStrong, alignItems: 'center', justifyContent: 'center' },
+  checkDone: { backgroundColor: colors.accent, borderColor: colors.accent },
+  checkNext: { borderColor: colors.accent },
+  dayN: { ...typography.caption, fontFamily: fonts.semibold, color: colors.textSecondary },
+  sessionName: { ...typography.callout, fontFamily: fonts.semibold, letterSpacing: 0.2, color: colors.text },
+  partial: { color: colors.textMuted },
+  note: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
 });

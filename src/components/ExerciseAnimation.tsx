@@ -35,8 +35,8 @@ export function ExerciseAnimation({
   size = 160,
   playing = true,
   speed = 1,
-  color = colors.accent,
-  background = colors.surfaceElevated,
+  color = colors.text,
+  background = colors.surfaceRaised,
   style,
   accessibilityLabel,
 }: ExerciseAnimationProps) {
@@ -66,14 +66,14 @@ export function ExerciseAnimation({
   }, [animate, motion, speed]);
 
   const frame = useMemo(() => frameAt(motion, t, offset), [motion, t, offset]);
-  const dim = withAlpha(color, 0.45);
-  const prop = colors.muted;
+  const dim = withAlpha(color, 0.32);
+  const prop = colors.textMuted;
 
   return (
     <View style={[{ width: size, height: size }, style]} accessible accessibilityRole="image" accessibilityLabel={accessibilityLabel ?? `${exerciseId.replace(/-/g, ' ')} demonstration`}>
       <Svg width={size} height={size} viewBox="0 0 100 100">
-        {background ? <Rect x="0" y="0" width="100" height="100" rx="12" fill={background} /> : null}
-        <Line x1="6" y1={GROUND_Y} x2="94" y2={GROUND_Y} stroke={prop} strokeWidth={1} strokeLinecap="round" opacity={0.5} />
+        {background ? <Rect x="0" y="0" width="100" height="100" rx="14" fill={background} /> : null}
+        <Line x1="6" y1={GROUND_Y} x2="94" y2={GROUND_Y} stroke={prop} strokeWidth={0.8} strokeLinecap="round" opacity={0.45} />
         {frame.props.map((p, i) => {
           if (p.type === 'line') return <Line key={i} x1={p.x1} y1={p.y1} x2={p.x2} y2={p.y2} stroke={prop} strokeWidth={p.width} strokeLinecap="round" />;
           if (p.type === 'rect') return <Rect key={i} x={p.x} y={p.y} width={p.width} height={p.height} rx={p.rx} fill={prop} opacity={0.7} />;

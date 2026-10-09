@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
-    "@expo-google-fonts/bebas-neue": "^0.4.1",
-    "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo-google-fonts/inter-tight": "^0.4.2",
     "@expo/metro-runtime": "~57.0.14",
     "drizzle-orm": "^0.45.2",
     "expo": "~57.0.18",
@@ -14,7 +14,6 @@
     "expo-font": "~57.0.2",
     "expo-haptics": "~57.0.2",
     "expo-keep-awake": "~57.0.1",
-    "expo-linear-gradient": "~57.0.1",
     "expo-router": "~57.0.17",
     "expo-sharing": "~57.0.16",
     "expo-speech": "~57.0.2",
@@ -35,6 +34,7 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "@types/react": "~19.2.2",
+    "playwright": "^1.64.0",
     "tsx": "^4.19.0",
     "typescript": "~6.0.3"
   },
@@ -49,10 +49,8 @@
     "typecheck": "tsc --noEmit",
     "motion-sheet": "tsx scripts/motion-sheet.ts",
     "generate:sounds": "node scripts/generate-sounds.mjs",
-    "generate:assets": "node scripts/generate-gemini-assets.mjs",
-    "generate:assets:icon": "node scripts/generate-gemini-assets.mjs --type icon",
-    "generate:assets:exercises": "node scripts/generate-gemini-assets.mjs --type exercises --all",
-    "generate:assets:workouts": "node scripts/generate-gemini-assets.mjs --type workouts --all"
+    "screenshots": "node scripts/screenshots.mjs",
+    "generate:icons": "node scripts/generate-icons.mjs"
   },
   "private": true
 }

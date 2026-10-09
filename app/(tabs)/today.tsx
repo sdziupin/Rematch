@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { ProgressRing } from '../../src/components/charts';
 import { Icon } from '../../src/components/Icon';
 import { WorkoutHeroCard, WorkoutTile } from '../../src/components/WorkoutCard';
-import { Card, Grid, Pill, Screen, SectionTitle } from '../../src/components/ui';
+import { Wordmark } from '../../src/components/Wordmark';
+import { Card, Grid, ProgressBar, Screen, SectionTitle, WorkoutMark } from '../../src/components/ui';
 import { WORKOUT_SEEDS } from '../../src/content/seed';
 import { getProfile, listWorkouts, profileEquipment } from '../../src/db/repository';
 import type { WorkoutRow } from '../../src/db/schema';
@@ -18,13 +19,13 @@ import { difficultyLabel, focusLabel, recommendTodayWorkout } from '../../src/se
 import { getActiveSession, getRecentWorkoutIds, getWorkoutStatsMap, hadPainRecently } from '../../src/services/sessionService';
 import { getRecentPbs, getTrainingStats, type TrainingStats } from '../../src/services/statsService';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, readable, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography } from '../../src/theme';
 
 type Stats = Awaited<ReturnType<typeof getWorkoutStatsMap>>;
 
 function greeting() {
   const h = new Date().getHours();
-  return h < 5 ? 'Late session?' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  return h < 5 ? 'Late one tonight' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
 export default function TodayScreen() {
@@ -91,11 +92,11 @@ export default function TodayScreen() {
   );
 
   const thisWeek = training?.thisWeek ?? 0;
+  const goalDone = thisWeek >= weeklyGoal;
   const tile = (w: WorkoutRow) => (
     <WorkoutTile
       key={w.id}
       name={w.name}
-      symbol={w.symbol}
       color={w.identityColor}
       format={formatLabel(w.format as WorkoutStructure['format'])}
       meta={`${w.estimatedMinutesMin}–${w.estimatedMinutesMax} min`}
@@ -107,31 +108,32 @@ export default function TodayScreen() {
 
   const resumeCard = inProgress && (
     <Card onPress={() => router.push('/workout/recovery')} accent={colors.accent} style={styles.resume} accessibilityLabel={`${inProgress} is in progress. Resume.`}>
-      <Icon name="play" color={colors.accent} />
+      <View style={styles.liveDot} />
       <View style={styles.flex}>
-        <Text style={styles.label}>IN PROGRESS</Text>
-        <Text style={styles.weekTitle}>{inProgress}</Text>
+        <Text style={styles.label}>In progress</Text>
+        <Text style={styles.cardTitle}>{inProgress}</Text>
       </View>
-      <Text style={styles.resumeText}>RESUME</Text>
+      <View style={styles.resumePill}>
+        <Icon name="play" size={12} color={colors.onAccent} />
+        <Text style={styles.resumeText}>Resume</Text>
+      </View>
     </Card>
   );
 
   const weekCard = (
     <Card style={styles.weekCard}>
-      <ProgressRing progress={thisWeek / Math.max(1, weeklyGoal)} size={84} stroke={8} color={thisWeek >= weeklyGoal ? colors.pb : colors.accent}>
+      <ProgressRing progress={thisWeek / Math.max(1, weeklyGoal)} size={72} stroke={6} color={goalDone ? colors.pb : colors.accent}>
         <Text style={styles.ringText}>
-          {thisWeek}/{weeklyGoal}
+          {thisWeek}
+          <Text style={styles.ringOf}>/{weeklyGoal}</Text>
         </Text>
       </ProgressRing>
       <View style={styles.flex}>
-        <Text style={styles.label}>THIS WEEK</Text>
-        <Text style={styles.weekTitle}>{thisWeek >= weeklyGoal ? 'Weekly goal done.' : `${weeklyGoal - thisWeek} more to hit your goal`}</Text>
-        <View style={styles.row}>
-          <Icon name="flame" size={16} color={colors.accentWarm} />
-          <Text style={styles.secondary}>
-            {training?.weekStreak ?? 0} week streak · {training?.dayStreak ?? 0} day streak
-          </Text>
-        </View>
+        <Text style={styles.label}>This week</Text>
+        <Text style={styles.cardTitle}>{goalDone ? 'Weekly goal complete' : `${weeklyGoal - thisWeek} to go`}</Text>
+        <Text style={styles.secondary}>
+          {training?.dayStreak ?? 0}-day streak · {training?.weekStreak ?? 0}-week streak
+        </Text>
       </View>
     </Card>
   );
@@ -139,12 +141,13 @@ export default function TodayScreen() {
   const programCard =
     program && programWorkout && program.progress.next ? (
       <View>
-        <SectionTitle right={<Button title="Plan" variant="ghost" size="sm" onPress={() => router.push(`/program/${program.program.id}`)} />}>Your program</SectionTitle>
+        <SectionTitle right={<Button title="View plan" variant="ghost" size="sm" onPress={() => router.push(`/program/${program.program.id}`)} />}>
+          {program.program.name} · Week {program.progress.next.week}, day {program.progress.next.day}
+        </SectionTitle>
         <WorkoutHeroCard
           name={programWorkout.name}
-          symbol={programWorkout.symbol}
-          color={program.program.identityColor}
-          badge={`${program.program.name} · WEEK ${program.progress.next.week} · DAY ${program.progress.next.day}`}
+          color={programWorkout.identityColor}
+          badge="Program"
           format={formatLabel(programWorkout.format as WorkoutStructure['format'])}
           meta={`${focusLabel(programWorkout.focus)} · ${difficultyLabel(programWorkout.difficulty)}`}
           duration={`${programWorkout.estimatedMinutesMin}–${programWorkout.estimatedMinutesMax} min`}
@@ -158,23 +161,22 @@ export default function TodayScreen() {
             })
           }
         />
-        <View style={styles.programBar}>
-          <View style={[styles.programFill, { width: `${Math.round(program.progress.fraction * 100)}%`, backgroundColor: program.program.identityColor }]} />
+        <View style={styles.programMeta}>
+          <ProgressBar progress={program.progress.fraction} style={styles.flex} />
+          <Text style={styles.secondary}>
+            {program.progress.done}/{program.progress.total} sessions
+          </Text>
         </View>
-        <Text style={styles.secondary}>
-          {program.progress.done} of {program.progress.total} sessions done
-        </Text>
       </View>
     ) : null;
 
   const pickCard = pick && (
     <View>
-      <SectionTitle>{program ? 'Or try today’s pick' : 'Today’s challenge'}</SectionTitle>
+      <SectionTitle>{program ? 'Or take today’s pick' : 'Today’s pick'}</SectionTitle>
       <WorkoutHeroCard
         name={pick.name}
-        symbol={pick.symbol}
         color={pick.identityColor}
-        badge={stats[pick.id]?.pb ? 'REMATCH READY' : 'NEW OPPONENT'}
+        badge={stats[pick.id]?.pb ? 'Rematch ready' : 'New opponent'}
         format={formatLabel(pick.format as WorkoutStructure['format'])}
         meta={`${focusLabel(pick.focus)} · ${difficultyLabel(pick.difficulty)}`}
         duration={`${pick.estimatedMinutesMin}–${pick.estimatedMinutesMax} min`}
@@ -183,34 +185,37 @@ export default function TodayScreen() {
         last={stats[pick.id]?.last ?? null}
         onPress={() => router.push(`/workout/${pick.id}`)}
       />
-      <View style={[styles.row, { marginTop: spacing.md }]}>
-        <Button title="CHALLENGE ME" icon="bolt" variant="secondary" onPress={() => router.push('/challenge')} style={styles.flex} />
-        <Button title="BROWSE" icon="library" variant="ghost" onPress={() => router.push('/library')} style={styles.flex} />
+      <View style={[styles.row, { marginTop: spacing.sm + 4 }]}>
+        <Button title="Challenge me" icon="bolt" variant="secondary" onPress={() => router.push('/challenge')} style={styles.flex} />
+        <Button title="Browse all" variant="secondary" onPress={() => router.push('/library')} style={styles.flex} />
       </View>
     </View>
   );
 
   const prepCard = (warmup || cooldown) && (
     <View>
-      <SectionTitle>Warm up · cool down</SectionTitle>
-      <Grid columns={1}>
-        {[warmup, cooldown].filter((w): w is WorkoutRow => !!w).map(tile)}
-      </Grid>
+      <SectionTitle>Warm up and cool down</SectionTitle>
+      <Grid columns={1}>{[warmup, cooldown].filter((w): w is WorkoutRow => !!w).map(tile)}</Grid>
     </View>
   );
 
   const pbStrip = pbs.length > 0 && (
     <View>
       <SectionTitle>Recent personal bests</SectionTitle>
-      <View style={styles.pbList}>
-        {pbs.map(({ pb, workout }) => (
-          <Card key={pb.id} style={styles.pbRow} onPress={() => router.push({ pathname: '/workout/result', params: { sessionId: pb.sessionId } })}>
-            <Text style={[styles.pbSymbol, { color: readable(workout?.identityColor ?? colors.accent) }]}>{workout?.symbol}</Text>
+      <View style={styles.list}>
+        {pbs.map(({ pb, workout }, i) => (
+          <Pressable
+            key={pb.id}
+            onPress={() => router.push({ pathname: '/workout/result', params: { sessionId: pb.sessionId } })}
+            accessibilityRole="button"
+            style={(st) => [styles.listRow, i > 0 && styles.listDivider, (st as { hovered?: boolean }).hovered && styles.listHover]}
+          >
+            <WorkoutMark name={workout?.name ?? '?'} color={workout?.identityColor ?? colors.accent} size={32} />
             <Text style={styles.pbName} numberOfLines={1}>
               {workout?.name}
             </Text>
-            <Pill label={formatScore(pb)} color={colors.pb} />
-          </Card>
+            <Text style={styles.pbValue}>{formatScore(pb)}</Text>
+          </Pressable>
         ))}
       </View>
     </View>
@@ -219,17 +224,18 @@ export default function TodayScreen() {
   const nextUp = alternatives.length > 0 && (
     <View>
       <SectionTitle>Also a good fit</SectionTitle>
-      <Grid columns={columns}>{alternatives.map(tile)}</Grid>
+      <Grid columns={isWide ? Math.min(columns, 2) : 1}>{alternatives.map(tile)}</Grid>
     </View>
   );
+
+  const teaser = !program && <ProgramTeaser onPress={() => router.push({ pathname: '/library', params: { tab: 'programs' } })} />;
 
   return (
     <Screen>
       <View style={styles.header}>
-        <View style={styles.flex}>
-          {!isWide && <Text style={styles.brand}>REMATCH</Text>}
-          <Text style={styles.greeting}>{greeting()}. You vs. you.</Text>
-        </View>
+        {!isWide && <Wordmark size={15} />}
+        <Text style={styles.date}>{today()}</Text>
+        <Text style={styles.greeting}>{greeting()}</Text>
       </View>
       {isWide ? (
         <View style={styles.columns}>
@@ -241,9 +247,9 @@ export default function TodayScreen() {
           </View>
           <View style={styles.side}>
             {weekCard}
-            {prepCard}
+            {teaser}
             {pbStrip}
-            {!program && <ProgramTeaser onPress={() => router.push({ pathname: '/library', params: { tab: 'programs' } })} />}
+            {prepCard}
           </View>
         </View>
       ) : (
@@ -252,9 +258,9 @@ export default function TodayScreen() {
           {weekCard}
           {programCard}
           {pickCard}
-          {!program && <ProgramTeaser onPress={() => router.push({ pathname: '/library', params: { tab: 'programs' } })} />}
-          {prepCard}
+          {teaser}
           {pbStrip}
+          {prepCard}
           {nextUp}
         </View>
       )}
@@ -262,15 +268,21 @@ export default function TodayScreen() {
   );
 }
 
+function today() {
+  return new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
 function ProgramTeaser({ onPress }: { onPress: () => void }) {
   return (
-    <Card onPress={onPress} style={styles.teaser} accent={colors.accentWarm} accessibilityLabel="Browse training programs">
-      <Icon name="calendar" color={colors.accentWarm} />
-      <View style={styles.flex}>
-        <Text style={styles.teaserTitle}>Follow a program</Text>
-        <Text style={styles.secondary}>Multi-week plans that re-test your benchmarks so you can see the progress.</Text>
+    <Card onPress={onPress} style={styles.teaser} accessibilityLabel="Browse training programs">
+      <View style={styles.teaserIcon}>
+        <Icon name="calendar" size={18} color={colors.text} />
       </View>
-      <Icon name="forward" color={colors.muted} />
+      <View style={styles.flex}>
+        <Text style={styles.cardTitle}>Follow a program</Text>
+        <Text style={styles.secondary}>Multi-week plans that re-test your benchmarks.</Text>
+      </View>
+      <Icon name="forward" size={16} color={colors.textMuted} />
     </Card>
   );
 }
@@ -278,26 +290,30 @@ function ProgramTeaser({ onPress }: { onPress: () => void }) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
-  brand: { ...typography.displayLG, color: colors.primary },
-  greeting: { ...typography.subheading, color: colors.secondary },
-  stack: { gap: spacing.sm },
+  header: { marginBottom: spacing.lg, gap: 4 },
+  date: { ...typography.overline, color: colors.textMuted, marginTop: spacing.lg },
+  greeting: { ...typography.display, color: colors.text },
+  stack: { gap: spacing.sm + 4 },
   columns: { flexDirection: 'row', gap: spacing.xl, alignItems: 'flex-start' },
   main: { flex: 1, gap: spacing.sm },
-  side: { width: 360, gap: spacing.md, paddingTop: spacing.lg },
-  weekCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm },
-  ringText: { ...typography.displayMD, fontSize: 24, lineHeight: 28, color: colors.primary },
-  label: { ...typography.label, color: colors.muted },
-  weekTitle: { ...typography.subheading, color: colors.primary },
-  secondary: { ...typography.caption, color: colors.secondary },
-  programBar: { height: 6, borderRadius: 3, backgroundColor: colors.border, marginTop: spacing.md, marginBottom: 6, overflow: 'hidden' },
-  programFill: { height: 6, borderRadius: 3 },
-  pbList: { gap: 8 },
-  pbRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 10 },
-  pbSymbol: { fontSize: 20, width: 28, textAlign: 'center' },
-  pbName: { ...typography.bodyBold, color: colors.primary, flex: 1 },
-  resume: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm, backgroundColor: withAlpha(colors.accent, 0.08) },
-  resumeText: { ...typography.label, color: colors.accent },
-  teaser: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: withAlpha(colors.accentWarm, 0.06) },
-  teaserTitle: { ...typography.subheading, color: colors.primary },
+  side: { width: 340, gap: spacing.sm + 4, paddingTop: spacing.xl + spacing.sm + 2 },
+  weekCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md + 2 },
+  ringText: { fontFamily: fonts.display, fontSize: 20, lineHeight: 24, letterSpacing: -0.5, color: colors.text, fontVariant: ['tabular-nums'] },
+  ringOf: { color: colors.textMuted, fontSize: 14 },
+  label: { ...typography.overline, color: colors.textMuted, marginBottom: 3 },
+  cardTitle: { ...typography.subheading, color: colors.text },
+  secondary: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  programMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm + 4 },
+  list: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, paddingVertical: 12, paddingHorizontal: 14 },
+  listDivider: { borderTopWidth: 1, borderTopColor: colors.border },
+  listHover: { backgroundColor: colors.surfaceRaised },
+  pbName: { ...typography.callout, color: colors.text, flex: 1 },
+  pbValue: { ...typography.figure, color: colors.pb },
+  resume: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.accent },
+  resumePill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.accent, borderRadius: radius.full, paddingHorizontal: 14, paddingVertical: 8 },
+  resumeText: { ...typography.callout, fontFamily: fonts.semibold, color: colors.onAccent },
+  teaser: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  teaserIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
 });

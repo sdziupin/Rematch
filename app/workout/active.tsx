@@ -55,7 +55,7 @@ import {
 } from '../../src/services/sessionService';
 import { useSettings } from '../../src/store/settingsStore';
 import { useWorkoutStore } from '../../src/store/workoutStore';
-import { colors, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, withAlpha } from '../../src/theme';
 
 const TICK_MS = 200;
 const SAVE_EVERY_MS = 5000;
@@ -466,20 +466,20 @@ export default function ActiveWorkoutScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.countdownWrap}>
           <Text style={styles.kicker}>{workoutName}</Text>
-          <ProgressRing progress={state.countdownRemaining / Math.max(1, useSettings.getState().countdownSec)} size={220} stroke={10}>
-            <Text style={styles.countdown}>{state.countdownRemaining > 0 ? state.countdownRemaining : 'GO'}</Text>
+          <ProgressRing progress={state.countdownRemaining / Math.max(1, useSettings.getState().countdownSec)} size={240} stroke={4}>
+            <Text style={styles.countdown}>{state.countdownRemaining > 0 ? state.countdownRemaining : 'Go'}</Text>
           </ProgressRing>
           {first && (
             <View style={styles.upFirst}>
-              <ExerciseAnimation exerciseId={first.scaledExerciseId} category={meta.get(first.scaledExerciseId)?.category} size={96} />
+              <ExerciseAnimation exerciseId={first.scaledExerciseId} category={meta.get(first.scaledExerciseId)?.category} size={64} />
               <View>
-                <Text style={styles.label}>UP FIRST</Text>
+                <Text style={styles.label}>Up first</Text>
                 <Text style={styles.upFirstName}>{meta.get(first.scaledExerciseId)?.name ?? first.scaledExerciseId}</Text>
                 <Text style={styles.secondary}>{describeTarget(first, state.scoring)}</Text>
               </View>
             </View>
           )}
-          {opponentSessionId ? <Text style={styles.secondary}>Racing your past self. Splits are recorded at every movement.</Text> : null}
+          {opponentSessionId ? <Text style={styles.secondary}>Racing your past self. Every movement is a split.</Text> : null}
         </View>
       </SafeAreaView>
     );
@@ -503,24 +503,24 @@ export default function ActiveWorkoutScreen() {
           {workoutName}
         </Text>
         <Text style={styles.progressLabel}>
-          {formatLabel(state.structure.format).toUpperCase()} ·{' '}
+          {formatLabel(state.structure.format)} ·{' '}
           {isAmrap
-            ? formatRoundsAndReps(state.roundsCompleted ?? 0, Math.max(0, reps - lastRoundReps)).toUpperCase()
+            ? formatRoundsAndReps(state.roundsCompleted ?? 0, Math.max(0, reps - lastRoundReps))
             : state.structure.format === 'intervals'
-              ? `INTERVAL ${state.currentRoundIndex + 1}/${state.rounds.length}`
+              ? `Interval ${state.currentRoundIndex + 1} of ${state.rounds.length}`
               : state.structure.format === 'emom'
-                ? `MINUTE ${state.currentRoundIndex + 1}/${state.rounds.length}`
-                : `ROUND ${round?.roundNumber ?? 1}/${state.rounds.length} · MOVE ${state.currentExerciseIndex + 1}/${round?.exercises.length ?? 1}`}
+                ? `Minute ${state.currentRoundIndex + 1} of ${state.rounds.length}`
+                : `Round ${round?.roundNumber ?? 1} of ${state.rounds.length}`}
         </Text>
       </View>
-      {state.phase !== 'paused' && <IconButton icon="pause" label="Pause workout" onPress={onPause} />}
+      {state.phase !== 'paused' && <IconButton icon="pause" label="Pause workout" size={44} onPress={onPause} />}
     </View>
   );
 
   const progressBar = !isAmrap && (
     <View style={styles.segments} accessibilityLabel={`${doneSteps} of ${totalSteps} movements done`}>
       {Array.from({ length: Math.min(totalSteps, 60) }, (_, i) => (
-        <View key={i} style={[styles.segment, { backgroundColor: i < Math.round((doneSteps / totalSteps) * Math.min(totalSteps, 60)) ? colors.accent : colors.border }]} />
+        <View key={i} style={[styles.segment, { backgroundColor: i < Math.round((doneSteps / totalSteps) * Math.min(totalSteps, 60)) ? colors.accent : colors.surfaceHover }]} />
       ))}
     </View>
   );
@@ -531,12 +531,12 @@ export default function ActiveWorkoutScreen() {
       <View style={styles.clockSide}>
         {capLeft !== null && (
           <Text style={styles.capText}>
-            {formatDuration(capLeft)} <Text style={styles.capLabel}>LEFT</Text>
+            {formatDuration(capLeft)} <Text style={styles.capLabel}>left</Text>
           </Text>
         )}
         {state.scoring === 'reps' && (
           <Text style={styles.capText}>
-            {reps} <Text style={styles.capLabel}>REPS</Text>
+            {reps} <Text style={styles.capLabel}>reps</Text>
           </Text>
         )}
       </View>
@@ -559,15 +559,15 @@ export default function ActiveWorkoutScreen() {
     const upcoming = state.rounds[state.currentRoundIndex + 1]?.exercises[0];
     stage = (
       <View style={styles.stage}>
-        <Text style={[styles.kicker, { color: colors.rest }]}>{state.structure.format === 'emom' ? 'REST UNTIL THE MINUTE' : 'REST'}</Text>
-        <ProgressRing progress={(restLeft ?? 0) / total} size={isWide ? 260 : 210} color={colors.rest}>
+        <Text style={[styles.kicker, { color: colors.rest }]}>{state.structure.format === 'emom' ? 'Rest until the minute' : 'Rest'}</Text>
+        <ProgressRing progress={(restLeft ?? 0) / total} size={isWide ? 280 : 230} stroke={4} color={colors.rest}>
           <Text style={styles.ringNumber}>{formatCountdown(restLeft ?? 0)}</Text>
         </ProgressRing>
         {upcoming && (
           <View style={styles.upFirst}>
-            <ExerciseAnimation exerciseId={upcoming.scaledExerciseId} category={meta.get(upcoming.scaledExerciseId)?.category} size={88} color={colors.rest} />
+            <ExerciseAnimation exerciseId={upcoming.scaledExerciseId} category={meta.get(upcoming.scaledExerciseId)?.category} size={64} color={colors.rest} />
             <View style={styles.flex}>
-              <Text style={styles.label}>NEXT</Text>
+              <Text style={styles.label}>Next</Text>
               <Text style={styles.upFirstName}>{meta.get(upcoming.scaledExerciseId)?.name ?? upcoming.scaledExerciseId}</Text>
               <Text style={styles.secondary}>{describeTarget(upcoming, state.scoring)}</Text>
             </View>
@@ -578,14 +578,14 @@ export default function ActiveWorkoutScreen() {
     controls =
       state.structure.format !== 'emom' && state.phase === 'rest' ? (
         <View style={styles.row}>
-          <Button title="15 S" variant="secondary" icon="plus" onPress={onExtendRest} style={styles.flex} accessibilityLabel="Add 15 seconds of rest" />
-          <Button title="SKIP REST" icon="skip" onPress={onSkipRest} style={styles.flex} />
+          <Button title="15 sec" variant="secondary" icon="plus" size="lg" onPress={onExtendRest} style={styles.flex} accessibilityLabel="Add 15 seconds of rest" />
+          <Button title="Skip rest" icon="skip" size="lg" onPress={onSkipRest} style={styles.flex} />
         </View>
       ) : null;
   } else {
     const timed = !!ex?.durationSec;
     const countReps = timed ? state.scoring === 'reps' : true;
-    const animSize = isWide ? 300 : 190;
+    const animSize = isWide ? 320 : 200;
     stage = (
       <View style={styles.stage}>
         <Text style={styles.exerciseName} numberOfLines={2} adjustsFontSizeToFit accessibilityRole="header">
@@ -594,24 +594,25 @@ export default function ActiveWorkoutScreen() {
         <Text style={styles.target}>{describeTarget(ex, state.scoring)}</Text>
         {timed && stepLeft !== null ? (
           <>
-            <ProgressRing progress={stepLeft / ((ex?.durationSec ?? 1) * 1000)} size={animSize + 24} stroke={8}>
-              <ExerciseAnimation exerciseId={ex!.scaledExerciseId} category={exMeta?.category} size={animSize - 48} background={null} playing={state.phase === 'active'} />
+            <ProgressRing progress={stepLeft / ((ex?.durationSec ?? 1) * 1000)} size={animSize + 24} stroke={4}>
+              <ExerciseAnimation exerciseId={ex!.scaledExerciseId} category={exMeta?.category} size={animSize - 48} background={null} color={colors.accent} playing={state.phase === 'active'} />
             </ProgressRing>
             <Text style={styles.stepCountdown} accessibilityLabel={`${Math.ceil(stepLeft / 1000)} seconds left`}>
               {formatCountdown(stepLeft)}
             </Text>
           </>
         ) : (
-          ex && <ExerciseAnimation exerciseId={ex.scaledExerciseId} category={exMeta?.category} size={animSize} playing={state.phase === 'active'} />
+          ex && <ExerciseAnimation exerciseId={ex.scaledExerciseId} category={exMeta?.category} size={animSize} playing={state.phase === 'active'} color={colors.accent} background={null} style={styles.figure} />
         )}
         {windowLeft !== null && (
           <Text style={styles.windowText}>
-            {formatCountdown(windowLeft)}s <Text style={styles.capLabel}>LEFT IN THIS MINUTE</Text>
+            {formatCountdown(windowLeft)}s <Text style={styles.capLabel}>left in this minute</Text>
           </Text>
         )}
         {nextEx && hasNext && (
           <Text style={styles.nextUp} numberOfLines={1}>
-            Next: {describeTarget(nextEx, state.scoring)} · {meta.get(nextEx.scaledExerciseId)?.name ?? nextEx.scaledExerciseId}
+            <Text style={styles.nextLabel}>Next </Text>
+            {describeTarget(nextEx, state.scoring)} · {meta.get(nextEx.scaledExerciseId)?.name ?? nextEx.scaledExerciseId}
           </Text>
         )}
       </View>
@@ -620,16 +621,16 @@ export default function ActiveWorkoutScreen() {
       <View style={styles.controls}>
         {countReps && ex && (
           <View style={styles.repControls}>
-            <IconButton icon="minus" label="One rep less" size={56} onPress={() => onRep(-1)} />
+            <IconButton icon="minus" label="One rep less" size={52} onPress={() => onRep(-1)} />
             <View style={styles.repCountWrap}>
               <Text style={styles.repCount}>{ex.completedReps}</Text>
-              <Text style={styles.capLabel}>{ex.targetReps ? `OF ${ex.targetReps}` : 'COUNTED'}</Text>
+              <Text style={styles.capLabel}>{ex.targetReps ? `of ${ex.targetReps}` : 'counted'}</Text>
             </View>
-            <IconButton icon="plus" label="One more rep" size={56} onPress={() => onRep(1)} />
+            <IconButton icon="plus" label="One more rep" size={52} onPress={() => onRep(1)} />
           </View>
         )}
         {canCompleteManually(state) ? (
-          <Button title={hasNext ? 'DONE · NEXT' : 'FINISH'} size="lg" icon="check" onPress={onDone} accessibilityHint="Marks this movement complete" />
+          <Button title={hasNext ? 'Done, next' : 'Finish'} size="lg" icon={hasNext ? 'forward' : 'check'} onPress={onDone} accessibilityHint="Marks this movement complete" />
         ) : timed ? (
           <Text style={styles.autoNote}>Moves on automatically when the timer ends</Text>
         ) : null}
@@ -654,7 +655,7 @@ export default function ActiveWorkoutScreen() {
               <UpNext state={state} meta={meta} />
               <View style={styles.flex} />
               {controls}
-              <Text style={styles.shortcuts}>Space: done / skip rest · ↑↓: reps · P: pause</Text>
+              <Text style={styles.shortcuts}>Space next · ↑ ↓ reps · P pause</Text>
             </View>
           </View>
         ) : (
@@ -673,10 +674,13 @@ export default function ActiveWorkoutScreen() {
       {paused && (
         <View style={styles.pauseOverlay} accessibilityViewIsModal>
           <View style={styles.pauseCard}>
-            <Text style={styles.pauseTitle}>PAUSED</Text>
+            <Text style={[styles.label, styles.centered]}>Paused</Text>
+            <View style={styles.centeredBox}>
+              <TimerDisplay ms={elapsed} large />
+            </View>
             <Text style={styles.secondary}>The clock is stopped. Paused time never counts.</Text>
-            <TimerDisplay ms={elapsed} large />
-            <Button title="RESUME" icon="play" size="lg" onPress={onResume} />
+            <View style={{ height: spacing.md }} />
+            <Button title="Resume" icon="play" size="lg" onPress={onResume} />
             {easier && (
               <Button
                 title={`Make it easier: ${meta.get(easier)?.name ?? easier}`}
@@ -711,7 +715,7 @@ function UpNext({ state, meta }: { state: ActiveWorkoutState; meta: Meta }) {
   if (upcoming.length === 0) return null;
   return (
     <View style={styles.upNext}>
-      <Text style={styles.label}>UP NEXT</Text>
+      <Text style={styles.label}>Up next</Text>
       {upcoming.map(({ key, ex, round }) => (
         <View key={key} style={styles.upNextRow}>
           <ExerciseAnimation exerciseId={ex.scaledExerciseId} category={meta.get(ex.scaledExerciseId)?.category} size={40} playing={false} />
@@ -731,49 +735,52 @@ function UpNext({ state, meta }: { state: ActiveWorkoutState; meta: Meta }) {
 }
 
 const styles = StyleSheet.create({
-  upNext: { gap: 6, backgroundColor: colors.surface, borderRadius: 16, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
-  upNextRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  upNextText: { ...typography.body, color: colors.primary, flex: 1 },
+  upNext: { gap: 10, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
+  upNextRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4 },
+  upNextText: { ...typography.callout, color: colors.textSecondary, flex: 1 },
   safe: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
   container: { flex: 1, paddingTop: spacing.sm, paddingBottom: spacing.md, width: '100%', maxWidth: 1180, alignSelf: 'center' },
   top: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  workoutName: { ...typography.displayMD, fontSize: 30, lineHeight: 34, color: colors.primary },
-  progressLabel: { ...typography.label, color: colors.accent },
-  segments: { flexDirection: 'row', gap: 3, marginTop: spacing.sm },
-  segment: { flex: 1, height: 4, borderRadius: 2 },
+  workoutName: { ...typography.heading, letterSpacing: 0.4, color: colors.text },
+  progressLabel: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  segments: { flexDirection: 'row', gap: 3, marginTop: spacing.md },
+  segment: { flex: 1, height: 3, borderRadius: 2 },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
-  exerciseName: { ...typography.displayLG, color: colors.primary, textAlign: 'center' },
-  target: { ...typography.subheading, color: colors.accent, textTransform: 'uppercase', letterSpacing: 1 },
-  ringNumber: { ...typography.displayXL, fontSize: 72, lineHeight: 76, color: colors.primary },
-  stepCountdown: { ...typography.displayXL, fontSize: 64, lineHeight: 68, color: colors.primary, fontVariant: ['tabular-nums'] },
-  windowText: { ...typography.subheading, color: colors.accentWarm },
-  nextUp: { ...typography.body, color: colors.secondary },
+  exerciseName: { ...typography.display, textAlign: 'center', color: colors.text },
+  target: { ...typography.subheading, color: colors.accent },
+  figure: { marginVertical: spacing.sm },
+  ringNumber: { ...typography.numeral, color: colors.text },
+  stepCountdown: { ...typography.numeral, fontSize: 56, lineHeight: 60, color: colors.text },
+  windowText: { ...typography.figure, fontSize: 18, color: colors.behind },
+  nextUp: { ...typography.callout, color: colors.textSecondary, marginTop: spacing.sm },
+  nextLabel: { color: colors.textMuted },
   bottom: { gap: spacing.md },
-  clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  clockSide: { alignItems: 'flex-end' },
-  capText: { ...typography.displayMD, fontSize: 26, lineHeight: 30, color: colors.primary },
-  capLabel: { ...typography.label, color: colors.muted },
-  race: { gap: spacing.sm },
+  clockRow: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' },
+  clockSide: { alignItems: 'flex-end', gap: 2, paddingBottom: 8 },
+  capText: { fontFamily: fonts.displaySemi, fontSize: 22, lineHeight: 26, letterSpacing: -0.4, color: colors.text, fontVariant: ['tabular-nums'] },
+  capLabel: { ...typography.caption, color: colors.textMuted },
+  race: { gap: spacing.md },
   controls: { gap: spacing.md },
-  repControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.lg },
+  repControls: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.xl },
   repCountWrap: { alignItems: 'center', minWidth: 72 },
-  repCount: { ...typography.displayLG, color: colors.primary, fontVariant: ['tabular-nums'] },
-  autoNote: { ...typography.caption, color: colors.muted, textAlign: 'center' },
+  repCount: { fontFamily: fonts.displaySemi, fontSize: 40, lineHeight: 44, letterSpacing: -1, color: colors.text, fontVariant: ['tabular-nums'] },
+  autoNote: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
   row: { flexDirection: 'row', gap: spacing.sm },
-  countdownWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, padding: spacing.lg },
-  countdown: { ...typography.displayXL, fontSize: 110, lineHeight: 116, color: colors.accent },
-  kicker: { ...typography.label, color: colors.accent, letterSpacing: 2 },
-  upFirst: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: 16, padding: spacing.sm, paddingRight: spacing.lg, maxWidth: 420 },
-  upFirstName: { ...typography.subheading, color: colors.primary },
-  label: { ...typography.label, color: colors.muted },
-  secondary: { ...typography.body, color: colors.secondary, textAlign: 'center' },
-  wide: { flex: 1, flexDirection: 'row', gap: spacing.xl, marginTop: spacing.md },
-  wideStage: { backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, borderColor: colors.border },
-  wideSide: { width: 400, gap: spacing.lg, paddingVertical: spacing.md },
-  shortcuts: { ...typography.caption, color: colors.muted, textAlign: 'center' },
+  countdownWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xl, padding: spacing.lg },
+  countdown: { ...typography.numeral, fontSize: 120, lineHeight: 128, letterSpacing: -5, color: colors.accent },
+  kicker: { ...typography.overline, color: colors.textSecondary, letterSpacing: 2 },
+  upFirst: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: 10, paddingRight: spacing.lg, maxWidth: 420 },
+  upFirstName: { ...typography.subheading, color: colors.text, marginTop: 2 },
+  label: { ...typography.overline, color: colors.textMuted },
+  centered: { textAlign: 'center' },
+  centeredBox: { alignItems: 'center' },
+  secondary: { ...typography.callout, color: colors.textSecondary, textAlign: 'center' },
+  wide: { flex: 1, flexDirection: 'row', gap: spacing.xl, marginTop: spacing.lg },
+  wideStage: { backgroundColor: colors.surface, borderRadius: radius.xl + 6, borderWidth: 1, borderColor: colors.border },
+  wideSide: { width: 380, gap: spacing.lg, paddingVertical: spacing.sm },
+  shortcuts: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
   flash: { ...StyleSheet.absoluteFill, backgroundColor: colors.accent },
-  pauseOverlay: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(colors.background, 0.92), alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  pauseCard: { width: '100%', maxWidth: 420, gap: spacing.md, alignItems: 'stretch' },
-  pauseTitle: { ...typography.displayLG, color: colors.primary, textAlign: 'center' },
+  pauseOverlay: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(colors.background, 0.94), alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
+  pauseCard: { width: '100%', maxWidth: 400, gap: spacing.sm + 2, alignItems: 'stretch' },
 });

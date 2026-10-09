@@ -5,7 +5,8 @@ import Constants from 'expo-constants';
 import { Button } from '../../src/components/Button';
 import { confirmAction, showToast } from '../../src/components/Dialogs';
 import { Icon } from '../../src/components/Icon';
-import { Card, Chip, ChipRow, Grid, Screen, SectionTitle } from '../../src/components/ui';
+import { Wordmark } from '../../src/components/Wordmark';
+import { Card, Chip, ChipRow, Grid, Screen, ScreenHeader, SectionTitle } from '../../src/components/ui';
 import { EQUIPMENT, EQUIPMENT_LABELS } from '../../src/content/types';
 import { getDriverInfo } from '../../src/db/client';
 import { getProfile, profileEquipment, updateProfile, type Profile } from '../../src/db/repository';
@@ -102,112 +103,125 @@ export default function ProfileScreen() {
   };
 
   const training = (
-    <Card style={styles.card}>
-      <SectionTitle style={styles.noTop}>Training</SectionTitle>
-      <Text style={styles.label}>Focus</Text>
-      <ChipRow options={GOALS} value={profile.goal as (typeof GOALS)[number]} onChange={(goal) => save({ goal })} format={titleCase} />
-      <Text style={styles.label}>Level</Text>
-      <ChipRow options={LEVELS} value={profile.level as (typeof LEVELS)[number]} onChange={(level) => save({ level })} format={titleCase} />
-      <Text style={styles.label}>Typical session</Text>
-      <ChipRow options={MINUTES} value={profile.typicalMinutes as (typeof MINUTES)[number]} onChange={(typicalMinutes) => save({ typicalMinutes })} format={(m) => `${m} min`} />
-      <Text style={styles.label}>Weekly goal</Text>
-      <ChipRow options={FREQUENCY} value={profile.frequencyDays as (typeof FREQUENCY)[number]} onChange={(frequencyDays) => save({ frequencyDays })} format={(d) => `${d}× / week`} />
-      <Text style={styles.label}>Equipment you have</Text>
-      <View style={styles.chips}>
-        {EQUIPMENT.filter((e) => e !== 'bodyweight').map((e) => (
-          <Chip
-            key={e}
-            label={EQUIPMENT_LABELS[e]}
-            selected={equipment.includes(e)}
-            onPress={() => {
-              const next = equipment.includes(e) ? equipment.filter((x) => x !== e) : [...equipment, e];
-              void save({ equipmentJson: JSON.stringify(next) });
-            }}
-          />
-        ))}
-      </View>
-    </Card>
+    <View>
+      <SectionTitle>Training</SectionTitle>
+      <Card style={styles.group}>
+        <Field label="Focus">
+          <ChipRow options={GOALS} value={profile.goal as (typeof GOALS)[number]} onChange={(goal) => save({ goal })} format={titleCase} />
+        </Field>
+        <Field label="Level">
+          <ChipRow options={LEVELS} value={profile.level as (typeof LEVELS)[number]} onChange={(level) => save({ level })} format={titleCase} />
+        </Field>
+        <Field label="Typical session">
+          <ChipRow options={MINUTES} value={profile.typicalMinutes as (typeof MINUTES)[number]} onChange={(typicalMinutes) => save({ typicalMinutes })} format={(m) => `${m} min`} />
+        </Field>
+        <Field label="Weekly goal">
+          <ChipRow options={FREQUENCY} value={profile.frequencyDays as (typeof FREQUENCY)[number]} onChange={(frequencyDays) => save({ frequencyDays })} format={(d) => `${d} a week`} />
+        </Field>
+        <Field label="Equipment" last>
+          <View style={styles.chips}>
+            {EQUIPMENT.filter((e) => e !== 'bodyweight').map((e) => (
+              <Chip
+                key={e}
+                label={EQUIPMENT_LABELS[e]}
+                selected={equipment.includes(e)}
+                onPress={() => {
+                  const next = equipment.includes(e) ? equipment.filter((x) => x !== e) : [...equipment, e];
+                  void save({ equipmentJson: JSON.stringify(next) });
+                }}
+              />
+            ))}
+          </View>
+        </Field>
+      </Card>
+    </View>
   );
 
   const behaviour = (
-    <Card style={styles.card}>
-      <SectionTitle style={styles.noTop}>During a workout</SectionTitle>
-      <Setting
-        label="Sound cues"
-        hint="Countdown beeps, round chimes. Plays over your music."
-        value={profile.soundEnabled}
-        onChange={(v) => {
-          void save({ soundEnabled: v }).then(() => {
-            if (v) void prepareAudio().then(() => playSound('done'));
-          });
-        }}
-      />
-      <Setting
-        label="Voice coach"
-        hint="Announces each movement and rest."
-        value={profile.voiceEnabled}
-        onChange={(v) => {
-          void save({ voiceEnabled: v }).then(() => v && speak('Voice coach on. Ten burpees.'));
-        }}
-      />
-      <Setting
-        label="Haptics"
-        hint="Vibration on reps, rounds and countdowns."
-        value={profile.hapticsEnabled}
-        onChange={(v) => {
-          void save({ hapticsEnabled: v }).then(() => v && haptic('success'));
-        }}
-      />
-      <Setting label="Keep screen awake" hint="While a workout is running." value={profile.keepAwakeEnabled} onChange={(v) => save({ keepAwakeEnabled: v })} />
-      <Text style={styles.label}>Countdown before starting</Text>
-      <ChipRow options={COUNTDOWNS} value={(profile.countdownSec ?? 3) as (typeof COUNTDOWNS)[number]} onChange={(countdownSec) => save({ countdownSec })} format={(s) => `${s} s`} />
-      <Text style={styles.label}>Week starts on</Text>
-      <ChipRow options={[1, 0] as const} value={(profile.weekStartsOn ?? 1) as 0 | 1} onChange={(weekStartsOn) => save({ weekStartsOn })} format={(d) => (d === 1 ? 'Monday' : 'Sunday')} />
-    </Card>
+    <View>
+      <SectionTitle>During a workout</SectionTitle>
+      <Card style={styles.group}>
+        <Setting
+          label="Sound cues"
+          hint="Countdown beeps and round chimes, mixed with your music."
+          value={profile.soundEnabled}
+          onChange={(v) => {
+            void save({ soundEnabled: v }).then(() => {
+              if (v) void prepareAudio().then(() => playSound('done'));
+            });
+          }}
+        />
+        <Setting
+          label="Voice coach"
+          hint="Announces each movement and rest."
+          value={profile.voiceEnabled}
+          onChange={(v) => {
+            void save({ voiceEnabled: v }).then(() => v && speak('Voice coach on. Ten burpees.'));
+          }}
+        />
+        <Setting
+          label="Haptics"
+          hint="Vibration on reps, rounds and countdowns."
+          value={profile.hapticsEnabled}
+          onChange={(v) => {
+            void save({ hapticsEnabled: v }).then(() => v && haptic('success'));
+          }}
+        />
+        <Setting label="Keep screen awake" hint="While a workout is running." value={profile.keepAwakeEnabled} onChange={(v) => save({ keepAwakeEnabled: v })} />
+        <Field label="Countdown">
+          <ChipRow options={COUNTDOWNS} value={(profile.countdownSec ?? 3) as (typeof COUNTDOWNS)[number]} onChange={(countdownSec) => save({ countdownSec })} format={(s) => `${s} seconds`} />
+        </Field>
+        <Field label="Week starts on" last>
+          <ChipRow options={[1, 0] as const} value={(profile.weekStartsOn ?? 1) as 0 | 1} onChange={(weekStartsOn) => save({ weekStartsOn })} format={(d) => (d === 1 ? 'Monday' : 'Sunday')} />
+        </Field>
+      </Card>
+    </View>
   );
 
   const data = (
-    <Card style={styles.card}>
-      <SectionTitle style={styles.noTop}>Your data</SectionTitle>
-      <View style={styles.storage}>
-        <Icon name="info" size={18} color={colors.secondary} />
-        <Text style={styles.hint}>Stored {storage?.description ?? 'on this device'}. No account, no server — export a backup to move it.</Text>
-      </View>
-      <View style={styles.row}>
-        <Button title="Export backup" icon="download" variant="secondary" onPress={exportData} loading={busy === 'export'} style={styles.flex} />
-        <Button title="Import backup" icon="upload" variant="secondary" onPress={importData} loading={busy === 'import'} style={styles.flex} />
-      </View>
-      <Button title="Erase all data" icon="trash" variant="ghost" onPress={reset} />
-    </Card>
+    <View>
+      <SectionTitle>Your data</SectionTitle>
+      <Card style={styles.group}>
+        <View style={[styles.field, styles.storage]}>
+          <Icon name="info" size={17} color={colors.textMuted} />
+          <Text style={styles.hint}>Stored {storage?.description ?? 'on this device'}. No account, no server. Export a backup to move it.</Text>
+        </View>
+        <View style={[styles.field, styles.fieldLast, styles.row]}>
+          <Button title="Export" icon="download" variant="secondary" onPress={exportData} loading={busy === 'export'} style={styles.flex} />
+          <Button title="Import" icon="upload" variant="secondary" onPress={importData} loading={busy === 'import'} style={styles.flex} />
+        </View>
+      </Card>
+      <Button title="Erase all data" variant="ghost" onPress={reset} style={styles.erase} />
+    </View>
   );
 
   const about = (
-    <Card style={styles.card}>
-      <SectionTitle style={styles.noTop}>Training safety</SectionTitle>
-      <Text style={styles.hint}>Warm up first, scale anything that hurts, and stop if you feel sharp pain. REMATCH does not provide medical advice.</Text>
-      <Text style={[styles.hint, { marginTop: spacing.sm }]}>REMATCH {Constants.expoConfig?.version ?? ''} · MIT licensed · animations and sounds are original.</Text>
-    </Card>
+    <View>
+      <SectionTitle>About</SectionTitle>
+      <Card style={styles.about}>
+        <Wordmark size={14} />
+        <Text style={styles.hint}>Warm up first, scale anything that hurts, and stop if you feel sharp pain. REMATCH does not provide medical advice.</Text>
+        <Text style={styles.version}>Version {Constants.expoConfig?.version ?? ''} · MIT licensed · Original animations and sounds</Text>
+      </Card>
+    </View>
   );
 
   return (
     <Screen>
-      <Text style={styles.title} accessibilityRole="header">
-        Profile
-      </Text>
-      <Text style={styles.tagline}>You vs. you.</Text>
+      <ScreenHeader title="Profile" subtitle="How you train, how workouts behave, and where your data lives." />
       {isWide ? (
-        <Grid columns={2}>
-          <View style={styles.stack}>
+        <Grid columns={2} gap={spacing.lg}>
+          <View>
             {training}
             {about}
           </View>
-          <View style={styles.stack}>
+          <View>
             {behaviour}
             {data}
           </View>
         </Grid>
       ) : (
-        <View style={styles.stack}>
+        <View>
           {training}
           {behaviour}
           {data}
@@ -218,30 +232,46 @@ export default function ProfileScreen() {
   );
 }
 
+function Field({ label, last, children }: { label: string; last?: boolean; children: React.ReactNode }) {
+  return (
+    <View style={[styles.field, last && styles.fieldLast]}>
+      <Text style={styles.label}>{label}</Text>
+      {children}
+    </View>
+  );
+}
+
 function Setting({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <View style={styles.setting}>
+    <View style={[styles.field, styles.setting]}>
       <View style={styles.flex}>
         <Text style={styles.settingLabel}>{label}</Text>
         {hint ? <Text style={styles.hint}>{hint}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.accent, false: colors.border }} thumbColor={colors.primary} accessibilityLabel={label} />
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        trackColor={{ true: colors.accent, false: colors.surfaceHover }}
+        thumbColor={value ? colors.onAccent : colors.textSecondary}
+        accessibilityLabel={label}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  title: { ...typography.displayLG, color: colors.primary },
-  tagline: { ...typography.body, color: colors.accent, marginBottom: spacing.md },
-  stack: { gap: spacing.md },
-  card: { gap: spacing.sm },
-  noTop: { marginTop: 0 },
-  label: { ...typography.label, color: colors.muted, marginTop: spacing.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  setting: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: 8 },
-  settingLabel: { ...typography.bodyBold, color: colors.primary },
-  hint: { ...typography.caption, color: colors.secondary, flex: 1 },
-  storage: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
+  group: { padding: 0, overflow: 'hidden' },
+  field: { gap: spacing.sm + 2, paddingHorizontal: spacing.md + 2, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
+  fieldLast: { borderBottomWidth: 0 },
+  label: { ...typography.overline, color: colors.textMuted },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  setting: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  settingLabel: { ...typography.bodyStrong, color: colors.text },
+  hint: { ...typography.caption, color: colors.textSecondary, flex: 1, marginTop: 1 },
+  storage: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm + 2 },
   row: { flexDirection: 'row', gap: spacing.sm },
+  erase: { alignSelf: 'flex-start', marginTop: spacing.sm, paddingHorizontal: spacing.md + 2 },
+  about: { gap: spacing.sm + 4 },
+  version: { ...typography.caption, color: colors.textMuted },
 });

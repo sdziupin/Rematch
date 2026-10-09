@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { CheckpointBreakdown } from '../../src/components/RaceRails';
 import { confirmAction, showToast } from '../../src/components/Dialogs';
-import { Card, Chip, EmptyState, Pill, Screen, ScreenHeader, SectionTitle, Stat } from '../../src/components/ui';
+import { Card, Chip, EmptyState, Pill, Screen, ScreenHeader, Stat } from '../../src/components/ui';
 import { compareScores } from '../../src/domain/rematch';
 import { SCALING_LABELS } from '../../src/domain/scaling';
 import type { ScalingCategory } from '../../src/domain/types';
@@ -13,7 +13,7 @@ import { useLayout } from '../../src/hooks/useLayout';
 import { getActiveProgram } from '../../src/services/programService';
 import { deleteSession, getResultSummary, saveFeedback, toScore, type ResultSummary } from '../../src/services/sessionService';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, withAlpha } from '../../src/theme';
 
 const INTENSITY = [
   { key: 'too_easy', label: 'Too easy' },
@@ -78,31 +78,32 @@ export default function ResultScreen() {
   const capped = result.timeCapped;
   const first = summary.attempts <= 1 && !comparison;
 
-  let headline = 'RESULT';
-  let tone: string = colors.accent;
+  let headline = 'Result';
+  let tone: string = colors.textSecondary;
   if (abandoned) {
-    headline = 'UNFINISHED';
-    tone = colors.muted;
+    headline = 'Unfinished';
+    tone = colors.textMuted;
   } else if (capped) {
-    headline = 'TIME CAPPED';
+    headline = 'Time capped';
     tone = colors.behind;
   } else if (isPb && previousBest) {
-    headline = 'NEW PERSONAL BEST';
+    headline = 'New personal best';
     tone = colors.pb;
   } else if (first) {
-    headline = 'FIRST RESULT';
+    headline = 'First result on the board';
+    tone = colors.accent;
   } else if (comparison?.won) {
-    headline = 'YOU WON THE REMATCH';
+    headline = 'You won the rematch';
     tone = colors.ahead;
   } else if (comparison?.tied) {
-    headline = 'DEAD HEAT';
+    headline = 'Dead heat';
   } else if (comparison) {
-    headline = 'PAST YOU WON THIS ONE';
+    headline = 'Past you took this one';
     tone = colors.behind;
   }
 
   const scoreMain = reps ? `${result.scoreReps ?? 0}` : formatDuration(result.completionMs);
-  const scoreUnit = reps ? 'REPS' : '';
+  const scoreUnit = reps ? 'reps' : '';
   const versus = comparison
     ? reps
       ? `vs ${comparison.opponentReps ?? 0} reps · ${formatRepDelta((comparison.youReps ?? 0) - (comparison.opponentReps ?? 0))}`
@@ -142,10 +143,13 @@ export default function ResultScreen() {
   };
 
   const score = (
-    <Animated.View style={[styles.scoreCard, { borderColor: withAlpha(tone, 0.6), transform: [{ scale }] }]}>
-      <Text style={[styles.headline, { color: tone }]} accessibilityRole="header">
-        {headline}
-      </Text>
+    <Animated.View style={[styles.scoreCard, { transform: [{ scale }] }]}>
+      <View style={[styles.headlinePill, { backgroundColor: withAlpha(tone, 0.12) }]}>
+        <View style={[styles.headlineDot, { backgroundColor: tone }]} />
+        <Text style={[styles.headline, { color: tone }]} accessibilityRole="header">
+          {headline}
+        </Text>
+      </View>
       <Text style={styles.workoutName}>{workout?.name ?? 'Workout'}</Text>
       <View style={styles.scoreRow}>
         <Text style={styles.score}>{scoreMain}</Text>
@@ -154,9 +158,9 @@ export default function ResultScreen() {
       {reps && <Text style={styles.sub}>in {formatDuration(result.completionMs)}</Text>}
       {versus && <Text style={styles.versus}>{versus}</Text>}
       <View style={styles.pills}>
-        <Pill label={SCALING_LABELS[result.scalingCategory as ScalingCategory]?.toUpperCase() ?? result.scalingCategory} color={result.scalingCategory === 'rx' ? colors.accent : colors.accentWarm} />
+        <Pill label={SCALING_LABELS[result.scalingCategory as ScalingCategory] ?? result.scalingCategory} />
         {isPb && <Pill label="PB" color={colors.pb} />}
-        {vsBest && <Pill label={`${vsBest} vs previous best`} color={improved ? colors.pb : colors.behind} />}
+        {vsBest && <Pill label={`${vsBest} vs best`} color={improved ? colors.ahead : colors.behind} />}
       </View>
       {isPb && !abandoned && <Text style={styles.note}>This attempt is now your opponent to beat.</Text>}
       {programNote && <Text style={styles.note}>{programNote}</Text>}
@@ -166,7 +170,7 @@ export default function ResultScreen() {
   const splits =
     comparison && comparison.checkpoints.length > 0 ? (
       <Card>
-        <SectionTitle style={styles.noTop}>Where you {comparison.won ? 'won' : 'lost'} it</SectionTitle>
+        <Text style={styles.cardTitle}>Where you {comparison.won ? 'won' : 'lost'} it</Text>
         <CheckpointBreakdown
           unit={reps && summary.result.scoreType === 'reps' && comparison.checkpoints.some((c) => c.youReps != null) && workout?.format !== 'amrap' ? 'reps' : 'time'}
           items={comparison.checkpoints.map((c) => ({ label: c.label, deltaMs: c.deltaMs, repDelta: (c.youReps ?? 0) - (c.opponentReps ?? 0) }))}
@@ -174,7 +178,7 @@ export default function ResultScreen() {
       </Card>
     ) : summary.checkpoints.filter((c) => c.checkpointKey.startsWith('round-')).length > 0 ? (
       <Card>
-        <SectionTitle style={styles.noTop}>Your splits</SectionTitle>
+        <Text style={styles.cardTitle}>Your splits</Text>
         {summary.checkpoints
           .filter((c) => c.checkpointKey.startsWith('round-'))
           .map((c, i, all) => (
@@ -191,7 +195,7 @@ export default function ResultScreen() {
 
   const feedback = !abandoned && (
     <Card>
-      <SectionTitle style={styles.noTop}>How did it feel?</SectionTitle>
+      <Text style={styles.cardTitle}>How did it feel?</Text>
       <View style={styles.pills}>
         {INTENSITY.map((i) => (
           <Chip key={i.key} label={i.label} selected={intensity === i.key} onPress={() => submitFeedback(i.key)} />
@@ -214,7 +218,7 @@ export default function ResultScreen() {
         onChangeText={setNote}
         onBlur={() => void submitFeedback(null)}
         placeholder="Add a note (pacing, how the burpees felt…)"
-        placeholderTextColor={colors.muted}
+        placeholderTextColor={colors.textMuted}
         style={styles.noteInput}
         multiline
         maxLength={400}
@@ -237,13 +241,13 @@ export default function ResultScreen() {
     <View style={styles.actions}>
       {isFresh ? (
         <>
-          <Button title="DONE" icon="check" size="lg" onPress={() => router.replace('/today')} />
+          <Button title="Done" icon="check" size="lg" onPress={() => router.replace('/today')} />
           {workout && <Button title="Rematch again" icon="bolt" variant="secondary" onPress={rematchNow} />}
         </>
       ) : (
         workout && <Button title="Open workout" icon="forward" variant="secondary" onPress={() => router.push(`/workout/${workout.id}`)} />
       )}
-      <Button title="Delete result" icon="trash" variant="ghost" onPress={onDelete} />
+      <Button title="Delete result" variant="ghost" size="sm" onPress={onDelete} />
     </View>
   );
 
@@ -276,26 +280,28 @@ export default function ResultScreen() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, gap: spacing.md },
-  stack: { gap: spacing.md, paddingTop: spacing.md },
+  flex: { flex: 1, gap: spacing.sm + 4 },
+  stack: { gap: spacing.sm + 4, paddingTop: spacing.md },
   columns: { flexDirection: 'row', gap: spacing.xl, alignItems: 'flex-start', paddingTop: spacing.md },
-  side: { width: 380, gap: spacing.md },
-  scoreCard: { backgroundColor: colors.surface, borderRadius: 24, borderWidth: 1, padding: spacing.lg, alignItems: 'center', gap: 6 },
-  headline: { ...typography.label, fontSize: 14, letterSpacing: 2 },
-  workoutName: { ...typography.displayMD, color: colors.primary },
+  side: { width: 380, gap: spacing.sm + 4 },
+  scoreCard: { backgroundColor: colors.surface, borderRadius: radius.xl + 6, borderWidth: 1, borderColor: colors.border, paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, alignItems: 'center', gap: spacing.sm, overflow: 'hidden' },
+  headlinePill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full },
+  headlineDot: { width: 6, height: 6, borderRadius: 3 },
+  headline: { ...typography.callout, fontFamily: fonts.semibold },
+  workoutName: { ...typography.heading, letterSpacing: 0.6, color: colors.text, marginTop: spacing.sm },
   scoreRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  score: { ...typography.displayXL, fontSize: 88, lineHeight: 92, color: colors.primary, fontVariant: ['tabular-nums'] },
-  scoreUnit: { ...typography.displayMD, color: colors.secondary },
-  sub: { ...typography.body, color: colors.secondary },
-  versus: { ...typography.subheading, color: colors.secondary },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 6 },
-  note: { ...typography.body, color: colors.secondary, textAlign: 'center', marginTop: 6 },
-  noTop: { marginTop: 0 },
-  noteInput: { ...typography.body, color: colors.primary, backgroundColor: colors.background, borderRadius: 12, padding: spacing.sm, marginTop: spacing.md, minHeight: 64, textAlignVertical: 'top' },
-  splitRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
-  splitLabel: { ...typography.body, color: colors.primary },
-  splitValue: { ...typography.bodyBold, color: colors.primary, fontVariant: ['tabular-nums'] },
-  splitTotal: { ...typography.caption, color: colors.muted },
+  score: { ...typography.numeral, fontSize: 96, lineHeight: 104, letterSpacing: -4, color: colors.text },
+  scoreUnit: { ...typography.heading, color: colors.textSecondary },
+  sub: { ...typography.body, color: colors.textSecondary },
+  versus: { ...typography.figure, fontSize: 16, color: colors.textSecondary },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: spacing.xs },
+  note: { ...typography.callout, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.xs },
+  cardTitle: { ...typography.subheading, color: colors.text, marginBottom: spacing.sm },
+  noteInput: { ...typography.body, color: colors.text, backgroundColor: colors.background, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, padding: 12, marginTop: spacing.md, minHeight: 72, textAlignVertical: 'top' },
+  splitRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  splitLabel: { ...typography.callout, color: colors.text },
+  splitValue: { ...typography.figure, color: colors.text },
+  splitTotal: { ...typography.caption, color: colors.textMuted },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  actions: { gap: spacing.sm },
+  actions: { gap: spacing.sm + 2 },
 });
