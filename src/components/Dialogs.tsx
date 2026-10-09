@@ -41,6 +41,11 @@ export function confirmAction(options: Omit<ConfirmRequest, 'resolve'>): Promise
   });
 }
 
+/** True while a confirm dialog is on screen (keyboard shortcuts stand down). */
+export function isConfirmOpen(): boolean {
+  return useDialogStore.getState().confirm !== null;
+}
+
 let toastId = 0;
 export function showToast(message: string, options: { tone?: ToastState['tone']; actionLabel?: string; onAction?: () => void } = {}) {
   useDialogStore.setState({ toast: { id: ++toastId, message, tone: options.tone ?? 'info', actionLabel: options.actionLabel, onAction: options.onAction } });

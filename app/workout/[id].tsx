@@ -43,7 +43,13 @@ export default function WorkoutDetailScreen() {
   const [starting, setStarting] = useState(false);
 
   const chainOf = useCallback((id: string) => easierChain(id, (x) => exercises.get(x)?.easierVariantId), [exercises]);
-  const scaling: ScalingCategory = useMemo(() => categoryForSwaps(swaps, chainOf), [swaps, chainOf]);
+  // Only swaps for movements in the chosen size count (a ¼ workout may not include them all).
+  const activeSwaps = useMemo(() => {
+    if (!plan) return swaps;
+    const present = new Set(plan.structure.rounds.flatMap((r) => r.steps.map((st) => st.exerciseId)));
+    return Object.fromEntries(Object.entries(swaps).filter(([rx]) => present.has(rx)));
+  }, [plan, swaps]);
+  const scaling: ScalingCategory = useMemo(() => categoryForSwaps(activeSwaps, chainOf), [activeSwaps, chainOf]);
 
   const load = useCallback(async () => {
     const p = await loadWorkoutPlan(params.id, partialKey);
@@ -95,7 +101,7 @@ export default function WorkoutDetailScreen() {
   const structure: WorkoutStructure = plan.structure;
   const isBenchmark = (w.kind ?? 'benchmark') === 'benchmark';
   const artwork = getWorkoutImage(w.slug);
-  const uniqueMoves = [...new Set(plan.fullStructure.rounds.flatMap((r) => r.steps.map((s) => s.exerciseId)))];
+  const uniqueMoves = [...new Set(plan.structure.rounds.flatMap((r) => r.steps.map((s) => s.exerciseId)))];
   const scalable = uniqueMoves.filter((id) => chainOf(id).length > 1);
   const last = results[0] ?? null;
   const equipment = parseJsonArray(w.equipmentJson).filter((e) => e !== 'bodyweight') as EquipmentId[];
@@ -113,7 +119,7 @@ export default function WorkoutDetailScreen() {
         }),
       );
       if (!proceed) return;
-      await beginWorkout({ workoutId: w.id, partialKey, scalingCategory: scaling, swaps, opponentSessionId, ...program });
+      await beginWorkout({ workoutId: w.id, partialKey, scalingCategory: scaling, swaps: activeSwaps, opponentSessionId, ...program });
       router.push('/workout/active');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Could not start the workout.', { tone: 'error' });
@@ -184,7 +190,7 @@ export default function WorkoutDetailScreen() {
           icon="list"
           variant="outline"
           onPress={() =>
-            router.push({ pathname: '/opponent/[workoutId]', params: { workoutId: w.id, variant: partialKey, scaling, swaps: JSON.stringify(swaps), ...(params.program ? { program: params.program, key: params.key } : {}) } })
+            router.push({ pathname: '/opponent/[workoutId]', params: { workoutId: w.id, variant: partialKey, scaling, swaps: JSON.stringify(activeSwaps), ...(params.program ? { program: params.program, key: params.key } : {}) } })
           }
         />
       )}

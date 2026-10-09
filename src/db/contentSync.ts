@@ -77,7 +77,10 @@ export async function ensureWorkoutVersion(tx: Db, workoutId: string, structure:
         .where(eq(schema.workoutVersions.id, match.id));
     }
   } else {
-    const next = versions.reduce((max, v) => Math.max(max, v.version), 0) + 1;
+    let next = versions.reduce((max, v) => Math.max(max, v.version), 0) + 1;
+    // Ids can be taken by versions restored from another install; skip past them.
+    const taken = new Set(versions.map((v) => v.id));
+    while (taken.has(`${workoutId}-v${next}`)) next += 1;
     versionId = `${workoutId}-v${next}`;
     created = true;
     await tx.insert(schema.workoutVersions).values({

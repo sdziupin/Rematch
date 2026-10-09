@@ -52,8 +52,14 @@ export default function RecoveryScreen() {
     setBusy(true);
     let state = info.state;
     if (state.phase === 'completed') {
-      // The app closed between the last movement and saving the result.
-      await finishSession(info.sessionId, state, info.elapsed);
+      // The app closed between the last movement and saving the result: it ended
+      // at the cap, or at its last recorded checkpoint.
+      const checkpoints = await getCheckpoints(info.sessionId);
+      const endedAt =
+        state.endedBy === 'time_cap' && state.timeCapMs != null
+          ? state.timeCapMs
+          : checkpoints.reduce((max, c) => Math.max(max, c.elapsedActiveMs), 0) || info.elapsed;
+      await finishSession(info.sessionId, state, endedAt);
       router.replace({ pathname: '/workout/result', params: { sessionId: info.sessionId, fresh: '1' } });
       return;
     }

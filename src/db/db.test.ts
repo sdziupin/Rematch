@@ -200,3 +200,23 @@ test('starting a new session abandons a dangling one', async () => {
   assert.equal(active?.id, two.sessionId);
   assert.notEqual(active?.id, one.sessionId);
 });
+
+test('a late autosave cannot revive a finished session', async () => {
+  await freshDb();
+  const { sessionId } = await playForTime('w-tempest', 20_000);
+  const { saveSessionState, getSession } = await import('../services/sessionService');
+  const session = await getSession(sessionId);
+  await saveSessionState(sessionId, JSON.parse(session!.currentStateJson), { elapsedActiveMs: 1, pausedAccumulatedMs: 0, lastPausedAt: null, status: 'active', startedAt: 0 });
+  assert.equal((await getSession(sessionId))?.status, 'completed');
+  assert.equal(await getActiveSession(), null);
+});
+
+test('finishing an already-recorded session repairs a stale live status', async () => {
+  await freshDb();
+  const { sessionId } = await playForTime('w-tempest', 20_000);
+  await getDb().update(schema.workoutSessions).set({ status: 'active' }).where(eq(schema.workoutSessions.id, sessionId));
+  const { getSession } = await import('../services/sessionService');
+  const state = JSON.parse((await getSession(sessionId))!.currentStateJson);
+  await finishSession(sessionId, state, 1000);
+  assert.equal((await getSession(sessionId))?.status, 'completed');
+});

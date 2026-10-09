@@ -7,6 +7,7 @@ import {
   completeStep,
   createActiveState,
   extendRest,
+  getCheckpointKey,
   liveReps,
   normalizeState,
   pauseState,
@@ -249,4 +250,55 @@ test('legacy persisted states are upgraded without losing progress', () => {
 test('a structure with no rounds completes immediately instead of crashing', () => {
   const r = startWorkout(make({ format: 'fixed_rounds', rounds: [] }), 0);
   assert.equal(r.state.phase, 'completed');
+});
+
+test('a tap after a boundary has passed is dropped in favour of the boundary (EMOM)', () => {
+  let s = make({ format: 'emom', intervalRounds: 3, rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'burpee', reps: 10 }] }] });
+  s = startWorkout(s, 0).state;
+  // The minute ended at 60 s; the tap lands 150 ms later, before the next tick.
+  const r = completeStep(s, 60_150);
+  assert.equal(r.state.currentRoundIndex, 1, 'the expired minute moved on');
+  assert.equal(r.state.totalReps, 0, 'no credit for a minute that was over');
+  assert.equal(r.state.roundStartedAtMs, 60_000, 'the next minute starts on the boundary, no drift');
+});
+
+test('a tap after the time cap cannot turn a capped attempt into a finish', () => {
+  let s = make({ format: 'fixed_rounds', timeCapSec: 300, rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'burpee', reps: 100 }] }] });
+  s = startWorkout(s, 0).state;
+  const r = completeStep(s, 300_150);
+  assert.equal(r.state.phase, 'completed');
+  assert.equal(r.state.endedBy, 'time_cap');
+});
+
+test('AMRAP passes keep a mid-workout swap for repeated movements', () => {
+  let s = make({
+    format: 'amrap',
+    timeCapSec: 600,
+    rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'push-up', reps: 5 }, { exerciseId: 'air-squat', reps: 5 }, { exerciseId: 'push-up', reps: 5 }] }],
+  });
+  s = startWorkout(s, 0).state;
+  s = completeStep(s, 10_000).state;
+  s = completeStep(s, 20_000).state;
+  s = swapExercise(s, 'push-up', 'knee-push-up', 'scaled');
+  s = completeStep(s, 30_000).state; // pass 2 begins
+  assert.equal(s.loop, 1);
+  assert.deepEqual(
+    s.rounds[0].exercises.map((e) => e.scaledExerciseId),
+    ['knee-push-up', 'air-squat', 'knee-push-up'],
+  );
+});
+
+test('during rest the race target is the next round, not the checkpoint just reached', () => {
+  let s = make({
+    format: 'fixed_rounds',
+    restBetweenRoundsSec: 60,
+    rounds: [
+      { roundNumber: 1, steps: [{ exerciseId: 'burpee', reps: 5 }] },
+      { roundNumber: 2, steps: [{ exerciseId: 'burpee', reps: 5 }] },
+    ],
+  });
+  s = completeStep(startWorkout(s, 0).state, 20_000).state;
+  assert.equal(s.phase, 'rest');
+  assert.equal(getCheckpointKey(s), 'r2-e1');
+  assert.equal(getCheckpointKey(pauseState(s)), 'r2-e1');
 });

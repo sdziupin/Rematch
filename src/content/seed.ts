@@ -14,7 +14,10 @@ export const PARTIAL_FRACTIONS = [
 
 export function scaleStructure(structure: WorkoutStructure, fraction: number): WorkoutStructure {
   if (fraction >= 1) return structure;
-  const roundCount = Math.max(1, Math.round(structure.rounds.length * fraction));
+  // Time-boxed formats get shorter by time (cap, minutes, intervals); their
+  // rounds are templates that rotate, so dropping one would drop movements.
+  const timeBoxed = structure.format === 'amrap' || structure.format === 'emom' || structure.format === 'intervals';
+  const roundCount = timeBoxed ? structure.rounds.length : Math.max(1, Math.round(structure.rounds.length * fraction));
   return {
     ...structure,
     rounds: structure.rounds.slice(0, roundCount),

@@ -8,6 +8,8 @@ import { createActiveState, type EngineEvent } from '../engine/workoutEngine';
 
 const now = () => Date.now();
 
+const LIVE_STATUSES = ['countdown', 'active', 'paused'];
+
 export interface CompatKey {
   workoutId: string;
   workoutVersionId: string;
@@ -89,7 +91,8 @@ export async function saveSessionState(
       lastPausedAt: timer.lastPausedAt,
       updatedAt: now(),
     })
-    .where(eq(schema.workoutSessions.id, sessionId));
+    // A finished or abandoned session is history: a late autosave must never revive it.
+    .where(and(eq(schema.workoutSessions.id, sessionId), inArray(schema.workoutSessions.status, LIVE_STATUSES)));
 }
 
 export async function appendEvent(sessionId: string, type: string, payload: Record<string, unknown>, elapsedActiveMs: number) {
@@ -243,7 +246,16 @@ export async function finishSession(sessionId: string, state: ActiveWorkoutState
     const session = (await tx.select().from(schema.workoutSessions).where(eq(schema.workoutSessions.id, sessionId)).limit(1))[0];
     if (!session) throw new Error('Session not found');
     const existing = (await tx.select().from(schema.workoutResults).where(eq(schema.workoutResults.sessionId, sessionId)).limit(1))[0];
-    if (existing) return { resultId: existing.id, isNewPb: false, previousPb: null };
+    if (existing) {
+      // Already recorded. Make sure the session is not still marked live.
+      if (LIVE_STATUSES.includes(session.status)) {
+        await tx
+          .update(schema.workoutSessions)
+          .set({ status: existing.isAbandoned ? 'abandoned' : 'completed', completedAt: session.completedAt ?? existing.createdAt, updatedAt: now() })
+          .where(eq(schema.workoutSessions.id, sessionId));
+      }
+      return { resultId: existing.id, isNewPb: false, previousPb: null };
+    }
 
     const abandoned = !!options.abandoned;
     const scoreType: ScoreType = state.scoring ?? 'time';

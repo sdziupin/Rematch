@@ -287,8 +287,10 @@ test('partial sessions actually reduce volume', () => {
         estimateStructureMinutes(scaled) < estimateStructureMinutes(w.structure),
         `${p.id}: ${s.partialKey} ${s.workoutId} is not shorter than the full workout`,
       );
-      // EMOM partials drop minute templates, which breaks the alternation.
-      assert.ok(w.format !== 'emom' || w.structure.rounds.length === 1, `${p.id}: partial EMOM ${s.workoutId}`);
+      // Time-boxed partials shorten the clock but keep every movement.
+      if (w.format === 'emom' || w.format === 'intervals' || w.format === 'amrap') {
+        assert.equal(scaled.rounds.length, w.structure.rounds.length, `${p.id}: partial ${w.format} ${s.workoutId} dropped movements`);
+      }
     }
   }
 });
@@ -309,5 +311,17 @@ test('program equipment is exactly what its workouts need', () => {
       for (const eq of workouts.get(s.workoutId)!.equipment) if (!FREE_EQUIPMENT.has(eq)) needed.add(eq);
     }
     assert.deepEqual([...p.equipment].sort(), [...needed].sort(), p.id);
+  }
+});
+
+test('every size of a time-boxed workout keeps all of its movements', () => {
+  for (const w of WORKOUT_SEEDS) {
+    if (w.format !== 'emom' && w.format !== 'intervals' && w.format !== 'amrap') continue;
+    const ids = new Set(w.structure.rounds.flatMap((r) => r.steps.map((st) => st.exerciseId)));
+    for (const f of PARTIAL_FRACTIONS) {
+      const scaled = scaleStructure(w.structure, f.fraction);
+      const kept = new Set(scaled.rounds.flatMap((r) => r.steps.map((st) => st.exerciseId)));
+      assert.deepEqual([...kept].sort(), [...ids].sort(), `${w.slug} ${f.key}`);
+    }
   }
 });

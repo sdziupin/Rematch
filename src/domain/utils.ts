@@ -77,7 +77,8 @@ export function relativeDay(ts: number, now = Date.now()): string {
   const day = 24 * 60 * 60 * 1000;
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
-  const diff = Math.floor((startOfToday.getTime() - new Date(ts).setHours(0, 0, 0, 0)) / day);
+  // Round, not floor: a day around a DST change is 23 or 25 hours long.
+  const diff = Math.round((startOfToday.getTime() - new Date(ts).setHours(0, 0, 0, 0)) / day);
   if (diff <= 0) return 'Today';
   if (diff === 1) return 'Yesterday';
   if (diff < 7) return `${diff} days ago`;

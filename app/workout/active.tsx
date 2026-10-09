@@ -9,7 +9,7 @@ import { ExerciseAnimation } from '../../src/components/ExerciseAnimation';
 import { RematchBar, TimerDisplay } from '../../src/components/RematchBar';
 import { RaceRails } from '../../src/components/RaceRails';
 import { ProgressRing } from '../../src/components/charts';
-import { confirmAction } from '../../src/components/Dialogs';
+import { confirmAction, isConfirmOpen } from '../../src/components/Dialogs';
 import { Icon } from '../../src/components/Icon';
 import { getExercisesByIds, getWorkoutById } from '../../src/db/repository';
 import type { ExerciseRow } from '../../src/db/schema';
@@ -102,17 +102,22 @@ export default function ActiveWorkoutScreen() {
   useEffect(() => {
     void prepareAudio();
     let awake = false;
+    let disposed = false;
+    const release = () => deactivateKeepAwake('rematch-workout').catch(() => undefined);
     if (keepAwake) {
       activateKeepAwakeAsync('rematch-workout')
         .then(() => {
           awake = true;
+          // The screen went away before the lock arrived: give it straight back.
+          if (disposed) void release();
         })
         .catch(() => undefined);
     }
     return () => {
+      disposed = true;
       stopSpeaking();
       // Only release a lock we actually hold (the web API rejects otherwise).
-      if (awake) deactivateKeepAwake('rematch-workout').catch(() => undefined);
+      if (awake) void release();
     };
   }, [keepAwake]);
 
@@ -142,7 +147,8 @@ export default function ActiveWorkoutScreen() {
   // ---------------------------------------------------------------- persistence + cues
   const persist = useCallback((s: ActiveWorkoutState, force = false) => {
     const { sessionId: id, timer: t } = useWorkoutStore.getState();
-    if (!id) return;
+    // Once finishing starts, the result transaction owns the session row.
+    if (!id || finishing.current || s.phase === 'completed') return;
     const at = Date.now();
     if (!force && at - lastSave.current < SAVE_EVERY_MS) return;
     lastSave.current = at;
@@ -244,6 +250,7 @@ export default function ActiveWorkoutScreen() {
         const el = getElapsedActiveMs(t, at);
         const r = tick(s, el);
         if (r.state !== s) applyRef.current(r);
+        if (finishing.current) return;
         // 3-2-1 beeps before a timed step, rest or window ends.
         const remaining = r.state.phase === 'rest' ? restRemainingMs(r.state, el) : stepRemainingMs(r.state, el) ?? windowRemainingMs(r.state, el);
         if (remaining !== null && remaining > 0 && remaining <= 3000) {
@@ -286,13 +293,13 @@ export default function ActiveWorkoutScreen() {
   // ---------------------------------------------------------------- actions
   const onDone = useCallback(() => {
     const { state: s, timer: t } = useWorkoutStore.getState();
-    if (!s || !canCompleteManually(s)) return;
+    if (!s || finishing.current || !canCompleteManually(s)) return;
     apply(completeStep(s, getElapsedActiveMs(t)));
   }, [apply]);
 
   const onRep = useCallback((delta: number) => {
     const s = useWorkoutStore.getState().state;
-    if (!s || (s.phase !== 'active' && s.phase !== 'rest')) return;
+    if (!s || finishing.current || (s.phase !== 'active' && s.phase !== 'rest')) return;
     const next = advanceRep(s, delta);
     if (next !== s) {
       useWorkoutStore.getState().setState(next);
@@ -302,19 +309,27 @@ export default function ActiveWorkoutScreen() {
 
   const onSkipRest = useCallback(() => {
     const { state: s, timer: t } = useWorkoutStore.getState();
-    if (!s || s.phase !== 'rest') return;
+    if (!s || finishing.current || s.phase !== 'rest') return;
     apply(skipRest(s, getElapsedActiveMs(t)));
   }, [apply]);
 
   const onExtendRest = useCallback(() => {
-    const s = useWorkoutStore.getState().state;
-    if (!s) return;
-    useWorkoutStore.getState().setState(extendRest(s, 15));
-  }, []);
+    const { state: s, timer: t } = useWorkoutStore.getState();
+    if (!s || finishing.current) return;
+    // If the rest already ran out, that boundary wins over the tap.
+    const due = tick(s, getElapsedActiveMs(t));
+    if (due.events.length > 0) {
+      apply(due);
+      return;
+    }
+    const next = extendRest(s, 15);
+    useWorkoutStore.getState().setState(next);
+    persist(next, true);
+  }, [apply, persist]);
 
   const onPause = useCallback(() => {
     const { state: s, timer: t, sessionId: id } = useWorkoutStore.getState();
-    if (!s || !id || (s.phase !== 'active' && s.phase !== 'rest')) return;
+    if (!s || !id || finishing.current || (s.phase !== 'active' && s.phase !== 'rest')) return;
     const paused = pauseTimer(t);
     useWorkoutStore.getState().setTimer(paused);
     const next = pauseState(s);
@@ -326,7 +341,7 @@ export default function ActiveWorkoutScreen() {
 
   const onResume = useCallback(() => {
     const { state: s, timer: t, sessionId: id } = useWorkoutStore.getState();
-    if (!s || !id || s.phase !== 'paused') return;
+    if (!s || !id || finishing.current || s.phase !== 'paused') return;
     const resumed = resumeTimer(t);
     useWorkoutStore.getState().setTimer(resumed);
     const next = resumeState(s);
@@ -353,7 +368,7 @@ export default function ActiveWorkoutScreen() {
   const onEasier = useCallback(() => {
     const { state: s, sessionId: id, timer: t } = useWorkoutStore.getState();
     const ex = s ? getCurrentExercise(s) : undefined;
-    if (!s || !ex || !id) return;
+    if (!s || !ex || !id || ex.done || finishing.current) return;
     const current = meta.get(ex.scaledExerciseId);
     const easierId = current?.easierVariantId;
     if (!easierId) return;
@@ -381,16 +396,17 @@ export default function ActiveWorkoutScreen() {
   useEffect(() => {
     if (!exitTo) return;
     router.replace(exitTo);
-    // Clear after the navigation so this screen never renders a redirect of its own.
-    const t = setTimeout(() => useWorkoutStore.getState().clear(), 50);
-    return () => clearTimeout(t);
+    // With exitTo set this screen renders a blank view, so clearing now can't trigger its redirect.
+    useWorkoutStore.getState().clear();
   }, [exitTo, router]);
 
   // Keyboard shortcuts on the web.
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof window === 'undefined') return;
     const handler = (e: KeyboardEvent) => {
-      if (e.target && (e.target as HTMLElement).tagName === 'INPUT') return;
+      if (e.target && ['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+      // Dialogs own the keyboard while open; holding a key must not fire repeatedly.
+      if (isConfirmOpen() || e.repeat) return;
       const s = useWorkoutStore.getState().state;
       if (!s) return;
       if (e.key === ' ' || e.key === 'Enter') {
@@ -622,7 +638,7 @@ export default function ActiveWorkoutScreen() {
   }
 
   const paused = state.phase === 'paused';
-  const easier = ex ? meta.get(ex.scaledExerciseId)?.easierVariantId : undefined;
+  const easier = ex && !ex.done ? meta.get(ex.scaledExerciseId)?.easierVariantId : undefined;
 
   return (
     <SafeAreaView style={styles.safe}>

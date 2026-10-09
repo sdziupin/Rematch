@@ -223,6 +223,8 @@ export function absoluteRoundNumber(state: ActiveWorkoutState): number {
 
 /** Key of the checkpoint the athlete is currently working toward. */
 export function getCheckpointKey(state: ActiveWorkoutState): string {
+  // Resting (or paused in a rest): the current movement is done, the next target is the next round.
+  if (getCurrentExercise(state)?.done) return `r${absoluteRoundNumber(state) + 1}-e1`;
   return `r${absoluteRoundNumber(state)}-e${state.currentExerciseIndex + 1}`;
 }
 
@@ -365,7 +367,8 @@ function finishRound(state: ActiveWorkoutState, atMs: number, events: EngineEven
         rounds: s.rounds.map((r) => ({
           ...r,
           completed: false,
-          exercises: r.exercises.map((e) => ({ ...e, completedReps: 0, done: false })),
+          // A new pass: every movement follows the current swaps, including ones finished before a swap.
+          exercises: r.exercises.map((e) => ({ ...e, scaledExerciseId: s.exerciseSwaps?.[e.exerciseId] ?? e.scaledExerciseId, completedReps: 0, done: false })),
         })),
       };
     } else {
@@ -441,8 +444,14 @@ function completeStepAt(state: ActiveWorkoutState, atMs: number, events: EngineE
   return finishRound(s, atMs, events);
 }
 
-/** The athlete finished the current step (tap on DONE / NEXT). */
+/**
+ * The athlete finished the current step (tap on DONE / NEXT).
+ * Boundaries that already passed are applied first; if one fired (the minute
+ * ended, the cap hit), the tap belonged to a moment that is over and is dropped.
+ */
 export function completeStep(state: ActiveWorkoutState, atMs: number): EngineResult {
+  const due = tick(state, atMs);
+  if (due.events.length > 0) return due;
   const events: EngineEvent[] = [];
   const next = completeStepAt(state, atMs, events);
   return { state: next, events };
@@ -543,6 +552,8 @@ export function tick(state: ActiveWorkoutState, atMs: number): EngineResult {
 }
 
 export function skipRest(state: ActiveWorkoutState, atMs: number): EngineResult {
+  const due = tick(state, atMs);
+  if (due.events.length > 0) return due;
   if (state.phase !== 'rest' || state.structure.format === 'emom') return { state, events: [] };
   const events: EngineEvent[] = [{ type: 'RestEnded', atMs, skipped: true }];
   return { state: beginNextRound(state, atMs, events), events };

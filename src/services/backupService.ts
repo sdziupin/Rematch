@@ -201,16 +201,19 @@ export async function restoreBackup(backup: Backup): Promise<{ sessions: number;
         continue;
       }
       let id = v.id;
+      let versionNumber = v.version;
       if (usedIds.has(id)) {
-        const max = localVersions.filter((l) => l.workoutId === v.workoutId).reduce((m, l) => Math.max(m, l.version), v.version);
-        id = `${v.workoutId}-v${max + 1}`;
-        while (usedIds.has(id)) id = `${v.workoutId}-v${Number(id.split('-v').pop()) + 1}`;
+        // Renumber so the id and the version number agree (content sync relies on it).
+        versionNumber = localVersions.filter((l) => l.workoutId === v.workoutId).reduce((m, l) => Math.max(m, l.version), v.version) + 1;
+        while (usedIds.has(`${v.workoutId}-v${versionNumber}`)) versionNumber += 1;
+        id = `${v.workoutId}-v${versionNumber}`;
       }
       usedIds.add(id);
       versionMap.set(v.id, id);
       const isCustom = d.workouts.find((w) => w.id === v.workoutId)?.source === 'custom';
-      await tx.insert(schema.workoutVersions).values({ ...v, id, contentHash: identity, isCurrent: isCustom ? v.isCurrent : false });
-      localVersions.push({ ...v, id, contentHash: identity, isCurrent: isCustom ? v.isCurrent : false });
+      const row = { ...v, id, version: versionNumber, contentHash: identity, isCurrent: isCustom ? v.isCurrent : false };
+      await tx.insert(schema.workoutVersions).values(row);
+      localVersions.push(row);
       for (const variant of d.variants.filter((x) => x.workoutVersionId === v.id)) {
         await tx.insert(schema.workoutVariants).values({ ...variant, id: `${id}-${variant.partialKey}`, workoutVersionId: id });
       }

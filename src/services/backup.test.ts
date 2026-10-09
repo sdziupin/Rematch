@@ -121,3 +121,25 @@ test('programs track progress through finished sessions', async () => {
   assert.equal(active?.progress.done, 1);
   assert.notEqual(active?.progress.next, first);
 });
+
+test('versions renamed during restore never collide with later content versions', async () => {
+  await freshDb();
+  await play('w-tempest', 20_000);
+  const backup = await createBackup();
+  // The backup's TEMPEST v1 has different content than this install's v1 (an older layout).
+  const legacy = backup.data.versions.find((v) => v.workoutId === 'w-tempest')!;
+  const changed = { ...JSON.parse(legacy.structureJson), rounds: JSON.parse(legacy.structureJson).rounds.slice(0, 2) };
+  legacy.structureJson = JSON.stringify(changed);
+  legacy.contentHash = null;
+  await freshDb();
+  await restoreBackup(parseBackup(serializeBackup(backup)));
+  const versions = await getDb().select().from(schema.workoutVersions);
+  const tempest = versions.filter((v) => v.workoutId === 'w-tempest');
+  for (const v of tempest) assert.equal(v.id, `w-tempest-v${v.version}`, 'id and version number agree');
+  // A later release changes TEMPEST: the new version must get a free id.
+  const { withTransaction } = await import('../db/client');
+  const { ensureWorkoutVersion } = await import('../db/contentSync');
+  const next = await withTransaction((tx) => ensureWorkoutVersion(tx, 'w-tempest', { format: 'fixed_rounds', rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'burpee', reps: 1 }] }] }));
+  assert.equal(next.created, true);
+  assert.equal(new Set((await getDb().select().from(schema.workoutVersions)).map((v) => v.id)).size, versions.length + 1);
+});
