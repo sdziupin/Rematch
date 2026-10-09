@@ -4,12 +4,14 @@
 
 <p align="center">
   <strong>A benchmark fitness app where your past performance becomes a live opponent.</strong><br/>
-  Race real checkpoint telemetry, find where you gained or lost time, and build the next version of yourself.
+  Race real checkpoint telemetry, find where you gained or lost time, and build the next version of yourself.<br/>
+  On iOS, Android and the web, fully offline.
 </p>
 
 <p align="center">
   <img alt="Expo 57" src="https://img.shields.io/badge/Expo-57-000020?style=flat-square&logo=expo&logoColor=white" />
   <img alt="React Native 0.86" src="https://img.shields.io/badge/React%20Native-0.86-20232A?style=flat-square&logo=react&logoColor=61DAFB" />
+  <img alt="Web" src="https://img.shields.io/badge/Web-PWA%20%C2%B7%20offline-4ECDC4?style=flat-square" />
   <img alt="TypeScript 6" src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white" />
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-offline--first-003B57?style=flat-square&logo=sqlite&logoColor=white" />
   <a href="./LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-6BCB77?style=flat-square" /></a>
@@ -18,7 +20,9 @@
 <p align="center">
   <a href="#the-idea">The idea</a> ·
   <a href="#how-rematch-works">How it works</a> ·
-  <a href="#what-makes-it-different">Why REMATCH</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#training-library">Library</a> ·
+  <a href="#the-race-engine">Race engine</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#quick-start">Quick start</a>
 </p>
@@ -31,20 +35,21 @@ Most workout apps record a result.
 
 **REMATCH records a race.**
 
-Every completed benchmark can become an opponent for the next attempt. Instead of comparing only final times, REMATCH stores workout events and checkpoint timestamps, then uses that real telemetry during the next session to show whether you're ahead or behind **where it actually matters**.
+Every completed benchmark becomes an opponent for the next attempt. Instead of comparing only final times, REMATCH stores a split at every movement and every round, then uses that real telemetry during the next session to show whether you're ahead or behind **where it actually matters**.
 
-> Final time tells you **if** you improved. Checkpoints help tell you **where**.
+> Final time tells you **if** you improved. Checkpoints tell you **where**.
 
-No social leaderboard. No stranger to chase. No backend required for the core training loop.
+No social leaderboard. No stranger to chase. No account, no server.
 
 **You vs. you.**
 
 <table>
   <tr>
-    <td align="center"><strong>31</strong><br/>original benchmarks</td>
-    <td align="center"><strong>52</strong><br/>exercises</td>
-    <td align="center"><strong>5</strong><br/>workout formats</td>
-    <td align="center"><strong>4</strong><br/>distance variants</td>
+    <td align="center"><strong>58</strong><br/>original benchmarks</td>
+    <td align="center"><strong>95</strong><br/>animated exercises</td>
+    <td align="center"><strong>6</strong><br/>workout formats</td>
+    <td align="center"><strong>6</strong><br/>multi-week programs</td>
+    <td align="center"><strong>7</strong><br/>warm-ups &amp; cool-downs</td>
   </tr>
 </table>
 
@@ -52,148 +57,155 @@ No social leaderboard. No stranger to chase. No backend required for the core tr
 
 ```mermaid
 flowchart LR
-    A["Pick a benchmark"] --> B["Choose your past attempt"]
+    A["Pick a benchmark"] --> B["Choose size, scaling and opponent"]
     B --> C["3 · 2 · 1 · GO"]
     C --> D["Train"]
-    D --> E["Capture events + checkpoints"]
+    D --> E["Splits at every movement"]
     E --> F["Live delta + race rails"]
     F --> G["Finish"]
-    G --> H["Checkpoint breakdown"]
-    H --> I{"Faster?"}
-    I -- Yes --> J["New PB"]
+    G --> H["Where you won or lost it"]
+    H --> I{"Better?"}
+    I -- Yes --> J["New PB = new opponent"]
     I -- Not yet --> K["New data for the next rematch"]
     J --> A
     K --> A
 ```
 
-A previous attempt is not simulated as a smooth, imaginary pace. The race UI advances from **recorded checkpoint telemetry**. That keeps the comparison grounded in what actually happened during that workout.
+A previous attempt is never simulated as a smooth, imaginary pace. The race UI only moves on **recorded checkpoint telemetry**.
 
-## What makes it different
+## Features
 
-| | Capability | What it means in practice |
+| | Feature | What it means in practice |
 |---|---|---|
-| **↯** | **Real rematch telemetry** | Live ahead/behind comparison is based on recorded checkpoints, not linear interpolation. |
-| **◎** | **Any past attempt can race you** | Historical completed sessions are selectable as opponents, so “past you” is a concrete performance. |
-| **◆** | **PBs stay comparable** | Personal bests are isolated by workout version, workout variant, and scaling category. |
-| **↺** | **Workout recovery** | Active and paused sessions persist their state and can be resumed after leaving the workout flow. |
-| **⌁** | **Offline-first core** | Workouts, sessions, events, checkpoints, results, feedback, and PBs live in local SQLite. |
-| **⚡** | **Challenge Me** | Pick 5, 10, 15, 20, or 30 minutes and the recommendation engine chooses a suitable benchmark. |
-| **◫** | **Progress, not just history** | Results can be compared across attempts to surface improvement from first to latest performance. |
-| **✦** | **Workout-native UX** | Haptics, keep-awake behavior, large touch targets, countdowns, rep controls, and pause/resume are built around training. |
+| **↯** | **Real rematch telemetry** | Splits at every movement and round. The live delta compares you at the same checkpoint, and turns against you the moment past-you reaches your next checkpoint first. |
+| **◎** | **Any past attempt can race you** | Rematch your PB, your last attempt, or pick any finished attempt. |
+| **◆** | **Honest PBs** | PBs are isolated by workout version, size (full, ¾, ½, ¼) and scaling (RX, scaled, modified). Changing a workout creates a new version instead of rewriting history. |
+| **⏱** | **Every format runs properly** | For time, chippers, ladders, AMRAP (rounds + reps to the cap), EMOM (rest until the minute), intervals (work/rest, rep counting), time caps and prescribed rest. Timed holds and rests run their own clocks. |
+| **⇄** | **Scaling that stays honest** | Swap any movement for its easier variant before you start or mid-workout. The result is filed as scaled or modified automatically. |
+| **✦** | **Animated exercise demos** | Every one of the 95 exercises has an original stick-figure animation, with cues, common mistakes, muscles on a body map and easier/harder progressions. |
+| **▦** | **Programs** | Six multi-week plans that re-test key benchmarks, so the rematch shows real progress. |
+| **✎** | **Build your own** | Create custom benchmarks in any format; they race, version and PB like the built-ins. |
+| **▤** | **Progress** | Weekly goal and streaks, an 18-week training calendar, a 30-day muscle map, first → latest → best for every benchmark, trend charts and full history. |
+| **♪** | **Workout-native feedback** | Countdown beeps that mix with your music, an optional voice coach, haptics, keep-awake, big touch targets and pause/resume. |
+| **⌨** | **Web app** | Responsive layout with a sidebar on wide screens, keyboard shortcuts during workouts, installable as a PWA and usable offline after the first visit. |
+| **↺** | **Recovery and backup** | Sessions survive app kills and reloads; export everything as one JSON file and restore it on another device or browser. |
+| **⚡** | **Challenge Me** | Pick 5–30 minutes; recommendations respect your level, equipment, recent sessions and reported pain. |
 
 ## Training library
 
-REMATCH ships with **31 original benchmark workouts** — including **TEMPEST, EMBER, RIPTIDE, AVALANCHE, SUMMIT, VORTEX, APEX, NOVA, ONYX, AURORA** and more.
+**58 original benchmarks**, including TEMPEST, EMBER, RIPTIDE, AVALANCHE, SUMMIT, VORTEX, APEX, NOVA, ONYX, AURORA, SCORCH, INFERNO, MONSOON, OVERHANG, BASALT and PINNACLE, plus **4 warm-ups** and **3 cool-downs**.
 
-The current seed contains **52 exercises** with movement metadata and scaling relationships.
+| Format | Benchmarks | Scored by |
+|---|---|---|
+| For time (fixed rounds) | 30 | time |
+| Chipper | 6 | time |
+| Ladder | 3 | time |
+| Intervals (incl. a Tabata) | 10 | total reps |
+| AMRAP | 5 | rounds + reps |
+| EMOM | 4 | total reps |
 
-### Workout model
+- **Equipment-aware:** bodyweight, mat, pull-up bar, dumbbells, kettlebell, bench/box, jump rope and resistance band.
+- **Difficulty:** beginner, intermediate, advanced and elite.
+- **Sizes:** full, ¾, ½ and ¼ of every workout.
+- **Exercises:** 95 movements, from wall push-ups to toes-to-bar and devil presses. Each has easier and harder variants where they exist, plus mobility drills for warm-ups and cool-downs.
 
-- **Formats:** fixed rounds, chipper, ladder, intervals, AMRAP
-- **Difficulty:** beginner, intermediate, advanced, elite
-- **Scaling:** RX, scaled, modified
-- **Variants:** full, ¾, ½, ¼
-- **Equipment-aware recommendations**
-- **Versioned workout definitions** so historical results stay meaningful when a benchmark changes
+**Programs:**
 
-The recommendation layer can filter by available time, level, equipment, recent workouts, and recovery constraints before selecting a benchmark.
+| Program | Length |
+|---|---|
+| FIRST REMATCH | 3 weeks × 3 sessions |
+| ENGINE | 4 weeks × 3 sessions |
+| MIDLINE | 3 weeks × 3 sessions |
+| LOADED | 4 weeks × 3 sessions (dumbbells) |
+| ASCENT | 4 weeks × 3 sessions (pull-up bar) |
+| GAUNTLET | 4 weeks × 4 sessions |
+
+Every program opens and closes on the same benchmark.
 
 ## The race engine
 
-The core domain is deliberately small and deterministic.
-
-A workout session tracks:
+The workout engine (`src/engine/workoutEngine.ts`) is a pure, deterministic state machine. Every transition takes the elapsed **active** time and returns the next state plus the events it produced. Timed transitions land on their exact boundary, not on the tick that noticed them, so a late tick or a backgrounded phone never stretches an interval.
 
 ```text
 session
-├── version + variant + scaling
-├── timer state
-├── current round / exercise / reps
-├── event stream
-├── checkpoint timestamps
-├── opponent session
-└── persisted recovery state
+├── version + size + scaling
+├── timer (pauses never count)
+├── round / movement / reps, rest, EMOM window, time cap
+├── checkpoints: r{round}-e{movement}, round-{n}  (+ cumulative reps)
+├── event log
+└── opponent session
 ```
 
-During a rematch, the comparator lines up matching checkpoint keys from the current and opponent sessions:
+Two kinds of race:
 
-```text
-Round 1    you 02:03    past you 02:08    -00:05
-Round 2    you 04:21    past you 04:17    +00:04
-Round 3    you 06:30    past you 06:42    -00:12
-```
-
-Negative delta means you're ahead. Positive delta means the old you is making you work for it.
+- **Pace** (for time, AMRAP): who reached each checkpoint first.
+  ```text
+  Round 1    you 02:03    past you 02:08    −5.0 sec
+  Round 2    you 04:21    past you 04:17    +4.0 sec
+  ```
+- **Volume** (intervals, EMOM): the clock is fixed, so the race compares reps banked at the same checkpoint.
 
 ## Architecture
 
 ```mermaid
 flowchart TB
-    UI["Expo Router screens"] --> STORE["Zustand active workout state"]
-    UI --> REC["Recommendation service"]
-
-    STORE --> ENGINE["Workout engine"]
-    STORE --> TIMER["Drift-safe timer domain"]
-    ENGINE --> SESSION["Session service"]
-    TIMER --> SESSION
-
-    SESSION --> EVENTS["Events + checkpoints"]
-    EVENTS --> RACE["REMATCH comparator"]
+    UI["Expo Router screens (iOS · Android · web)"] --> STORE["Zustand: active workout + settings"]
+    UI --> SVC["Services: sessions, stats, programs, backup, recommendations"]
+    STORE --> ENGINE["Workout engine (pure)"]
+    ENGINE --> EVENTS["Checkpoints + events"]
+    EVENTS --> RACE["Rematch comparator"]
     RACE --> UI
-
-    SESSION --> ORM["Drizzle ORM"]
-    REC --> DATA["Seeded workout content"]
-    DATA --> ORM
-    ORM --> DB[("SQLite")]
-
-    DB --> PB["Personal bests"]
-    DB --> HISTORY["History / progress"]
-    DB --> RECOVERY["Session recovery"]
-    PB --> UI
-    HISTORY --> UI
-    RECOVERY --> UI
+    SVC --> ORM["Drizzle ORM (sqlite-proxy)"]
+    ORM --> QUEUE["Serialized async driver"]
+    QUEUE --> SQLITE[("expo-sqlite: native SQLite / OPFS on web")]
+    CONTENT["Bundled content: exercises, workouts, programs"] --> SYNC["Versioned content sync"]
+    SYNC --> ORM
+    ANIM["Pose engine + motions"] --> UI
 ```
 
 ### Design principles
 
-**Local first.** The important path from tapping **START** to finishing a workout does not depend on a remote service.
+**Local first.** Nothing between tapping START and finishing a workout depends on a network.
 
-**History must stay honest.** Workout versions, variants, and scaling are part of result compatibility instead of being flattened into one misleading PB.
+**History must stay honest.** A workout's identity is its exact structure plus how it is scored. Copy and colours can change freely; a structural change creates a new version, and old results keep their own PBs.
 
-**The timer is part of the domain.** Pauses are accumulated explicitly so elapsed active time stays stable across pause/resume cycles.
+**The timer is part of the domain.** Pauses are accumulated explicitly, and every engine transition is computed from active time.
 
-**Workout controls beat decoration.** The active screen keeps high-priority actions in reach with large touch targets and avoids blocking animation.
+**Async everywhere.** Drizzle runs through its `sqlite-proxy` driver on expo-sqlite's async API. Synchronous expo-sqlite calls busy-wait on the web, so the app never uses them. All statements go through one serialized queue, and transactions hold it.
 
-## Product flow
+**Content reaches existing installs.** On every start, bundled content is compared with what's stored. New workouts and exercises are added, metadata is refreshed, and changed workouts get new versions.
+
+## Screens
 
 | Surface | Purpose |
 |---|---|
-| **Onboarding** | Goal, level, available equipment, typical workout time, weekly frequency |
-| **Today** | Recommended session and fast entry into the next challenge |
-| **Challenge Me** | Time-boxed recommendation: 5 / 10 / 15 / 20 / 30 minutes |
-| **Library** | Browse the benchmark catalog |
-| **Workout** | Structure, variant, scaling, opponent, and start |
-| **Active** | Timer, reps, exercise visual, race delta, progress rails |
-| **Results** | Final comparison, checkpoint breakdown, PB state, workout feedback |
-| **Progress** | Attempts and first → latest performance trend |
-| **Profile** | Training preferences and workout behavior settings |
+| **Onboarding** | Goal, level, equipment, session length, weekly goal |
+| **Today** | Weekly goal ring and streaks, active program session, the daily pick, warm-up/cool-down, recent PBs, resume an unfinished workout |
+| **Workouts** | Benchmarks, programs, your custom workouts and warm-ups, with search and filters for format, level, length and equipment |
+| **Exercises** | 95 animated demos, filtered by movement, equipment or muscle (with a body map on wide screens) |
+| **Workout** | Structure preview, size, per-movement scaling, PB/last/attempts, trend chart, opponent choice |
+| **Active** | Countdown, movement demo, rep counter, timed rings, rest, EMOM window, AMRAP cap, live race, pause menu |
+| **Result** | Score, comparison, splits (where you won or lost it), PB state, how it felt / pain report |
+| **Program** | Schedule, progress, next session |
+| **Builder** | Create or edit a custom benchmark |
+| **Progress** | Totals, weekly bars against your goal, training calendar, muscle map, benchmark progress, history |
+| **Profile** | Training preferences, cues, countdown, week start, backup export/import, erase data |
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| App | React Native 0.86 + React 19 |
-| Runtime | Expo 57 |
-| Navigation | Expo Router |
+| App | React Native 0.86, React 19, react-native-web |
+| Runtime | Expo SDK 57 |
+| Navigation | Expo Router (native stack, JS tabs with a sidebar on wide screens) |
 | Language | TypeScript 6 |
 | State | Zustand |
-| Persistence | Expo SQLite |
-| ORM | Drizzle ORM |
-| Motion | React Native Reanimated |
-| Input | React Native Gesture Handler |
-| Feedback | Expo Haptics |
+| Persistence | expo-sqlite (async API), Drizzle ORM via `sqlite-proxy` |
+| Graphics | react-native-svg (animations, charts, body map), expo-linear-gradient |
+| Feedback | expo-audio, expo-speech, expo-haptics, expo-keep-awake |
+| Files | expo-file-system, expo-sharing, expo-document-picker |
 | Typography | Bebas Neue + DM Sans |
-| Tests | Node test runner via `tsx` |
+| Tests | Node test runner via `tsx`, real SQLite through `node:sqlite` |
 
 ## Quick start
 
@@ -208,57 +220,70 @@ npm ci
 ### 2. Run
 
 ```bash
-npm start
+npm start        # then press i (iOS), a (Android) or w (web)
+npm run web      # straight to the browser
 ```
 
-Then press:
-
-- `i` — iOS simulator
-- `a` — Android emulator
-- `w` — web
-
-Or use the dedicated scripts:
+### 3. Build and host the web app
 
 ```bash
-npm run ios
-npm run android
-npm run web
+npm run build:web   # static export to dist/
+npm run serve:web   # local server with SPA fallback on http://localhost:8080
 ```
 
-### 3. Test
+`dist/` is a single-page app that works on any static host. Configure a fallback to `index.html` for unknown routes, and serve it from the domain root (`/sw.js` handles offline caching). The data lives in the browser's origin-private file system. It can be open in one tab at a time: a second tab offers to take over, and windows that block storage (some private modes) get a clear message instead of a broken app.
+
+### 4. Test
 
 ```bash
-npm test
+npm test          # 365 tests: engine, race, scoring, stats, DB lifecycle, migrations, backup, content, animations
+npm run typecheck
 ```
 
-The current domain suite covers timer pause accuracy, checkpoint-based rematching, PB compatibility, workout completion, and recommendation selection.
+### Handy scripts
+
+| Script | What it does |
+|---|---|
+| `npm run motion-sheet -- out.html --only burpee,pull-up` | Renders exercise animations as a contact sheet for review |
+| `npm run generate:sounds` | Re-synthesises the cue sounds in `assets/sounds/` |
+
+## Keyboard shortcuts (web)
+
+| Key | During a workout |
+|---|---|
+| `Space` / `Enter` | Done → next movement · skip rest · resume |
+| `↑` / `+` and `↓` / `−` | Count reps |
+| `P` / `Esc` | Pause / resume |
 
 ## Project structure
 
 ```text
 Rematch/
-├── app/                      # Expo Router screens and flows
-│   ├── (tabs)/               # Today, Library, Progress, Profile
-│   ├── opponent/             # Historical opponent selection
-│   └── workout/              # Detail, active, recovery, results
+├── app/                      # Expo Router screens
+│   ├── (tabs)/               # Today, Workouts, Exercises, Progress, Profile
+│   ├── workout/              # Detail, active, recovery, result
+│   ├── exercise/ program/    # Exercise and program pages
+│   ├── opponent/             # Opponent picker
+│   └── builder.tsx           # Custom workout builder
 ├── src/
-│   ├── components/           # Workout and race UI
-│   ├── content/              # 31 workouts + 52 exercise seeds
-│   ├── db/                   # SQLite client, schema, seed layer
-│   ├── domain/               # Timer, rematch comparison, types
-│   ├── engine/               # Deterministic workout state transitions
-│   ├── hooks/                # Runtime workout hooks
-│   ├── services/             # Sessions and recommendations
-│   ├── store/                # Zustand workout state
-│   └── theme/                # Production design tokens
+│   ├── animation/            # Skeleton/pose solver and motions for every exercise
+│   ├── components/           # UI kit, charts, body map, race UI, dialogs
+│   ├── content/              # Exercises, workouts, programs (+ validation tests)
+│   ├── db/                   # Schema, migrations, async driver, content sync
+│   ├── domain/               # Timer, rematch comparator, scoring, stats, scaling
+│   ├── engine/               # Deterministic workout state machine
+│   ├── services/             # Sessions, stats, programs, backup, cues, recommendations
+│   ├── store/                # Zustand stores
+│   └── theme/                # Design tokens
+├── public/                   # Web shell: manifest, icons, service worker
+├── assets/                   # App icons, generated artwork, cue sounds
 ├── design/                   # Brand, copy, content and handoff specs
-├── assets/                   # App and generated workout artwork
-└── scripts/                  # Asset generation tooling
+└── scripts/                  # Web server, motion sheet, sound and asset generators
 ```
 
 ## Visual language
 
-REMATCH is intentionally dark, focused, and competitive without becoming aggressive.
+REMATCH is dark, focused and competitive without being aggressive.
 
 | Role | Token |
 |---|---|
@@ -269,26 +294,26 @@ REMATCH is intentionally dark, focused, and competitive without becoming aggress
 | **Ahead / CTA** | `#4ECDC4` |
 | **Behind / challenge** | `#F4A261` |
 | **PB / success** | `#6BCB77` |
+| **Rest** | `#5B8DEF` |
 
-**Bebas Neue** carries workout names, timers, and big performance numbers. **DM Sans** handles the interface and metadata.
+**Bebas Neue** carries workout names, timers and big numbers. **DM Sans** handles the interface.
 
-The design system lives in [`design/`](./design/) and the runtime tokens in [`src/theme/`](./src/theme/).
+## Invariants
 
-## Tests and invariants
+These rules are enforced by tests:
 
-A few rules are important enough to be treated as product invariants:
+- Paused time never leaks into active elapsed time.
+- Timed steps, rests and EMOM windows end on their exact boundaries.
+- Race comparison uses checkpoint telemetry, ordered by position in the workout.
+- RX and scaled results never share a PB, and a session can only move down the scaling ladder.
+- Abandoned or time-capped attempts never set a PB; deleting a PB promotes the next best.
+- An existing install upgrades in place without losing PBs.
+- A backup restores onto any install, even one that numbered workout versions differently.
+- The 31 original workout structures never change (snapshot test).
 
-- paused time must never leak into active elapsed time;
-- race comparison must use checkpoint telemetry;
-- RX and scaled results must never share a PB;
-- the workout engine must complete deterministic round transitions;
-- recommendations must return a valid duration-compatible workout when possible.
+## Acknowledgements
 
-Run the suite with:
-
-```bash
-npm test
-```
+Several feature ideas (exercise library with demos, body map, programs, rest timer, heatmap, backup export, keyboard-driven web UI) were inspired by [openGym](https://github.com/DuarteSantos8/openGym). No code, data or media was copied: REMATCH's animations, sounds, content and code are original and MIT-licensed.
 
 ## License
 

@@ -1,25 +1,24 @@
-import { Redirect } from 'expo-router';
+import { Redirect, type Href } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { getProfile } from '../src/db/seed';
+import { getProfile } from '../src/db/repository';
 import { getActiveSession } from '../src/services/sessionService';
 
 export default function Index() {
-  const [target, setTarget] = useState<string | null>(null);
+  const [target, setTarget] = useState<Href | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       const active = await getActiveSession();
-      if (active) {
-        setTarget('/workout/recovery');
-        return;
-      }
       const profile = await getProfile();
-      if (!profile?.onboardingComplete) {
-        setTarget('/onboarding');
-        return;
-      }
-      setTarget('/(tabs)/today');
-    })();
+      const next: Href = active ? '/workout/recovery' : !profile?.onboardingComplete ? '/onboarding' : '/today';
+      if (!cancelled) setTarget(next);
+    })().catch(() => {
+      if (!cancelled) setTarget('/today');
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (!target) return null;
