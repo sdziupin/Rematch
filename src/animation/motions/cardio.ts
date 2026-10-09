@@ -108,9 +108,9 @@ const buttKicks = loop(
   'side',
   700,
   [
-    { x: 50, torso: 172, head: 176, ...pump('L', false), legR: [6, -152], footR: -165, legL: [2, 0], footL: 42 },
+    { x: 50, torso: 172, head: 176, ...pump('L', false), legR: [6, -152], footR: -120, legL: [2, 0], footL: 42 },
     { x: 50, air: 3, torso: 172, head: 176, ...pump('L', false), legR: [10, -60], footR: 10, legL: [6, -70], footL: 20 },
-    { x: 50, torso: 172, head: 176, ...pump('R', false), legL: [6, -152], footL: -165, legR: [2, 0], footR: 42 },
+    { x: 50, torso: 172, head: 176, ...pump('R', false), legL: [6, -152], footL: -120, legR: [2, 0], footR: 42 },
     { x: 50, air: 3, torso: 172, head: 176, ...pump('R', false), legL: [10, -60], footL: 10, legR: [6, -70], footR: 20 },
   ],
   { thumbT: 0 },
@@ -218,8 +218,8 @@ const sprawlBottom: Body = (() => {
     armR: floorHands.R,
     legL: [s.legAngle + 1, s.legAngle + 1],
     legR: [s.legAngle, s.legAngle],
-    footL: -95,
-    footR: -95,
+    footL: -80,
+    footR: -80,
   };
 })();
 const sprawl = animate(
@@ -243,7 +243,8 @@ const broadJump = animate(
   [
     key(0, standSide(34)),
     key(0.1, { x: 30, y: 67, torso: 128, head: 150, armL: [-58, -42], armR: [-62, -46], legL: ankle(35), legR: ankle(34) }),
-    key(0.2, { x: 48, torso: 142, head: 155, armL: [142, 152], armR: [138, 148], legL: [-24, -24], legR: [-26, -26], footL: 22, footR: 22 }, 'in'),
+    key(0.15, { x: 38, y: 64, torso: 138, head: 156, armL: [30, 40], armR: [26, 36], legL: ankle(35), legR: ankle(34) }, 'in'),
+    key(0.2, { x: 48, torso: 142, head: 155, armL: [142, 152], armR: [138, 148], legL: [-24, -24], legR: [-26, -26], footL: 22, footR: 22 }),
     key(0.31, { x: 57, air: 11, torso: 150, head: 160, armL: [96, 104], armR: [92, 100], legL: [72, -6], legR: [68, -10] }, 'out'),
     key(0.42, { x: 61, y: 72, torso: 136, head: 156, armL: [80, 88], armR: [76, 84], legL: ankle(71), legR: ankle(70) }, 'in'),
     key(0.52, standSide(70)),

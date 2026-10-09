@@ -49,8 +49,8 @@ const jumpSquat = animate(
   1500,
   [
     key(0, squatBottom({ armL: [-38, -22], armR: [-42, -26], torso: 132 })),
-    key(0.2, { x: 47, torso: 170, head: 176, armL: [118, 130], armR: [112, 124], legL: [4, 2], legR: [2, 0], footL: 30, footR: 30 }, 'in'),
-    key(0.36, { x: 48, y: STAND_Y - 11, torso: 174, head: 178, armL: [140, 150], armR: [135, 145], legL: [16, -14], legR: [12, -18], footL: 30, footR: 30 }, 'out'),
+    key(0.2, { x: 47, torso: 170, head: 176, armL: [100, 115], armR: [95, 110], legL: [4, 2], legR: [2, 0], footL: 30, footR: 30 }, 'in'),
+    key(0.36, { x: 48, y: STAND_Y - 11, torso: 174, head: 178, armL: [128, 140], armR: [122, 134], legL: [16, -14], legR: [12, -18], footL: 30, footR: 30 }, 'out'),
     key(0.52, { x: 47, torso: 174, head: 176, armL: [110, 120], armR: [105, 115], legL: [4, 2], legR: [2, 0], footL: 35, footR: 35 }, 'in'),
     key(0.7, { x: 41, y: 67, torso: 148, head: 166, armL: [70, 80], armR: [66, 76], legL: ankle(51), legR: ankle(50) }, 'out'),
   ],
@@ -75,16 +75,23 @@ const wallSit = holdBody(
   { props: [{ kind: 'wall', x: 44 }] },
 );
 
-const calfRaise = animate(
-  'side',
-  1500,
-  [
-    key(0, { x: 50, torso: 180, head: 180, armL: [5, 9], armR: [-4, 0], legL: [0, 0], legR: [0, 0], footL: 90, footR: 90 }),
-    key(0.4, { x: 52.6, torso: 180, head: 180, armL: [5, 9], armR: [-4, 0], legL: [0, 0], legR: [0, 0], footL: 26, footR: 26 }),
-    key(0.58, { x: 52.6, torso: 180, head: 180, armL: [5, 9], armR: [-4, 0], legL: [0, 0], legR: [0, 0], footL: 26, footR: 26 }),
-  ],
-  { thumbT: 0.5 },
-);
+// Calf raise beside a wall: far hand on the wall for balance, heels rise high.
+const CALF_WALL = 64;
+const calf = (x: number, foot: number): Body => ({
+  x,
+  torso: 180,
+  head: 180,
+  armL: [60, 150],
+  armR: [-4, 0],
+  legL: [0, 0],
+  legR: [0, 0],
+  footL: foot,
+  footR: foot,
+});
+const calfRaise = animate('side', 1600, [key(0, calf(50, 90)), key(0.4, calf(52.4, 28)), key(0.58, calf(52.4, 28))], {
+  props: [{ kind: 'wall', x: CALF_WALL }],
+  thumbT: 0.5,
+});
 
 // Step-up onto a box.
 const BOX_H = 16;

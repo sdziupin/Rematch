@@ -115,9 +115,7 @@ export interface Body {
   legR: LimbSpec;
   footL?: number;
   footR?: number;
-  /** Hanging: pin the hands (anchorY) at their world height instead of grounding. */
-  hang?: boolean;
-  /** Hanging from a fixed height: pin the hands at exactly this y (blends linearly). */
+  /** Hanging: pin the hands at exactly this y instead of grounding (blends linearly). */
   anchorY?: number;
   /**
    * A planted point the hip swings around (e.g. the ankle of a straight-legged plank).
@@ -211,23 +209,19 @@ function worldY(view: View, b: Body): number {
   return GROUND_Y - (b.air ?? 0) - lowestPoint(solveRaw(anglesOf(view, b, 0), view));
 }
 
-/** Converts a world-space body into a Pose that reproduces it (via lift / anchorY). */
+/** Converts a world-space body into a Pose that reproduces it (via lift, or anchorY when hanging). */
 export function solveBody(view: View, b: Body): Pose {
   const p = anglesOf(view, b, b.y ?? 0);
-  if (b.y === undefined) {
-    worldY(view, b);
-    if (b.air) p.lift = b.air;
-    return p;
-  }
   if (b.anchorY !== undefined) {
     p.anchorY = b.anchorY;
     return p;
   }
-  const raw = solveRaw(p, view);
-  if (b.hang) {
-    p.anchorY = Math.round((b.y + (raw.wristL.y + raw.wristR.y) / 2) * 100) / 100;
+  if (b.y === undefined) {
+    worldY(view, b); // validates: a grounded body can't have IK targets
+    if (b.air) p.lift = b.air;
     return p;
   }
+  const raw = solveRaw(p, view);
   const lift = GROUND_Y - (b.y + lowestPoint(raw));
   if (lift > 0.3) p.lift = Math.round(lift * 100) / 100;
   return p;
@@ -252,26 +246,33 @@ function mixLimb(a: LimbSpec, b: LimbSpec, k: number, angles: Limb): LimbSpec {
   };
 }
 
-/** Blends two bodies in world space, re-solving IK so planted hands and feet stay put. */
-export function blendBodies(view: View, a: Body, b: Body, k: number): Pose {
-  const ya = worldY(view, a);
-  const yb = worldY(view, b);
-  const pa = anglesOf(view, a, ya);
-  const pb = anglesOf(view, b, yb);
-  const base = interpolatePose(pa, pb, k);
-  const legL = mixLimb(a.legL, b.legL, k, base.legL);
-  const legR = mixLimb(a.legR, b.legR, k, base.legR);
+interface Resolved {
+  body: Body;
+  y: number;
+  angles: Pose;
+}
+const resolve = (view: View, body: Body): Resolved => {
+  const y = worldY(view, body);
+  return { body, y, angles: anglesOf(view, body, y) };
+};
+
+function blendResolved(view: View, ra: Resolved, rb: Resolved, k: number): Pose {
+  const { body: a, y: ya } = ra;
+  const { body: b, y: yb } = rb;
+  const base = interpolatePose(ra.angles, rb.angles, k);
   let hx = lerp(a.x, b.x, k);
   let hy = lerp(ya, yb, k);
   if (a.pivot && b.pivot) {
     const pv = { x: lerp(a.pivot.x, b.pivot.x, k), y: lerp(a.pivot.y, b.pivot.y, k) };
-    const ra = Math.hypot(a.x - a.pivot.x, ya - a.pivot.y);
-    const rb = Math.hypot(b.x - b.pivot.x, yb - b.pivot.y);
-    const h = along(pv, lerpAngle(angleTo(a.pivot, { x: a.x, y: ya }), angleTo(b.pivot, { x: b.x, y: yb }), k), lerp(ra, rb, k));
+    const da = Math.hypot(a.x - a.pivot.x, ya - a.pivot.y);
+    const db = Math.hypot(b.x - b.pivot.x, yb - b.pivot.y);
+    const h = along(pv, lerpAngle(angleTo(a.pivot, { x: a.x, y: ya }), angleTo(b.pivot, { x: b.x, y: yb }), k), lerp(da, db, k));
     hx = h.x;
     hy = h.y;
   }
   const grounded = a.y === undefined && b.y === undefined && !(a.pivot && b.pivot);
+  const legL = mixLimb(a.legL, b.legL, k, base.legL);
+  const legR = mixLimb(a.legR, b.legR, k, base.legR);
   const mixed: Body = {
     x: hx,
     y: grounded ? undefined : hy,
@@ -285,11 +286,15 @@ export function blendBodies(view: View, a: Body, b: Body, k: number): Pose {
     legR,
     footL: isTarget(legL) && legL.foot !== undefined ? undefined : base.footL,
     footR: isTarget(legR) && legR.foot !== undefined ? undefined : base.footR,
-    hang: a.hang || b.hang,
     anchorY: a.anchorY !== undefined && b.anchorY !== undefined ? lerp(a.anchorY, b.anchorY, k) : undefined,
     pivot: a.pivot && b.pivot ? { x: lerp(a.pivot.x, b.pivot.x, k), y: lerp(a.pivot.y, b.pivot.y, k) } : undefined,
   };
   return solveBody(view, mixed);
+}
+
+/** Blends two bodies in world space, re-solving IK so planted hands and feet stay put. */
+export function blendBodies(view: View, a: Body, b: Body, k: number): Pose {
+  return blendResolved(view, resolve(view, a), resolve(view, b), k);
 }
 
 export interface BodyKey {
@@ -315,20 +320,41 @@ export interface MotionExtra {
  */
 export function animate(view: View, durationMs: number, keys: BodyKey[], extra: MotionExtra = {}): Motion {
   if (keys.length === 0 || keys[0].t !== 0) throw new Error('animate: the first key must be at t=0');
-  const density = extra.density ?? 32;
-  const keyframes: Keyframe[] = [];
-  keys.forEach((a, i) => {
-    const next = keys[(i + 1) % keys.length];
-    const t1 = i + 1 < keys.length ? next.t : 1;
-    if (t1 <= a.t) throw new Error('animate: key times must increase');
-    const steps = Math.max(2, Math.ceil((t1 - a.t) * density));
-    for (let s = 0; s < steps; s++) {
-      const k = s / steps;
-      const p = s === 0 ? solveBody(view, a.body) : blendBodies(view, a.body, next.body, easeAt(next.ease ?? 'inOut', k));
-      keyframes.push({ t: a.t + (t1 - a.t) * k, pose: p, ease: 'linear' });
-    }
+  keys.forEach((k, i) => {
+    if (i > 0 && k.t <= keys[i - 1].t) throw new Error('animate: key times must increase');
+    if (k.t >= 1) throw new Error('animate: key times must be below 1');
   });
-  return { view, durationMs, keyframes, props: extra.props, thumbT: extra.thumbT ?? 0.5, fixedX: extra.fixedX };
+  const density = extra.density ?? 32;
+  const build = (): Keyframe[] => {
+    const resolved = keys.map((k) => resolve(view, k.body));
+    const keyframes: Keyframe[] = [];
+    keys.forEach((a, i) => {
+      const j = (i + 1) % keys.length;
+      const t1 = i + 1 < keys.length ? keys[j].t : 1;
+      const steps = Math.max(2, Math.ceil((t1 - a.t) * density));
+      for (let s = 0; s < steps; s++) {
+        const k = s / steps;
+        const pose = s === 0 ? solveBody(view, a.body) : blendResolved(view, resolved[i], resolved[j], easeAt(keys[j].ease ?? 'inOut', k));
+        keyframes.push({ t: a.t + (t1 - a.t) * k, pose, ease: 'linear' });
+      }
+    });
+    return keyframes;
+  };
+  // Keyframes are solved on first use, so importing the motion table stays cheap at app start.
+  let cache: Keyframe[] | undefined;
+  return {
+    view,
+    durationMs,
+    props: extra.props,
+    thumbT: extra.thumbT ?? 0.5,
+    fixedX: extra.fixedX,
+    get keyframes() {
+      return (cache ??= build());
+    },
+    set keyframes(value: Keyframe[]) {
+      cache = value;
+    },
+  };
 }
 
 /** Evenly spaced keys. */

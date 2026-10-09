@@ -90,10 +90,13 @@ const add = (p: Point, deg: number, len: number): Point => {
 };
 
 function defaultFoot(shin: number): number {
-  // Standing or kneeling-ish: keep the foot flat and pointing forward.
+  // Standing or kneeling-ish: keep the foot flat and pointing forward. Once the shin tilts
+  // past ~45° the foot turns to stay perpendicular to it (toes down in a plank, up when the
+  // leg is raised), blending smoothly so it never snaps.
   const normalized = ((shin % 360) + 540) % 360 - 180;
-  if (Math.abs(normalized) <= 60) return 90;
-  return shin + 90;
+  const k = Math.max(0, Math.min(1, (Math.abs(normalized) - 45) / 30));
+  const blend = k * k * (3 - 2 * k);
+  return 90 + normalized * blend;
 }
 
 /** Joint positions before grounding, with the hip at (x, 0). */

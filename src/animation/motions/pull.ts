@@ -20,36 +20,36 @@ function hangAt(barY: number, b: HangShape): Body {
 const bar = (y: number): Prop[] => [{ kind: 'bar', y }];
 
 // Pull-up / chin-up: bar high enough for the chin to clear it at the top.
-const PULL_BAR = 18;
+const PULL_BAR = 16.5;
 const pullHang = (lean = 0): HangShape => ({
   torso: 180 + lean,
   head: 180,
   armL: [181, 181],
   armR: [180, 180],
-  legL: [24, -100],
-  legR: [20, -104],
-  footL: -60,
-  footR: -65,
+  legL: [32, -112],
+  legR: [28, -116],
+  footL: -100,
+  footR: -104,
 });
 const pullTop: HangShape = {
   torso: -170,
   head: 172,
   armL: [-18, 172],
   armR: [-20, 170],
-  legL: [18, -80],
-  legR: [14, -84],
-  footL: -40,
-  footR: -45,
+  legL: [30, -100],
+  legR: [26, -104],
+  footL: -90,
+  footR: -94,
 };
 const chinTop: HangShape = {
   torso: -172,
   head: 176,
   armL: [22, 192],
   armR: [20, 190],
-  legL: [18, -80],
-  legR: [14, -84],
-  footL: -40,
-  footR: -45,
+  legL: [30, -100],
+  legR: [26, -104],
+  footL: -90,
+  footR: -94,
 };
 
 const pullUp = animate('side', 2400, [key(0, hangAt(PULL_BAR, pullHang())), key(0.45, hangAt(PULL_BAR, pullTop)), key(0.55, hangAt(PULL_BAR, pullTop))], {

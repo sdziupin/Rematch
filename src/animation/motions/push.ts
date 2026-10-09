@@ -146,10 +146,24 @@ function hinduSpan(neck: { x: number; y: number }, bend: 1 | -1, extra: Partial<
   return { x: s.x, y: s.y, pivot: s.pivot, torso: s.torso, ...hinduArms, legL: [s.legAngle + 1, s.legAngle + 1], legR: [s.legAngle, s.legAngle], ...extra };
 }
 const dive = hinduSpan({ x: hinduHand.x - 5, y: 80.5 }, 1, { head: 84, spine: -8, footL: 40, footR: 40 });
-const upDog = hinduSpan({ x: hinduHand.x - 2.5, y: 67 }, -1, { head: 150, spine: -34, footL: -95, footR: -95 });
+const upDog = hinduSpan({ x: hinduHand.x - 2.5, y: 67 }, -1, { head: 150, spine: -34, footL: -80, footR: -80 });
 const hinduPushUp: Motion = animate('side', 2800, [key(0, downDog()), key(0.3, dive), key(0.55, upDog), key(0.72, upDog)], { thumbT: 0.3 });
 
+// Tricep dip: hands on a bench edge behind, knees bent, elbows bend straight back.
+const DIP_BENCH = { x: 18, width: 22, height: 18 };
+const dipEdge = DIP_BENCH.x + DIP_BENCH.width;
+const dipHands = { armL: { x: dipEdge - 1, y: onTop(DIP_BENCH.height) }, armR: { x: dipEdge - 0.5, y: onTop(DIP_BENCH.height) } };
+const dipBody = (neck: { x: number; y: number }, torso: number): Body => {
+  const hip = offset(neck, torso, -25);
+  return { x: hip.x, y: hip.y, torso, head: torso + 4, ...dipHands, legL: { x: dipEdge + 25, y: FLOOR }, legR: { x: dipEdge + 24, y: FLOOR } };
+};
+const tricepDip = animate('side', 2000, [key(0, dipBody({ x: dipEdge + 6.5, y: 49.5 }, 175)), key(0.5, dipBody({ x: dipEdge + 5.5, y: 60.5 }, 176))], {
+  props: [{ kind: 'bench', ...DIP_BENCH }],
+  thumbT: 0.5,
+});
+
 export const PUSH_MOTIONS: Record<string, Motion> = {
+  'tricep-dip': tricepDip,
   'push-up': pushUp,
   'diamond-push-up': diamondPushUp,
   'knee-push-up': kneePushUp,

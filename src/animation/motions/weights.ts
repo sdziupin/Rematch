@@ -1,10 +1,10 @@
 import type { Motion, Prop } from '../skeleton';
-import { SEAT, STAND_Y, animate, jointsOf, key, loop, neckAt, onTop, type Body, type Target } from '../poses';
+import { SEAT, STAND_Y, animate, jointsOf, key, loop, neckAt, solveBody, type Body, type Target } from '../poses';
 import { CARDIO_SHAPES } from './cardio';
 import { LEG_SHAPES } from './legs';
 import { PLANK } from './push';
 
-const { standSide, ankle, toe } = LEG_SHAPES;
+const { standSide, ankle, toe, lungeR } = LEG_SHAPES;
 const DB_BOTH: Prop[] = [{ kind: 'dumbbell', hands: 'both' }];
 const DB_ONE: Prop[] = [{ kind: 'dumbbell', hands: 'R' }];
 const KB: Prop[] = [{ kind: 'kettlebell', hands: 'both' }];
@@ -83,23 +83,22 @@ const snatch = animate(
   { props: DB_ONE, thumbT: 0.43 },
 );
 
-// One-arm row: far knee and hand on a bench, near arm rows.
-const ROW_BENCH = 14;
-const rowBody = (rowArm: [number, number] | Target): Body => ({
-  x: 44,
-  y: onTop(ROW_BENCH) - 16,
-  torso: 100.4,
-  head: 98,
-  armL: { x: 63, y: onTop(ROW_BENCH) },
-  armR: rowArm,
-  legL: [0, -90],
+// Bent-over row with two dumbbells: hinged ~45°, soft knees, elbows drive past the ribs.
+const rowBody = (arms: { armL: [number, number]; armR: [number, number] }): Body => ({
+  x: 43,
+  y: 62,
+  torso: 130,
+  head: 118,
+  ...arms,
+  legL: ankle(51),
   legR: ankle(50),
-  footL: -90,
 });
-const dumbbellRow = animate('side', 2000, [key(0, rowBody([12, 12])), key(0.42, rowBody([-78, 2])), key(0.54, rowBody([-78, 2]))], {
-  props: [{ kind: 'bench', x: 20, width: 46, height: ROW_BENCH }, ...DB_ONE],
-  thumbT: 0.45,
-});
+const dumbbellRow = animate(
+  'side',
+  2000,
+  [key(0, rowBody({ armL: [2, 2], armR: [0, 0] })), key(0.42, rowBody({ armL: [-72, 2], armR: [-75, 0] })), key(0.54, rowBody({ armL: [-72, 2], armR: [-75, 0] }))],
+  { props: DB_BOTH, thumbT: 0.45 },
+);
 
 const deadliftBottom: Body = { x: 37, y: 69, torso: 118, head: 136, armL: { x: 54.5, y: 82 }, armR: { x: 54, y: 82 }, legL: ankle(51), legR: ankle(50) };
 const dumbbellDeadlift = animate('side', 2400, [key(0, { ...standSide(50), armL: [4, 4], armR: [2, 2] }), key(0.5, deadliftBottom)], {
@@ -111,8 +110,8 @@ const dumbbellLunge = animate(
   'side',
   2600,
   [
-    key(0, { ...standSide(36, { legL: toe(41, 90), legR: toe(42, 90) }), armL: [4, 4], armR: [2, 2] }),
-    key(0.5, { x: 56, y: 72, torso: 178, head: 178, armL: [6, 6], armR: [4, 4], legL: toe(41, 38), legR: ankle(74) }),
+    key(0, { ...standSide(50, { legR: toe(55), legL: toe(56) }), armL: [4, 4], armR: [2, 2] }),
+    key(0.5, lungeR(37, { legR: toe(55, 90), legL: toe(18, 38), armL: [6, 6], armR: [4, 4] })),
   ],
   { props: DB_BOTH, thumbT: 0.5 },
 );
@@ -139,10 +138,11 @@ const devilPress = animate(
     key(0.43, plankUp()),
     key(0.53, squatHands()),
     key(0.63, { x: 38, y: 68, torso: 122, head: 140, armL: [-24, -24], armR: [-26, -26], legL: ankle(48), legR: ankle(47) }),
+    key(0.71, { x: 45, y: 61, torso: 165, head: 172, armL: [84, 96], armR: [80, 92], legL: ankle(48), legR: ankle(47) }, 'in'),
     key(0.8, { ...standSide(47), armL: [177, 179], armR: [175, 177] }, 'out'),
     key(0.9, { ...standSide(47), armL: [60, 70], armR: [56, 66] }),
   ],
-  { props: DB_BOTH, thumbT: 0.63 },
+  { props: DB_BOTH, thumbT: 0.76 },
 );
 
 // Floor press: lying on the back, elbows touch the floor at the bottom.
@@ -213,17 +213,32 @@ const kbDeadlift = animate(
 );
 
 const HALO_NECK_Y = STAND_Y - 25;
-const halo = (hx: number, hy: number): Body => ({
+const halo = (hx: number, hy: number, bend: { L: 1 | -1; R: 1 | -1 }): Body => ({
   x: 50,
   y: STAND_Y,
   torso: 180,
   head: 180,
-  armL: { x: 50 + hx - 0.8, y: HALO_NECK_Y + hy },
-  armR: { x: 50 + hx + 0.8, y: HALO_NECK_Y + hy },
+  armL: { x: 50 + hx - 0.8, y: HALO_NECK_Y + hy, bend: bend.L },
+  armR: { x: 50 + hx + 0.8, y: HALO_NECK_Y + hy, bend: bend.R },
   legL: ankle(46.5),
   legR: ankle(53.5),
 });
-const kettlebellHalo = loop('front', 2600, [halo(9, -9), halo(0, -15), halo(-9, -9), halo(0, 2)], { props: KB, ease: 'linear', thumbT: 0 });
+/** Freeze IK arms into angles so the elbows swing smoothly between keys instead of flipping. */
+const frozenArms = (b: Body): Body => {
+  const p = solveBody('front', b);
+  return { ...b, armL: p.armL, armR: p.armR };
+};
+const kettlebellHalo = loop(
+  'front',
+  2600,
+  [
+    halo(9, -9, { L: -1, R: -1 }),
+    halo(0, -15, { L: 1, R: -1 }),
+    halo(-9, -9, { L: 1, R: 1 }),
+    halo(0, 2, { L: -1, R: 1 }),
+  ].map(frozenArms),
+  { props: KB, ease: 'linear', thumbT: 0 },
+);
 
 // --- Band ---------------------------------------------------------------------------------
 
