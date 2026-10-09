@@ -7,15 +7,13 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "scheme": "rematch",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#09090B"
-    },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.rematch.app"
+      "bundleIdentifier": "com.sdziupin.rematch",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "appleTeamId": "5K9D77KS36"
     },
     "android": {
       "adaptiveIcon": {
@@ -48,6 +46,15 @@
           "microphonePermission": false,
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
+        }
+      ],
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "backgroundColor": "#09090B",
+          "imageWidth": 200
         }
       ]
     ],

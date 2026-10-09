@@ -204,6 +204,12 @@ npm run serve:web  # http://localhost:8080 with SPA fallback
 
 `dist/` works on any static host with a fallback to `index.html`. Serve it from the domain root so `/sw.js` can cache it for offline use. Data lives in the browser's origin-private file system and can be open in one tab at a time; a second tab offers to take over.
 
+### iOS → TestFlight
+
+Every push to `main` (or a manual run of **iOS → TestFlight** in Actions) runs the checks, prebuilds the native project on `macos-26`, signs it with the App Store profile and uploads it to TestFlight. Build numbers come from the run number; bump `version` in `app.json` for a new release. Pull requests only run the checks.
+
+Secrets: `IOS_DIST_P12_BASE64`, `IOS_DIST_P12_PASSWORD`, `IOS_PROFILE_BASE64` (Apple Distribution cert and the `REMATCH AppStore` profile for `com.sdziupin.rematch`, both expire 2027-10-09), `ASC_KEY_P8_BASE64`, `ASC_KEY_ID`, `ASC_ISSUER_ID` (App Store Connect API key).
+
 ### Checks
 
 ```bash
