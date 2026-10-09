@@ -2,7 +2,7 @@ name: iOS → TestFlight
 
 on:
   push:
-    branches: [main, ci/ios-testflight]
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
