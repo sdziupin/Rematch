@@ -29,12 +29,28 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "single",
+      "name": "REMATCH",
+      "shortName": "REMATCH",
+      "description": "Race your past self. Benchmark workouts with live checkpoint telemetry.",
+      "themeColor": "#0A0C10",
+      "backgroundColor": "#0A0C10",
+      "lang": "en"
     },
     "plugins": [
       "expo-router",
       "expo-sqlite",
-      "expo-font"
-    ]
+      "expo-font",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
+    ],
+    "description": "A benchmark fitness app where your past performance becomes a live opponent."
   }
 }

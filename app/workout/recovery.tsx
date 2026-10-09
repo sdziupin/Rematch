@@ -1,68 +1,102 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../src/components/Button';
-import { getActiveSession } from '../../src/services/sessionService';
-import { getWorkoutById } from '../../src/db/seed';
+import { confirmAction } from '../../src/components/Dialogs';
+import { Card, Screen } from '../../src/components/ui';
+import { getWorkoutById } from '../../src/db/repository';
+import { restoreTimerFromElapsed } from '../../src/domain/timer';
+import type { ActiveWorkoutState } from '../../src/domain/types';
+import { formatDuration, relativeDay } from '../../src/domain/utils';
+import { normalizeState } from '../../src/engine/workoutEngine';
+import { abandonSession, finishSession, getActiveSession, getCheckpoints } from '../../src/services/sessionService';
 import { useWorkoutStore } from '../../src/store/workoutStore';
 import { colors, spacing, typography } from '../../src/theme';
-import type { ActiveWorkoutState } from '../../src/domain/types';
-import { restoreTimerFromElapsed } from '../../src/domain/timer';
+
+interface Pending {
+  sessionId: string;
+  name: string;
+  updatedAt: number;
+  elapsed: number;
+  state: ActiveWorkoutState;
+  opponentSessionId: string | null;
+}
 
 export default function RecoveryScreen() {
   const router = useRouter();
-  const { setSession, setTimer } = useWorkoutStore();
-  const [info, setInfo] = React.useState<{ name: string; startedAgo: string; sessionId: string; state: ActiveWorkoutState; elapsed: number; status: string } | null>(null);
+  const [info, setInfo] = useState<Pending | null>(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
       const session = await getActiveSession();
       if (!session) {
-        router.replace('/');
+        router.replace('/today');
         return;
       }
       const w = await getWorkoutById(session.workoutId);
-      const state = JSON.parse(session.currentStateJson) as ActiveWorkoutState;
-      const mins = session.startedAt ? Math.round((Date.now() - session.startedAt) / 60000) : 0;
       setInfo({
-        name: w?.name ?? 'Workout',
-        startedAgo: `${mins} min ago`,
         sessionId: session.id,
-        state,
+        name: w?.name ?? 'Workout',
+        updatedAt: session.updatedAt,
         elapsed: session.elapsedActiveMs,
-        status: session.status,
+        state: normalizeState(JSON.parse(session.currentStateJson) as ActiveWorkoutState),
+        opponentSessionId: session.opponentSessionId,
       });
-    })();
-  }, []);
+    })().catch(() => router.replace('/today'));
+  }, [router]);
 
-  if (!info) return <SafeAreaView style={styles.safe} />;
+  if (!info) return <Screen>{null}</Screen>;
+
+  const resume = async () => {
+    setBusy(true);
+    let state = info.state;
+    if (state.phase === 'completed') {
+      // The app closed between the last movement and saving the result.
+      await finishSession(info.sessionId, state, info.elapsed);
+      router.replace({ pathname: '/workout/result', params: { sessionId: info.sessionId, fresh: '1' } });
+      return;
+    }
+    // Resume paused: the athlete decides when the clock runs again.
+    if (state.phase === 'active' || state.phase === 'rest') state = { ...state, phase: 'paused', resumePhase: state.phase };
+    const paused = state.phase === 'paused';
+    const checkpoints = await getCheckpoints(info.sessionId);
+    const timer = state.phase === 'countdown' ? undefined : restoreTimerFromElapsed(info.elapsed, paused);
+    useWorkoutStore.getState().setSession(info.sessionId, state, info.opponentSessionId, timer, checkpoints);
+    router.replace('/workout/active');
+  };
+
+  const end = async () => {
+    const ok = await confirmAction({ title: 'End this workout?', message: 'It will be saved as unfinished.', confirmLabel: 'End workout', destructive: true });
+    if (!ok) return;
+    setBusy(true);
+    await abandonSession(info.sessionId, info.state, info.elapsed);
+    router.replace('/today');
+  };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.title}>WORKOUT IN PROGRESS</Text>
+    <Screen narrow scroll={false} contentStyle={styles.center}>
+      <Card style={styles.card}>
+        <Text style={styles.kicker}>WORKOUT IN PROGRESS</Text>
         <Text style={styles.name}>{info.name}</Text>
-        <Text style={styles.sub}>Started {info.startedAgo}</Text>
-        <Button title="RESUME" onPress={() => {
-          setSession(info.sessionId, info.state, null);
-          setTimer(restoreTimerFromElapsed(info.elapsed, info.status === 'paused'));
-          router.replace('/workout/active');
-        }} style={{ marginTop: spacing.xl }} />
-        <Button title="END WORKOUT" variant="danger" onPress={async () => {
-          const { completeSession } = await import('../../src/services/sessionService');
-          await completeSession(info.sessionId, info.elapsed, false, true);
-          router.replace('/(tabs)/today');
-        }} style={{ marginTop: spacing.md }} />
-      </View>
-    </SafeAreaView>
+        <Text style={styles.sub}>
+          {formatDuration(info.elapsed)} done · last active {relativeDay(info.updatedAt).toLowerCase()}
+          {info.opponentSessionId ? ' · rematch' : ''}
+        </Text>
+        <View style={styles.actions}>
+          <Button title="RESUME" icon="play" size="lg" onPress={resume} loading={busy} />
+          <Button title="End workout" variant="ghost" icon="flag" onPress={end} disabled={busy} />
+        </View>
+      </Card>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  container: { flex: 1, padding: spacing.lg, justifyContent: 'center' },
-  title: { ...typography.label, color: colors.accent },
-  name: { ...typography.displayLG, color: colors.primary, marginTop: spacing.md },
-  sub: { ...typography.body, color: colors.muted, marginTop: spacing.sm },
+  center: { justifyContent: 'center' },
+  card: { padding: spacing.xl, gap: spacing.sm },
+  kicker: { ...typography.label, color: colors.accent },
+  name: { ...typography.displayLG, color: colors.primary },
+  sub: { ...typography.body, color: colors.secondary },
+  actions: { gap: spacing.sm, marginTop: spacing.lg },
 });

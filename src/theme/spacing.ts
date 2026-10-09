@@ -12,5 +12,15 @@ export const borderRadius = {
   sm: 8,
   md: 12,
   lg: 16,
+  xl: 24,
   full: 999,
+} as const;
+
+/** Content widths for wide (web/tablet) layouts. */
+export const layout = {
+  wideBreakpoint: 900,
+  desktopBreakpoint: 1240,
+  maxContent: 1120,
+  maxReading: 760,
+  sidebarWidth: 232,
 } as const;

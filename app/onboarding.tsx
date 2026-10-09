@@ -1,67 +1,77 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../src/components/Button';
+import { ExerciseAnimation } from '../src/components/ExerciseAnimation';
+import { Chip, ChipRow, Screen } from '../src/components/ui';
+import { EQUIPMENT, EQUIPMENT_LABELS, type EquipmentId } from '../src/content/types';
+import { getProfile, updateProfile } from '../src/db/repository';
+import { titleCase } from '../src/domain/utils';
+import { useLayout } from '../src/hooks/useLayout';
+import { useSettings } from '../src/store/settingsStore';
 import { colors, spacing, typography } from '../src/theme';
-import { updateProfile } from '../src/db/seed';
 
-const GOALS = ['general_fitness', 'conditioning', 'strength_endurance', 'consistency'];
-const LEVELS = ['beginner', 'intermediate', 'advanced'];
-const EQUIPMENT = ['bodyweight', 'mat', 'pull-up bar', 'dumbbells', 'bench', 'jump-rope'];
-const TIMES = [10, 15, 20, 30];
-const FREQ = [2, 3, 4, 5];
+const GOALS = ['general_fitness', 'conditioning', 'strength_endurance', 'consistency'] as const;
+const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
+const TIMES = [10, 15, 20, 30] as const;
+const FREQ = [2, 3, 4, 5] as const;
 
 export default function Onboarding() {
   const router = useRouter();
-  const [goal, setGoal] = useState('conditioning');
-  const [level, setLevel] = useState('intermediate');
-  const [equipment, setEquipment] = useState<string[]>(['bodyweight', 'mat']);
-  const [minutes, setMinutes] = useState(15);
-  const [freq, setFreq] = useState(3);
+  const { isWide } = useLayout();
+  const [goal, setGoal] = useState<(typeof GOALS)[number]>('conditioning');
+  const [level, setLevel] = useState<(typeof LEVELS)[number]>('intermediate');
+  const [equipment, setEquipment] = useState<EquipmentId[]>(['bodyweight', 'mat']);
+  const [minutes, setMinutes] = useState<(typeof TIMES)[number]>(15);
+  const [freq, setFreq] = useState<(typeof FREQ)[number]>(3);
+  const [saving, setSaving] = useState(false);
 
-  const toggleEquip = (e: string) => {
-    setEquipment((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
-  };
+  const toggleEquip = (e: EquipmentId) => setEquipment((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
 
   const finish = async () => {
-    await updateProfile({
-      goal,
-      level,
-      typicalMinutes: minutes,
-      frequencyDays: freq,
-      equipmentJson: JSON.stringify(equipment),
-      onboardingComplete: true,
-    });
-    router.replace('/(tabs)/today');
+    setSaving(true);
+    await updateProfile({ goal, level, typicalMinutes: minutes, frequencyDays: freq, equipmentJson: JSON.stringify(equipment), onboardingComplete: true });
+    useSettings.getState().applyProfile(await getProfile());
+    router.replace('/today');
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.brand}>REMATCH</Text>
-        <Text style={styles.tagline}>You vs. you.</Text>
-        <Text style={styles.intro}>Every workout becomes your next opponent. Quick setup — then your first challenge.</Text>
+    <Screen narrow>
+      <View style={[styles.hero, isWide && styles.heroWide]}>
+        <View style={styles.flex}>
+          <Text style={styles.brand}>REMATCH</Text>
+          <Text style={styles.tagline}>You vs. you.</Text>
+          <Text style={styles.intro}>
+            Every workout you finish becomes your next opponent. Race your own recorded splits, find where you gained or lost time, and beat the last version of yourself.
+          </Text>
+        </View>
+        <ExerciseAnimation exerciseId="burpee" size={isWide ? 180 : 140} />
+      </View>
 
-        <Section title="Focus">
-          <Row options={GOALS} value={goal} onChange={setGoal} />
-        </Section>
-        <Section title="Level">
-          <Row options={LEVELS} value={level} onChange={setLevel} />
-        </Section>
-        <Section title="Equipment">
-          <Wrap options={EQUIPMENT} selected={equipment} onToggle={toggleEquip} />
-        </Section>
-        <Section title="Typical time">
-          <NumRow options={TIMES} value={minutes} onChange={setMinutes} suffix=" min" />
-        </Section>
-        <Section title="Days per week">
-          <NumRow options={FREQ} value={freq} onChange={setFreq} suffix="+" />
-        </Section>
+      <Section title="What are you training for?">
+        <ChipRow options={GOALS} value={goal} onChange={setGoal} format={titleCase} />
+      </Section>
+      <Section title="Your level">
+        <ChipRow options={LEVELS} value={level} onChange={setLevel} format={titleCase} />
+      </Section>
+      <Section title="Equipment you have">
+        <View style={styles.wrap}>
+          {EQUIPMENT.filter((e) => e !== 'bodyweight').map((e) => (
+            <Chip key={e} label={EQUIPMENT_LABELS[e]} selected={equipment.includes(e)} onPress={() => toggleEquip(e)} />
+          ))}
+        </View>
+        <Text style={styles.hint}>No equipment? Plenty of workouts need nothing at all.</Text>
+      </Section>
+      <Section title="Typical session">
+        <ChipRow options={TIMES} value={minutes} onChange={setMinutes} format={(m) => `${m} min`} />
+      </Section>
+      <Section title="Sessions per week">
+        <ChipRow options={FREQ} value={freq} onChange={setFreq} format={(f) => `${f}×`} />
+      </Section>
 
-        <Button title="YOUR FIRST CHALLENGE" onPress={finish} style={{ marginTop: spacing.xl }} />
-      </ScrollView>
-    </SafeAreaView>
+      <Button title="SHOW MY FIRST CHALLENGE" icon="bolt" size="lg" onPress={finish} loading={saving} style={{ marginTop: spacing.xl }} />
+      <Text style={[styles.hint, { textAlign: 'center', marginTop: spacing.md }]}>Everything stays on this device. Change any of this later in Profile.</Text>
+    </Screen>
   );
 }
 
@@ -74,53 +84,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Row({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
-  return (
-    <View style={styles.row}>
-      {options.map((o) => (
-        <Pressable key={o} onPress={() => onChange(o)} style={[styles.chip, value === o && styles.chipActive]}>
-          <Text style={[styles.chipText, value === o && styles.chipTextActive]}>{o.replace(/_/g, ' ')}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function Wrap({ options, selected, onToggle }: { options: string[]; selected: string[]; onToggle: (v: string) => void }) {
-  return (
-    <View style={[styles.row, { flexWrap: 'wrap' }]}>
-      {options.map((o) => (
-        <Pressable key={o} onPress={() => onToggle(o)} style={[styles.chip, selected.includes(o) && styles.chipActive]}>
-          <Text style={[styles.chipText, selected.includes(o) && styles.chipTextActive]}>{o}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function NumRow({ options, value, onChange, suffix = '' }: { options: number[]; value: number; onChange: (v: number) => void; suffix?: string }) {
-  return (
-    <View style={styles.row}>
-      {options.map((o) => (
-        <Pressable key={o} onPress={() => onChange(o)} style={[styles.chip, value === o && styles.chipActive]}>
-          <Text style={[styles.chipText, value === o && styles.chipTextActive]}>{o}{suffix}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  brand: { ...typography.displayLG, color: colors.primary },
-  tagline: { ...typography.subheading, color: colors.accent, marginBottom: spacing.md },
-  intro: { ...typography.body, color: colors.muted, marginBottom: spacing.lg },
-  section: { marginBottom: spacing.lg },
-  sectionTitle: { ...typography.label, color: colors.muted, marginBottom: spacing.sm },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  chipActive: { borderColor: colors.accent, backgroundColor: colors.surfaceElevated },
-  chipText: { ...typography.caption, color: colors.muted, textTransform: 'capitalize' },
-  chipTextActive: { color: colors.primary },
+  flex: { flex: 1 },
+  hero: { gap: spacing.md, alignItems: 'center', marginBottom: spacing.lg },
+  heroWide: { flexDirection: 'row' },
+  brand: { ...typography.displayXL, color: colors.primary },
+  tagline: { ...typography.subheading, color: colors.accent, marginBottom: spacing.sm },
+  intro: { ...typography.body, color: colors.secondary },
+  section: { marginBottom: spacing.lg, gap: spacing.sm },
+  sectionTitle: { ...typography.label, color: colors.muted, textTransform: 'uppercase' },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  hint: { ...typography.caption, color: colors.muted },
 });

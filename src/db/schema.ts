@@ -13,6 +13,9 @@ export const userProfile = sqliteTable('user_profile', {
   soundEnabled: integer('sound_enabled', { mode: 'boolean' }).notNull().default(true),
   voiceEnabled: integer('voice_enabled', { mode: 'boolean' }).notNull().default(false),
   keepAwakeEnabled: integer('keep_awake_enabled', { mode: 'boolean' }).notNull().default(true),
+  countdownSec: integer('countdown_sec').notNull().default(3),
+  weekStartsOn: integer('week_starts_on').notNull().default(1),
+  displayName: text('display_name'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
@@ -52,6 +55,12 @@ export const workouts = sqliteTable('workouts', {
   identityColor: text('identity_color').notNull(),
   visualAsset: text('visual_asset').notNull(),
   progressionTier: text('progression_tier').notNull(),
+  description: text('description'),
+  /** 'benchmark' | 'warmup' | 'cooldown' */
+  kind: text('kind').notNull().default('benchmark'),
+  /** 'library' (shipped content) | 'custom' (built by the athlete) */
+  source: text('source').notNull().default('library'),
+  archived: integer('archived', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
@@ -63,6 +72,8 @@ export const workoutVersions = sqliteTable('workout_versions', {
   structureJson: text('structure_json').notNull(),
   rulesJson: text('rules_json').notNull(),
   isCurrent: integer('is_current', { mode: 'boolean' }).notNull().default(true),
+  /** Identity of the version: structure + scoring. A change creates a new version. */
+  contentHash: text('content_hash'),
   createdAt: integer('created_at').notNull(),
 });
 
@@ -90,6 +101,8 @@ export const workoutSessions = sqliteTable('workout_sessions', {
   pausedAccumulatedMs: integer('paused_accumulated_ms').notNull().default(0),
   lastPausedAt: integer('last_paused_at'),
   currentStateJson: text('current_state_json').notNull(),
+  programEnrollmentId: text('program_enrollment_id'),
+  programSessionKey: text('program_session_key'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
 });
@@ -109,6 +122,8 @@ export const workoutCheckpoints = sqliteTable('workout_checkpoints', {
   checkpointKey: text('checkpoint_key').notNull(),
   label: text('label').notNull(),
   elapsedActiveMs: integer('elapsed_active_ms').notNull(),
+  /** Cumulative reps banked at this checkpoint. Null on sessions recorded before engine v2. */
+  reps: integer('reps'),
   createdAt: integer('created_at').notNull(),
 });
 
@@ -122,6 +137,11 @@ export const workoutResults = sqliteTable('workout_results', {
   completionMs: integer('completion_ms').notNull(),
   isComplete: integer('is_complete', { mode: 'boolean' }).notNull(),
   isAbandoned: integer('is_abandoned', { mode: 'boolean' }).notNull().default(false),
+  scoreType: text('score_type').notNull().default('time'),
+  scoreReps: integer('score_reps'),
+  roundsCompleted: integer('rounds_completed'),
+  totalReps: integer('total_reps'),
+  timeCapped: integer('time_capped', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at').notNull(),
 });
 
@@ -134,6 +154,8 @@ export const personalBests = sqliteTable('personal_bests', {
   resultId: text('result_id').notNull().references(() => workoutResults.id),
   sessionId: text('session_id').notNull(),
   completionMs: integer('completion_ms').notNull(),
+  scoreType: text('score_type').notNull().default('time'),
+  scoreReps: integer('score_reps'),
   achievedAt: integer('achieved_at').notNull(),
 });
 
@@ -143,5 +165,32 @@ export const postWorkoutFeedback = sqliteTable('post_workout_feedback', {
   intensity: text('intensity'),
   technique: text('technique'),
   painReported: integer('pain_reported', { mode: 'boolean' }).notNull().default(false),
+  note: text('note'),
   createdAt: integer('created_at').notNull(),
 });
+
+export const programEnrollments = sqliteTable('program_enrollments', {
+  id: text('id').primaryKey(),
+  programId: text('program_id').notNull(),
+  /** 'active' | 'completed' | 'abandoned' */
+  status: text('status').notNull(),
+  startedAt: integer('started_at').notNull(),
+  completedAt: integer('completed_at'),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+});
+
+export const appMeta = sqliteTable('app_meta', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+});
+
+export type WorkoutRow = typeof workouts.$inferSelect;
+export type ExerciseRow = typeof exercises.$inferSelect;
+export type SessionRow = typeof workoutSessions.$inferSelect;
+export type ResultRow = typeof workoutResults.$inferSelect;
+export type CheckpointRow = typeof workoutCheckpoints.$inferSelect;
+export type PersonalBestRow = typeof personalBests.$inferSelect;
+export type ProfileRow = typeof userProfile.$inferSelect;
+export type EnrollmentRow = typeof programEnrollments.$inferSelect;
+export type PostWorkoutFeedbackRow = typeof postWorkoutFeedback.$inferSelect;
