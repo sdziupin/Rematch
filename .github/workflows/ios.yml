@@ -83,15 +83,17 @@ jobs:
         run: |
           npx expo prebuild --platform ios --clean
           # Two signed targets, each with its own App Store profile: the app (HealthKit,
-          # App Group, push) and its widget extension (App Group). A target's bundle id comes
-          # before its team in each build configuration. Pods stay unsigned.
-          perl -pi -e '
-            $id = $1 if /PRODUCT_BUNDLE_IDENTIFIER = "?([\w.]+)"?;/;
-            $_ = "" if /^\s*"?CODE_SIGN_IDENTITY(\[sdk=iphoneos\*\])?"? = "iPhone Developer";$/;
-            if (/^(\s*)DEVELOPMENT_TEAM = \w+;/) {
-              $p = $id eq $ENV{WIDGETS_ID} ? $ENV{WIDGETS_PROFILE} : $ENV{APP_PROFILE};
-              $_ .= "$1CODE_SIGN_STYLE = Manual;\n$1\"CODE_SIGN_IDENTITY[sdk=iphoneos*]\" = \"Apple Distribution\";\n$1PROVISIONING_PROFILE_SPECIFIER = \"$p\";\n";
-            }' ios/REMATCH.xcodeproj/project.pbxproj
+          # App Group, push) and its widget extension (App Group). Each build configuration
+          # that sets a team gets manual signing with the profile for its own bundle id
+          # (CocoaPods sorts the keys, so the team can come before the bundle id). Pods stay unsigned.
+          perl -0pi -e '
+            s/^\s*"?CODE_SIGN_IDENTITY(\[sdk=iphoneos\*\])?"? = "iPhone Developer";\n//mg;
+            s{buildSettings = \{.*?\n\t*\};}{
+              my $b = $&;
+              my ($id) = $b =~ /PRODUCT_BUNDLE_IDENTIFIER = "?([\w.]+)"?;/;
+              my $p = ($id // "") eq $ENV{WIDGETS_ID} ? $ENV{WIDGETS_PROFILE} : $ENV{APP_PROFILE};
+              $b =~ s/^(\s*)DEVELOPMENT_TEAM = \w+;\n/$&$1CODE_SIGN_STYLE = Manual;\n$1"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";\n$1PROVISIONING_PROFILE_SPECIFIER = "$p";\n/m;
+              $b }gse' ios/REMATCH.xcodeproj/project.pbxproj
           grep -n 'CODE_SIGN\|DEVELOPMENT_TEAM\|PRODUCT_BUNDLE_IDENTIFIER' ios/REMATCH.xcodeproj/project.pbxproj
           # expo-widgets writes a development push entitlement; App Store profiles carry production.
           /usr/libexec/PlistBuddy -c "Set :aps-environment production" ios/REMATCH/REMATCH.entitlements
