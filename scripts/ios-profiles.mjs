@@ -115,7 +115,7 @@ for (const target of TARGETS) {
     }));
   }
 
-  const { data: caps } = await api('GET', `/v1/bundleIds/${bundle.id}/bundleIdCapabilities?limit=200`);
+  const { data: caps } = await api('GET', `/v1/bundleIds/${bundle.id}/bundleIdCapabilities`);
   for (const type of target.capabilities) {
     if (caps.some((c) => c.attributes.capabilityType === type)) continue;
     console.log(`${target.identifier}: enabling ${type}`);
@@ -126,11 +126,16 @@ for (const target of TARGETS) {
     });
   }
 
-  const { data: profiles } = await api('GET', `/v1/bundleIds/${bundle.id}/profiles?limit=200`);
-  const usable = profiles
-    .filter((p) => p.attributes.profileType === 'IOS_APP_STORE' && p.attributes.profileState === 'ACTIVE')
-    .filter((p) => new Date(p.attributes.expirationDate) > new Date(Date.now() + 7 * 864e5));
-  let chosen = usable.find((p) => p.attributes.name === target.profile && missing(target, readProfile(p.attributes.profileContent), certDer).length === 0);
+  const { data: profiles } = await api('GET', `/v1/profiles?filter[name]=${encodeURIComponent(target.profile)}&include=bundleId&limit=200`);
+  let chosen = profiles.find(
+    (p) =>
+      p.attributes.name === target.profile &&
+      p.relationships?.bundleId?.data?.id === bundle.id &&
+      p.attributes.profileType === 'IOS_APP_STORE' &&
+      p.attributes.profileState === 'ACTIVE' &&
+      new Date(p.attributes.expirationDate) > new Date(Date.now() + 7 * 864e5) &&
+      missing(target, readProfile(p.attributes.profileContent), certDer).length === 0,
+  );
   if (!chosen) {
     // Profile names are unique per team: replace the stale one of the same name.
     for (const p of profiles.filter((p) => p.attributes.name === target.profile)) {
