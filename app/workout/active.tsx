@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, View } from 'react-native';
+import { Animated, AppState, Platform, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useNavigation, useRouter, type Href } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,7 @@ import type { ExerciseRow } from '../../src/db/schema';
 import { getLiveRace, getOpponentProgress, opponentRepsAt, type OpponentCheckpoint } from '../../src/domain/rematch';
 import { getElapsedActiveMs, pauseTimer, resumeTimer, startTimer } from '../../src/domain/timer';
 import type { ActiveWorkoutState } from '../../src/domain/types';
-import { formatCountdown, formatDuration, formatRoundsAndReps } from '../../src/domain/utils';
+import { formatCountdown, formatDelta, formatDuration, formatRepDelta, formatRoundsAndReps } from '../../src/domain/utils';
 import {
   advanceRep,
   canCompleteManually,
@@ -44,6 +44,8 @@ import {
 } from '../../src/engine/workoutEngine';
 import { useLayout } from '../../src/hooks/useLayout';
 import { haptic, playSound, prepareAudio, speak, stopSpeaking } from '../../src/services/cues';
+import { cancelRestAlert, scheduleRestAlert } from '../../src/services/notificationService';
+import { afterSessionEnded } from '../../src/services/sessionEffects';
 import {
   abandonSession,
   appendEvent,
@@ -55,10 +57,14 @@ import {
 } from '../../src/services/sessionService';
 import { useSettings } from '../../src/store/settingsStore';
 import { useWorkoutStore } from '../../src/store/workoutStore';
-import { colors, fonts, radius, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, fonts, radius, readable, spacing, typography, withAlpha } from '../../src/theme';
+import { syncWorkoutActivity } from '../../src/widgets';
+import type { WorkoutActivityProps } from '../../src/widgets/types';
 
 const TICK_MS = 200;
 const SAVE_EVERY_MS = 5000;
+/** Live Activity updates that only move the race delta are throttled to this. */
+const ACTIVITY_DELTA_EVERY_MS = 15_000;
 
 type Meta = Map<string, ExerciseRow>;
 
@@ -87,6 +93,7 @@ export default function ActiveWorkoutScreen() {
   const [now, setNow] = useState(Date.now());
   const [meta, setMeta] = useState<Meta>(new Map());
   const [workoutName, setWorkoutName] = useState('');
+  const [workoutColor, setWorkoutColor] = useState<string>(colors.accent);
   const [opponent, setOpponent] = useState<{ checkpoints: OpponentCheckpoint[]; finalMs: number; finalReps: number } | null>(null);
   const navigation = useNavigation();
   const finishing = useRef(false);
@@ -131,7 +138,10 @@ export default function ActiveWorkoutScreen() {
       const easier = [...m.values()].map((e) => e.easierVariantId).filter((x): x is string => !!x && !m.has(x));
       return easier.length ? getExercisesByIds(easier).then((extra) => setMeta(new Map([...m, ...extra]))) : setMeta(m);
     });
-    getWorkoutById(s.workoutId).then((w) => setWorkoutName(w?.name ?? ''));
+    getWorkoutById(s.workoutId).then((w) => {
+      setWorkoutName(w?.name ?? '');
+      if (w) setWorkoutColor(readable(w.identityColor));
+    });
   }, [sessionId]);
 
   useEffect(() => {
@@ -172,6 +182,7 @@ export default function ActiveWorkoutScreen() {
         playSound(outcome.isNewPb ? 'pb' : 'finish');
         haptic('success');
         speak(outcome.isNewPb ? 'New personal best!' : 'Workout complete.');
+        afterSessionEnded(id);
       } catch (error) {
         console.error('[rematch] finish failed', error);
       }
@@ -233,6 +244,38 @@ export default function ActiveWorkoutScreen() {
     },
     [cues, finish, persist],
   );
+
+  const metaRef = useRef(meta);
+  metaRef.current = meta;
+
+  // ---------------------------------------------------------------- background alerts
+  // JS sleeps in the background, so the end of a rest or a timed step is handed to a
+  // local notification. Coming back cancels it; the clock catches up on its own.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        void cancelRestAlert();
+        return;
+      }
+      if (next !== 'background' || !useSettings.getState().restAlerts) return;
+      const { state: s, timer: t } = useWorkoutStore.getState();
+      if (!s || finishing.current || (s.phase !== 'rest' && s.phase !== 'active')) return;
+      const el = getElapsedActiveMs(t);
+      if (s.phase === 'rest') {
+        const left = restRemainingMs(s, el);
+        const upcoming = s.rounds[s.currentRoundIndex + 1]?.exercises[0];
+        if (left && left > 0) void scheduleRestAlert(Date.now() + left, 'Rest is over', upcoming ? `Next: ${spokenStep(upcoming, metaRef.current)}` : 'Back to work.');
+        return;
+      }
+      const left = stepRemainingMs(s, el) ?? windowRemainingMs(s, el);
+      if (left && left > 0) void scheduleRestAlert(Date.now() + left, 'Time', `${spokenStep(getCurrentExercise(s), metaRef.current)} is done.`);
+    });
+    return () => {
+      sub.remove();
+      void cancelRestAlert();
+    };
+  }, []);
 
   const applyRef = useRef(apply);
   applyRef.current = apply;
@@ -361,7 +404,10 @@ export default function ActiveWorkoutScreen() {
     if (!ok) return;
     const { state: s, timer: t, sessionId: id } = useWorkoutStore.getState();
     finishing.current = true;
-    if (id) await abandonSession(id, s, getElapsedActiveMs(t)).catch(() => undefined);
+    if (id) {
+      await abandonSession(id, s, getElapsedActiveMs(t)).catch(() => undefined);
+      afterSessionEnded(id);
+    }
     setExitTo('/today');
   }, []);
 
@@ -434,6 +480,56 @@ export default function ActiveWorkoutScreen() {
     if (!opponent || !state) return null;
     return getLiveRace(state.raceMode ?? 'pace', elapsed, yourCheckpoints, opponent.checkpoints, getCheckpointKey(state));
   }, [opponent, state, elapsed, yourCheckpoints]);
+
+  // ---------------------------------------------------------------- Live Activity (iOS)
+  const activity = useMemo<WorkoutActivityProps | null>(() => {
+    if (!state || !sessionId || exitTo || state.phase === 'countdown' || state.phase === 'completed') return null;
+    const paused = state.phase === 'paused';
+    const resting = state.phase === 'rest' || (paused && state.resumePhase === 'rest');
+    const current = getCurrentExercise(state);
+    const upcoming = state.rounds[state.currentRoundIndex + 1]?.exercises[0];
+    const nameOf = (e: NonNullable<typeof current>) => meta.get(e.scaledExerciseId)?.name ?? e.scaledExerciseId.replace(/-/g, ' ');
+    const roundLabel =
+      state.structure.format === 'amrap' ? `Round ${(state.roundsCompleted ?? 0) + 1}` : `Round ${state.currentRoundIndex + 1} of ${state.rounds.length}`;
+    const live = race && race.status !== 'none' && race.delta !== null ? race : null;
+    return {
+      name: workoutName,
+      color: workoutColor,
+      step: resting ? 'Rest' : current ? nameOf(current) : workoutName,
+      detail: resting ? (upcoming ? `Next: ${nameOf(upcoming)}` : roundLabel) : current ? `${describeTarget(current, state.scoring)} · ${roundLabel}` : roundLabel,
+      anchor: Date.now() - elapsed,
+      paused,
+      elapsedLabel: formatDuration(elapsed),
+      delta: !live ? '' : live.status === 'tied' ? '±0' : live.unit === 'reps' ? formatRepDelta(live.delta!) : formatDelta(live.delta!),
+      deltaTone: live?.status === 'ahead' ? 'ahead' : live?.status === 'behind' ? 'behind' : 'even',
+    };
+  }, [state, sessionId, exitTo, meta, workoutName, workoutColor, race, elapsed]);
+
+  const lastActivity = useRef<{ key: string; delta: string; at: number } | null>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'ios') return;
+    if (!activity) {
+      if (lastActivity.current) {
+        lastActivity.current = null;
+        void syncWorkoutActivity(null);
+      }
+      return;
+    }
+    // The clock runs on its own; only push what a glance would notice.
+    const key = [activity.name, activity.color, activity.step, activity.detail, activity.paused, activity.paused ? activity.elapsedLabel : ''].join('|');
+    const prev = lastActivity.current;
+    const at = Date.now();
+    if (prev && prev.key === key && (prev.delta === activity.delta || at - prev.at < ACTIVITY_DELTA_EVERY_MS)) return;
+    lastActivity.current = { key, delta: activity.delta, at };
+    void syncWorkoutActivity(activity);
+  }, [activity]);
+
+  useEffect(
+    () => () => {
+      if (Platform.OS === 'ios') void syncWorkoutActivity(null);
+    },
+    [],
+  );
 
   if (!state || !sessionId) return exitTo ? <View style={styles.safe} /> : <Redirect href="/today" />;
 

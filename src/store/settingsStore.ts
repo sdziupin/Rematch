@@ -9,6 +9,11 @@ export interface Settings {
   countdownSec: number;
   weekStartsOn: number;
   weeklyGoal: number;
+  /** Device-only (app_meta), not in the profile or backups. */
+  healthSync: boolean;
+  restAlerts: boolean;
+  reminders: boolean;
+  reminderHour: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -19,6 +24,10 @@ export const DEFAULT_SETTINGS: Settings = {
   countdownSec: 3,
   weekStartsOn: 1,
   weeklyGoal: 3,
+  healthSync: false,
+  restAlerts: false,
+  reminders: false,
+  reminderHour: 18,
 };
 
 interface SettingsStore extends Settings {
