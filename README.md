@@ -209,9 +209,14 @@ npm run serve:web  # http://localhost:8080 with SPA fallback
 
 Every push to `main` (or a manual run of **iOS → TestFlight** in Actions) runs the checks, prebuilds the native project on `macos-26`, signs it and uploads it to TestFlight. Build numbers come from the run number; bump `version` in `app.json` for a new release. Pull requests only run the checks. A manual run with **upload** unticked archives and exports without uploading.
 
-The build has two signed targets: the app (`com.sdziupin.rematch`: HealthKit, App Group, push) and its widget extension (`com.sdziupin.rematch.widgets`: App Group `group.com.sdziupin.rematch`). Both use automatic signing with the Apple Distribution certificate; `xcodebuild -allowProvisioningUpdates` registers the identifiers and capabilities and fetches App Store profiles through the API key, so that key needs the Admin role (or App Manager with access to Certificates, Identifiers & Profiles).
+The build has two signed targets, each with its own App Store profile, signed manually with the Apple Distribution certificate:
 
-Secrets: `IOS_DIST_P12_BASE64`, `IOS_DIST_P12_PASSWORD` (Apple Distribution certificate, expires 2027-10-09), `ASC_KEY_P8_BASE64`, `ASC_KEY_ID`, `ASC_ISSUER_ID` (App Store Connect API key). `IOS_PROFILE_BASE64` is no longer used.
+| Target | Bundle ID | Capabilities | Profile (name) |
+|---|---|---|---|
+| App | `com.sdziupin.rematch` | HealthKit, App Groups (`group.com.sdziupin.rematch`), Push Notifications | `REMATCH AppStore` |
+| Widgets and Live Activity | `com.sdziupin.rematch.widgets` | App Groups (`group.com.sdziupin.rematch`) | `REMATCH Widgets AppStore` |
+
+Secrets: `IOS_DIST_P12_BASE64`, `IOS_DIST_P12_PASSWORD` (Apple Distribution certificate, expires 2027-10-09), `IOS_PROFILE_BASE64` and `IOS_WIDGETS_PROFILE_BASE64` (the two profiles above, base64), `ASC_KEY_P8_BASE64`, `ASC_KEY_ID`, `ASC_ISSUER_ID` (App Store Connect API key, used for the upload). After changing an App ID's capabilities, regenerate its profile and update the secret.
 
 ### Checks
 
