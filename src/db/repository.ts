@@ -121,3 +121,20 @@ export async function findWorkoutsUsingExercise(exerciseId: string, limit = 6) {
   const rows = await db.select().from(schema.workouts).where(inArray(schema.workouts.id, ids));
   return rows.filter((w) => !w.archived && w.kind === 'benchmark').slice(0, limit);
 }
+
+// ---------------------------------------------------------------------------
+// Device-local values (app_meta). Not part of backups: they describe this phone.
+// ---------------------------------------------------------------------------
+
+export async function getMetaValue(key: string): Promise<string | null> {
+  const rows = await getDb().select().from(schema.appMeta).where(eq(schema.appMeta.key, key)).limit(1);
+  return rows[0]?.value ?? null;
+}
+
+export async function setMetaValue(key: string, value: string | null) {
+  if (value === null) {
+    await getDb().delete(schema.appMeta).where(eq(schema.appMeta.key, key));
+    return;
+  }
+  await getDb().insert(schema.appMeta).values({ key, value }).onConflictDoUpdate({ target: schema.appMeta.key, set: { value } });
+}

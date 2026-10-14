@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { StyleSheet, Switch, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Switch, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Button } from '../../src/components/Button';
@@ -14,6 +14,9 @@ import { titleCase } from '../../src/domain/utils';
 import { useLayout } from '../../src/hooks/useLayout';
 import { BackupError, backupFileName, createBackup, parseBackup, resetAllData, restoreBackup, serializeBackup } from '../../src/services/backupService';
 import { haptic, playSound, prepareAudio, speak } from '../../src/services/cues';
+import { saveDeviceSettings } from '../../src/services/deviceSettings';
+import { connectHealth, disconnectHealth, isHealthSupported } from '../../src/services/healthService';
+import { ensureNotificationPermission, notificationsSupported } from '../../src/services/notificationService';
 import { pickTextFile, saveTextFile } from '../../src/services/fileTransfer';
 import { useSettings } from '../../src/store/settingsStore';
 import { colors, spacing, typography } from '../../src/theme';
@@ -23,6 +26,9 @@ const LEVELS = ['beginner', 'intermediate', 'advanced', 'elite'] as const;
 const MINUTES = [10, 15, 20, 30, 45] as const;
 const FREQUENCY = [2, 3, 4, 5, 6] as const;
 const COUNTDOWNS = [3, 5, 10] as const;
+const REMINDER_HOURS = [7, 12, 17, 19] as const;
+
+const hourLabel = (h: number) => new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -30,6 +36,11 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const storage = getDriverInfo();
+  const healthSync = useSettings((s) => s.healthSync);
+  const restAlerts = useSettings((s) => s.restAlerts);
+  const reminders = useSettings((s) => s.reminders);
+  const reminderHour = useSettings((s) => s.reminderHour);
+  const healthSupported = isHealthSupported();
 
   const refresh = useCallback(async () => {
     const p = await getProfile();
@@ -178,6 +189,81 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const openSettings = () => void Linking.openSettings().catch(() => undefined);
+
+  const toggleHealth = async (on: boolean) => {
+    if (!on) {
+      await disconnectHealth();
+      return;
+    }
+    try {
+      const status = await connectHealth();
+      if (status === 'authorized') showToast('Workouts will be saved to Apple Health', { tone: 'success' });
+      else if (status === 'denied') showToast('Allow REMATCH in the Health app: Sharing › Apps › REMATCH', { tone: 'error', actionLabel: 'Settings', onAction: openSettings });
+    } catch {
+      showToast('Apple Health is not available right now.', { tone: 'error' });
+    }
+  };
+
+  /** Notification toggles share one permission; without it they stay off. */
+  const toggleNotifications = async (patch: { restAlerts?: boolean; reminders?: boolean }) => {
+    const on = Object.values(patch).some(Boolean);
+    if (on && !(await ensureNotificationPermission())) {
+      showToast('Notifications are off for REMATCH in Settings.', { tone: 'error', actionLabel: 'Settings', onAction: openSettings });
+      return;
+    }
+    await saveDeviceSettings(patch);
+    if (on) haptic('success');
+  };
+
+  const connected = (healthSupported || notificationsSupported) && (
+    <View>
+      <SectionTitle>Phone</SectionTitle>
+      <Card style={styles.group}>
+        {healthSupported && (
+          <Setting
+            label="Save to Apple Health"
+            hint="Finished workouts appear in Health and Fitness with their active time. Calories are estimated from your weight in Health, when there is one."
+            value={healthSync}
+            onChange={(v) => void toggleHealth(v)}
+          />
+        )}
+        {notificationsSupported && (
+          <>
+            <Setting
+              label="Rest alerts"
+              hint="A notification when a rest or timed interval ends while REMATCH is in the background."
+              value={restAlerts}
+              onChange={(v) => void toggleNotifications({ restAlerts: v })}
+            />
+            <Setting
+              label="Training reminders"
+              hint="A nudge on days you haven't trained yet, until this week's goal is met."
+              value={reminders}
+              onChange={(v) => void toggleNotifications({ reminders: v })}
+            />
+            {reminders && (
+              <Field label="Remind me at">
+                <ChipRow
+                  options={REMINDER_HOURS}
+                  value={reminderHour as (typeof REMINDER_HOURS)[number]}
+                  onChange={(h) => void saveDeviceSettings({ reminderHour: h })}
+                  format={hourLabel}
+                />
+              </Field>
+            )}
+          </>
+        )}
+        {Platform.OS === 'ios' && (
+          <View style={[styles.field, styles.fieldLast, styles.storage]}>
+            <Icon name="info" size={17} color={colors.textMuted} />
+            <Text style={styles.hint}>Add the REMATCH widget to your Home Screen or Lock Screen to see this week at a glance. A running workout shows on the Lock Screen and in the Dynamic Island.</Text>
+          </View>
+        )}
+      </Card>
+    </View>
+  );
+
   const data = (
     <View>
       <SectionTitle>Your data</SectionTitle>
@@ -217,6 +303,7 @@ export default function ProfileScreen() {
           </View>
           <View>
             {behaviour}
+            {connected}
             {data}
           </View>
         </Grid>
@@ -224,6 +311,7 @@ export default function ProfileScreen() {
         <View>
           {training}
           {behaviour}
+          {connected}
           {data}
           {about}
         </View>

@@ -9,6 +9,7 @@ import { restoreTimerFromElapsed } from '../../src/domain/timer';
 import type { ActiveWorkoutState } from '../../src/domain/types';
 import { formatDuration, relativeDay } from '../../src/domain/utils';
 import { normalizeState } from '../../src/engine/workoutEngine';
+import { afterSessionEnded } from '../../src/services/sessionEffects';
 import { abandonSession, finishSession, getActiveSession, getCheckpoints } from '../../src/services/sessionService';
 import { useWorkoutStore } from '../../src/store/workoutStore';
 import { colors, spacing, typography } from '../../src/theme';
@@ -60,6 +61,7 @@ export default function RecoveryScreen() {
           ? state.timeCapMs
           : checkpoints.reduce((max, c) => Math.max(max, c.elapsedActiveMs), 0) || info.elapsed;
       await finishSession(info.sessionId, state, endedAt);
+      afterSessionEnded(info.sessionId);
       router.replace({ pathname: '/workout/result', params: { sessionId: info.sessionId, fresh: '1' } });
       return;
     }
@@ -77,6 +79,7 @@ export default function RecoveryScreen() {
     if (!ok) return;
     setBusy(true);
     await abandonSession(info.sessionId, info.state, info.elapsed);
+    afterSessionEnded(info.sessionId);
     router.replace('/today');
   };
 

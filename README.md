@@ -82,6 +82,7 @@ On wide screens the tab bar becomes a sidebar and every screen gets a two-column
 | **Builder** | Make your own benchmarks in any format. They race, version and track bests like the built-in ones. |
 | **Progress** | Weekly goal and streaks, an 18-week calendar, a 30-day muscle map, first, latest and best for every benchmark, and full history. |
 | **Built for training** | Countdown beeps that mix with your music, an optional voice coach, haptics, keep-awake, big touch targets, pause and resume. |
+| **On iPhone** | Finished workouts saved to Apple Health (with an energy estimate when Health knows your weight). Home and Lock Screen widgets for this week's goal and your last race. A Live Activity with the clock and the delta on the Lock Screen and in the Dynamic Island. Rest alerts when the phone is in your pocket, and training reminders on days the week still needs you. All opt-in from Profile. |
 | **Web app** | Responsive layout, keyboard shortcuts, installable as a PWA, works offline after the first visit. |
 | **Your data** | Sessions survive app kills and reloads. Export everything as one JSON file and restore it anywhere. |
 
@@ -182,7 +183,7 @@ flowchart TB
 
 ### Stack
 
-React Native 0.86 and React 19 on Expo SDK 57, Expo Router, TypeScript 6, Zustand, expo-sqlite with Drizzle ORM, react-native-svg for animations and charts, expo-audio, expo-speech, expo-haptics and expo-keep-awake for cues. Tests run on Node's test runner via `tsx` against real SQLite (`node:sqlite`).
+React Native 0.86 and React 19 on Expo SDK 57, Expo Router, TypeScript 6, Zustand, expo-sqlite with Drizzle ORM, react-native-svg for animations and charts, expo-audio, expo-speech, expo-haptics and expo-keep-awake for cues, expo-notifications, expo-widgets with @expo/ui for widgets and the Live Activity, and a small local Swift module for HealthKit. Tests run on Node's test runner via `tsx` against real SQLite (`node:sqlite`).
 
 ## Getting started
 
@@ -206,14 +207,16 @@ npm run serve:web  # http://localhost:8080 with SPA fallback
 
 ### iOS → TestFlight
 
-Every push to `main` (or a manual run of **iOS → TestFlight** in Actions) runs the checks, prebuilds the native project on `macos-26`, signs it with the App Store profile and uploads it to TestFlight. Build numbers come from the run number; bump `version` in `app.json` for a new release. Pull requests only run the checks.
+Every push to `main` (or a manual run of **iOS → TestFlight** in Actions) runs the checks, prebuilds the native project on `macos-26`, signs it and uploads it to TestFlight. Build numbers come from the run number; bump `version` in `app.json` for a new release. Pull requests only run the checks. A manual run with **upload** unticked archives and exports without uploading.
 
-Secrets: `IOS_DIST_P12_BASE64`, `IOS_DIST_P12_PASSWORD`, `IOS_PROFILE_BASE64` (Apple Distribution cert and the `REMATCH AppStore` profile for `com.sdziupin.rematch`, both expire 2027-10-09), `ASC_KEY_P8_BASE64`, `ASC_KEY_ID`, `ASC_ISSUER_ID` (App Store Connect API key).
+The build has two signed targets: the app (`com.sdziupin.rematch`: HealthKit, App Group, push) and its widget extension (`com.sdziupin.rematch.widgets`: App Group `group.com.sdziupin.rematch`). Both use automatic signing with the Apple Distribution certificate; `xcodebuild -allowProvisioningUpdates` registers the identifiers and capabilities and fetches App Store profiles through the API key, so that key needs the Admin role (or App Manager with access to Certificates, Identifiers & Profiles).
+
+Secrets: `IOS_DIST_P12_BASE64`, `IOS_DIST_P12_PASSWORD` (Apple Distribution certificate, expires 2027-10-09), `ASC_KEY_P8_BASE64`, `ASC_KEY_ID`, `ASC_ISSUER_ID` (App Store Connect API key). `IOS_PROFILE_BASE64` is no longer used.
 
 ### Checks
 
 ```bash
-npm test           # 365 tests: engine, race, scoring, stats, DB lifecycle, migrations, backup, content, animations
+npm test           # 375 tests: engine, race, scoring, stats, DB lifecycle, migrations, backup, content, animations, Health, widgets, reminders
 npm run typecheck
 ```
 
@@ -248,11 +251,14 @@ src/
   components/        UI kit, charts, race UI, dialogs, wordmark
   content/           Exercises, workouts, programs (+ validation tests)
   db/                Schema, migrations, async driver, content sync
-  domain/            Timer, rematch comparator, scoring, stats, scaling
+  domain/            Timer, rematch comparator, scoring, stats, scaling, Health and widget data
   engine/            Deterministic workout state machine
-  services/          Sessions, stats, programs, backup, cues, recommendations
+  services/          Sessions, stats, programs, backup, cues, recommendations, Health, notifications
   store/             Zustand stores
   theme/             Colour, type and spacing tokens
+  widgets/           iOS widget and Live Activity layouts (expo-widgets)
+modules/
+  rematch-health/    Local Expo module: HealthKit authorization and workout saving (Swift)
 public/              Web shell: manifest, icons, service worker
 assets/              App icons and cue sounds
 docs/screenshots/    README images (generated)

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, Text, View } from 'react-native';
-import { Stack } from 'expo-router';
+import { ActivityIndicator, AppState, Platform, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
@@ -10,6 +10,9 @@ import { openExpoDriver } from '../src/db/expoDriver';
 import { claimTab, takeOverTab } from '../src/db/tabLock';
 import { initDatabase } from '../src/db/seed';
 import { getProfile } from '../src/db/repository';
+import { loadDeviceSettings } from '../src/services/deviceSettings';
+import { refreshGlances } from '../src/services/glanceService';
+import { configureNotifications, observeNotificationTaps } from '../src/services/notificationService';
 import { useSettings } from '../src/store/settingsStore';
 import { DialogHost } from '../src/components/Dialogs';
 import { Button } from '../src/components/Button';
@@ -32,6 +35,8 @@ async function boot(): Promise<'ready' | 'elsewhere' | 'no-storage'> {
   const driver = await openExpoDriver();
   await initDatabase(driver);
   useSettings.getState().applyProfile(await getProfile());
+  await loadDeviceSettings();
+  configureNotifications();
   return 'ready';
 }
 
@@ -122,8 +127,32 @@ export default function RootLayout() {
         <Stack.Screen name="builder" />
       </Stack>
       <DialogHost />
+      <Glances />
     </SafeAreaProvider>
   );
+}
+
+/** Keeps the widget and reminders current, and opens what a tapped notification points at. */
+function Glances() {
+  const router = useRouter();
+  const revision = useSettings((s) => s.revision);
+
+  // Results, goal, week start, reminder settings, restores and erases all bump the revision.
+  useEffect(() => {
+    const t = setTimeout(() => void refreshGlances(), 300);
+    return () => clearTimeout(t);
+  }, [revision]);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    // A new day or week may have started while the app was away.
+    const sub = AppState.addEventListener('change', (next) => next === 'active' && void refreshGlances());
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => observeNotificationTaps((url) => router.navigate(url as Href)), [router]);
+
+  return null;
 }
 
 // Fonts may still be loading here, so these screens use the system font.

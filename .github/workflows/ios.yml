@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      upload:
+        description: Upload the build to TestFlight (off = archive and export only)
+        type: boolean
+        default: true
 
 concurrency:
   group: ios-${{ github.ref }}
@@ -32,8 +37,7 @@ jobs:
     timeout-minutes: 60
     env:
       TEAM_ID: 5K9D77KS36
-      PROFILE_NAME: REMATCH AppStore
-      BUNDLE_ID: com.sdziupin.rematch
+      UPLOAD: ${{ github.event_name != 'workflow_dispatch' || inputs.upload }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,11 +46,10 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Install signing certificate and profile
+      - name: Install signing certificate and API key
         env:
           P12_BASE64: ${{ secrets.IOS_DIST_P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
-          PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
           ASC_KEY_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
         run: |
@@ -58,45 +61,53 @@ jobs:
           security import "$RUNNER_TEMP/dist.p12" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KC"
           security set-key-partition-list -S apple-tool:,apple: -k "$KC_PASS" "$KC" >/dev/null
           security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
-          for d in "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
-            mkdir -p "$d"; echo "$PROFILE_BASE64" | base64 -d > "$d/rematch.mobileprovision"
-          done
           mkdir -p "$RUNNER_TEMP/keys"; echo "$ASC_KEY_BASE64" | base64 -d > "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8"
           security find-identity -v -p codesigning "$KC"
 
       - name: Generate native project
         run: |
           npx expo prebuild --platform ios --clean
-          # One app target in this project; Pods live in their own project and stay unsigned.
+          # Two signed targets: the app and its widget extension (HealthKit, App Group, push).
+          # Both sign automatically with the Apple Distribution certificate; Xcode registers
+          # the identifiers and capabilities and fetches App Store profiles with the API key.
+          # Pods live in their own project and stay unsigned.
           perl -pi -e '
-            s/^(\s*)DEVELOPMENT_TEAM = \w+;/$&\n$1CODE_SIGN_STYLE = Manual;\n$1PROVISIONING_PROFILE_SPECIFIER = "$ENV{PROFILE_NAME}";/;
-            s/"iPhone Developer"/"Apple Distribution"/' ios/REMATCH.xcodeproj/project.pbxproj
-          # Monotonic build number; re-runs get a higher one too.
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}.${{ github.run_attempt }}" ios/REMATCH/Info.plist
+            $_ = "" if /^\s*"?CODE_SIGN_IDENTITY(\[sdk=iphoneos\*\])?"? = "iPhone Developer";$/;
+            s/^(\s*)DEVELOPMENT_TEAM = \w+;/$&\n$1CODE_SIGN_STYLE = Automatic;\n$1"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";/' ios/REMATCH.xcodeproj/project.pbxproj
+          grep -n 'CODE_SIGN\|DEVELOPMENT_TEAM\|PRODUCT_BUNDLE_IDENTIFIER' ios/REMATCH.xcodeproj/project.pbxproj
+          # Monotonic build number, the same for the app and its extension; re-runs get a higher one too.
+          for plist in ios/REMATCH/Info.plist ios/ExpoWidgetsTarget/Info.plist; do
+            /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ github.run_number }}.${{ github.run_attempt }}" "$plist"
+          done
 
       - name: Archive
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
           set -o pipefail
           xcodebuild archive \
             -workspace ios/REMATCH.xcworkspace -scheme REMATCH -configuration Release \
             -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/REMATCH.xcarchive" \
+            -allowProvisioningUpdates -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
+            -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             | tee "$RUNNER_TEMP/archive.log" | grep -E '^(error|warning: .*sign)|\*\* ARCHIVE' || true
           test -d "$RUNNER_TEMP/REMATCH.xcarchive" || { tail -200 "$RUNNER_TEMP/archive.log"; exit 1; }
 
-      - name: Upload to TestFlight
+      - name: Export and upload to TestFlight
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
         run: |
+          DESTINATION=$([ "$UPLOAD" = "true" ] && echo upload || echo export)
           /usr/libexec/PlistBuddy -c "Clear dict" \
-            -c "Add :method string app-store-connect" -c "Add :destination string upload" \
-            -c "Add :teamID string $TEAM_ID" -c "Add :signingStyle string manual" \
-            -c "Add :provisioningProfiles dict" -c "Add :provisioningProfiles:$BUNDLE_ID string $PROFILE_NAME" \
+            -c "Add :method string app-store-connect" -c "Add :destination string $DESTINATION" \
+            -c "Add :teamID string $TEAM_ID" -c "Add :signingStyle string automatic" \
             -c "Add :manageAppVersionAndBuildNumber bool false" \
             "$RUNNER_TEMP/ExportOptions.plist"
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/REMATCH.xcarchive" -exportPath "$RUNNER_TEMP/export" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$ASC_KEY_ID.p8" \
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID"
 
