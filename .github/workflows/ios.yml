@@ -68,12 +68,12 @@ jobs:
         run: |
           npx expo prebuild --platform ios --clean
           # Two signed targets: the app and its widget extension (HealthKit, App Group, push).
-          # Both sign automatically with the Apple Distribution certificate; Xcode registers
-          # the identifiers and capabilities and fetches App Store profiles with the API key.
+          # Both sign automatically: Xcode registers the identifiers and capabilities and
+          # fetches profiles with the API key. The archive is development-signed; export
+          # re-signs it for the App Store with the Apple Distribution certificate.
           # Pods live in their own project and stay unsigned.
           perl -pi -e '
-            $_ = "" if /^\s*"?CODE_SIGN_IDENTITY(\[sdk=iphoneos\*\])?"? = "iPhone Developer";$/;
-            s/^(\s*)DEVELOPMENT_TEAM = \w+;/$&\n$1CODE_SIGN_STYLE = Automatic;\n$1"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";/' ios/REMATCH.xcodeproj/project.pbxproj
+            s/^(\s*)DEVELOPMENT_TEAM = \w+;/$&\n$1CODE_SIGN_STYLE = Automatic;/' ios/REMATCH.xcodeproj/project.pbxproj
           grep -n 'CODE_SIGN\|DEVELOPMENT_TEAM\|PRODUCT_BUNDLE_IDENTIFIER' ios/REMATCH.xcodeproj/project.pbxproj
           # Monotonic build number, the same for the app and its extension; re-runs get a higher one too.
           for plist in ios/REMATCH/Info.plist ios/ExpoWidgetsTarget/Info.plist; do
