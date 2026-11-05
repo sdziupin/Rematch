@@ -2,52 +2,13 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Line, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 import type { HeatmapCell, WeekBucket } from '../domain/stats';
-import { colors, typography, withAlpha } from '../theme';
+import { colors, typography, withAlpha, makeStyles } from '../theme';
 
 // ---------------------------------------------------------------------------
 // Progress ring
 // ---------------------------------------------------------------------------
 
-export function ProgressRing({
-  progress,
-  size = 200,
-  stroke = 12,
-  color = colors.accent,
-  track = colors.surfaceHover,
-  children,
-}: {
-  progress: number;
-  size?: number;
-  stroke?: number;
-  color?: string;
-  track?: string;
-  children?: React.ReactNode;
-}) {
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const p = Math.max(0, Math.min(1, progress));
-  return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Circle cx={size / 2} cy={size / 2} r={r} stroke={track} strokeWidth={stroke} fill="none" />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke={color}
-          strokeWidth={stroke}
-          fill="none"
-          strokeDasharray={`${c} ${c}`}
-          strokeDashoffset={c * (1 - p)}
-          strokeLinecap="round"
-          rotation={-90}
-          origin={`${size / 2}, ${size / 2}`}
-        />
-      </Svg>
-      {children}
-    </View>
-  );
-}
+export { ProgressRing } from './motion';
 
 // ---------------------------------------------------------------------------
 // Activity heatmap
@@ -114,6 +75,7 @@ export function WeeklyBars({ weeks, goal, height = 110, color = colors.accent }:
  * Score history. For time scores the axis is flipped so "up" always means better.
  */
 export function TrendChart({ values, lowerIsBetter, width = 300, height = 120, color = colors.accent, format }: { values: number[]; lowerIsBetter: boolean; width?: number; height?: number; color?: string; format: (v: number) => string }) {
+  const chartStyles = useChartStyles();
   if (values.length === 0) return null;
   const pad = 14;
   const min = Math.min(...values);
@@ -216,6 +178,7 @@ function MuscleShapes({ map, load, color }: { map: Record<string, Shape[]>; load
 
 /** Front and back muscle map. `load` maps muscle ids to 0–1. */
 export function BodyMap({ load, height = 220, color = colors.accent, labels = true }: { load: Record<string, number>; height?: number; color?: string; labels?: boolean }) {
+  const chartStyles = useChartStyles();
   const width = height / 2;
   const trained = Object.entries(load)
     .filter(([, v]) => v > 0)
@@ -236,9 +199,9 @@ export function BodyMap({ load, height = 220, color = colors.accent, labels = tr
   );
 }
 
-const chartStyles = StyleSheet.create({
+const useChartStyles = makeStyles(() => ({
   legend: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
   legendText: { ...typography.caption, color: colors.textMuted },
   bodyRow: { flexDirection: 'row', gap: 12, justifyContent: 'center' },
   bodyCol: { alignItems: 'center', gap: 4 },
-});
+}));

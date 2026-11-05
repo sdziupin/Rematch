@@ -11,12 +11,14 @@ import { claimTab, takeOverTab } from '../src/db/tabLock';
 import { initDatabase } from '../src/db/seed';
 import { getProfile } from '../src/db/repository';
 import { loadDeviceSettings } from '../src/services/deviceSettings';
+import { initTheme } from '../src/services/themeService';
 import { refreshGlances } from '../src/services/glanceService';
+import { syncRecentSessionsToHealth } from '../src/services/healthService';
 import { configureNotifications, observeNotificationTaps } from '../src/services/notificationService';
 import { useSettings } from '../src/store/settingsStore';
 import { DialogHost } from '../src/components/Dialogs';
 import { Button } from '../src/components/Button';
-import { colors, spacing } from '../src/theme';
+import { colors, spacing, makeStyles, useScheme } from '../src/theme';
 
 type Boot = { status: 'loading' } | { status: 'ready' } | { status: 'error'; message: string } | { status: 'elsewhere' } | { status: 'no-storage' };
 
@@ -35,12 +37,15 @@ async function boot(): Promise<'ready' | 'elsewhere' | 'no-storage'> {
   const driver = await openExpoDriver();
   await initDatabase(driver);
   useSettings.getState().applyProfile(await getProfile());
-  await loadDeviceSettings();
+  const device = await loadDeviceSettings();
+  initTheme(device.appearance, device.accent);
   configureNotifications();
   return 'ready';
 }
 
 export default function RootLayout() {
+  const styles = useStyles();
+  const scheme = useScheme();
   const [boot_, setBoot] = useState<Boot>({ status: 'loading' });
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular,
@@ -111,8 +116,16 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade_from_bottom' }}>
+      <StatusBar style={scheme === 'light' ? 'dark' : 'light'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+          // Native push on iOS (with a full-width swipe back); a soft rise elsewhere.
+          animation: Platform.OS === 'ios' ? 'default' : 'fade_from_bottom',
+          fullScreenGestureEnabled: true,
+        }}
+      >
         <Stack.Screen name="index" options={{ animation: 'none' }} />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" options={{ animation: 'none' }} />
@@ -152,13 +165,23 @@ function Glances() {
 
   useEffect(() => observeNotificationTaps((url) => router.navigate(url as Href)), [router]);
 
+  // Catch up on anything that didn't reach Apple Health / Health Connect (access was off,
+  // the phone was offline from the store's point of view). Quiet, once per launch.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    const t = setTimeout(() => {
+      if (useSettings.getState().healthSync) void syncRecentSessionsToHealth({ days: 14 }).catch(() => undefined);
+    }, 6000);
+    return () => clearTimeout(t);
+  }, []);
+
   return null;
 }
 
 // Fonts may still be loading here, so these screens use the system font.
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   center: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   title: { fontSize: 22, lineHeight: 28, fontWeight: '700', letterSpacing: -0.4, color: colors.text, textAlign: 'center' },
   body: { fontSize: 15, lineHeight: 22, color: colors.textSecondary, textAlign: 'center', marginTop: spacing.sm, maxWidth: 420 },
   detail: { fontSize: 13, lineHeight: 18, color: colors.textMuted, textAlign: 'center', marginTop: spacing.sm },
-});
+}));

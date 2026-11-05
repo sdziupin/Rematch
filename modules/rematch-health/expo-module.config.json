@@ -1,6 +1,9 @@
 {
-  "platforms": ["apple"],
+  "platforms": ["apple", "android"],
   "apple": {
     "modules": ["RematchHealthModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.rematchhealth.RematchHealthModule"]
   }
 }

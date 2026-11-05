@@ -6,13 +6,18 @@ import {
   buildRounds,
   completeStep,
   createActiveState,
+  describeStructure,
+  estimateStructureMinutes,
   extendRest,
+  formatBlurb,
+  formatLabel,
   getCheckpointKey,
   liveReps,
   normalizeState,
   pauseState,
   restRemainingMs,
   resumeState,
+  roundNoun,
   skipRest,
   startWorkout,
   stepRemainingMs,
@@ -301,4 +306,110 @@ test('during rest the race target is the next round, not the checkpoint just rea
   assert.equal(s.phase, 'rest');
   assert.equal(getCheckpointKey(s), 'r2-e1');
   assert.equal(getCheckpointKey(pauseState(s)), 'r2-e1');
+});
+
+// ---------------------------------------------------------------------------
+// Tabata, Death by, windows longer than a minute
+// ---------------------------------------------------------------------------
+
+test('tabata: one block per movement, short rests inside, a long rest between, reps scored', () => {
+  const s = make({ format: 'tabata', rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'air-squat' }, { exerciseId: 'push-up' }] }] });
+  assert.equal(s.scoring, 'reps');
+  assert.equal(s.raceMode, 'volume');
+  assert.equal(s.timeCapMs, null);
+  assert.equal(s.rounds.length, 16);
+  assert.deepEqual(
+    s.rounds.map((r) => r.exercises[0].exerciseId),
+    [...Array(8).fill('air-squat'), ...Array(8).fill('push-up')],
+  );
+  assert.ok(s.rounds.every((r) => r.exercises[0].durationSec === 20 && r.exercises[0].targetReps === 0));
+  assert.deepEqual(
+    s.rounds.map((r) => r.restAfterSec),
+    [10, 10, 10, 10, 10, 10, 10, 60, 10, 10, 10, 10, 10, 10, 10, 0],
+  );
+  assert.equal(describeStructure(s.structure), '2 Tabatas: 8 × 20s on / 10s off');
+  assert.equal(estimateStructureMinutes(s.structure), 9);
+});
+
+test('tabata: intervals and rests run on the clock and counted reps add up', () => {
+  let s = startWorkout(make({ format: 'tabata', intervalRounds: 4, rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'burpee' }] }] }), 0).state;
+  let at = 0;
+  for (let i = 0; i < 4; i++) {
+    for (let r = 0; r < 5; r++) s = advanceRep(s, 1);
+    at += 20_000;
+    s = tick(s, at).state;
+    if (i < 3) {
+      assert.equal(s.phase, 'rest', `interval ${i + 1} should rest`);
+      at += 10_000;
+      s = tick(s, at).state;
+      assert.equal(s.phase, 'active');
+    }
+  }
+  assert.equal(s.phase, 'completed');
+  assert.equal(s.totalReps, 20);
+  assert.equal(s.endedBy, 'finished');
+});
+
+test('death by: minute n asks for n × the base reps and rests out the minute', () => {
+  let s = make({ format: 'death_by', rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'burpee', reps: 2 }] }] });
+  assert.equal(s.scoring, 'reps');
+  assert.equal(s.rounds.length, 20);
+  assert.deepEqual(s.rounds.slice(0, 4).map((r) => r.exercises[0].targetReps), [2, 4, 6, 8]);
+  assert.ok(s.rounds.every((r) => r.windowSec === 60));
+  s = startWorkout(s, 0).state;
+  s = completeStep(s, 10_000).state;
+  assert.equal(s.phase, 'rest');
+  assert.equal(restRemainingMs(s, 10_000), 50_000);
+  // Resting through a Death by minute can't be skipped or stretched.
+  assert.equal(skipRest(s, 20_000).state, s);
+  assert.equal(extendRest(s, 15), s);
+  s = tick(s, 60_000).state;
+  assert.equal(s.phase, 'active');
+  assert.equal(s.currentRoundIndex, 1);
+});
+
+test('death by: the first missed minute ends the workout, partial reps count', () => {
+  let s = startWorkout(make({ format: 'death_by', rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'burpee', reps: 3 }] }] }), 0).state;
+  s = completeStep(s, 15_000).state; // minute 1: 3
+  s = tick(s, 60_000).state;
+  s = completeStep(s, 100_000).state; // minute 2: 6
+  s = tick(s, 120_000).state;
+  for (let i = 0; i < 5; i++) s = advanceRep(s, 1); // minute 3: 5 of 9
+  const r = tick(s, 180_000);
+  s = r.state;
+  assert.equal(s.phase, 'completed');
+  assert.equal(s.endedBy, 'finished');
+  assert.equal(s.totalReps, 3 + 6 + 5);
+  assert.equal(s.roundsCompleted, 2);
+  const done = r.events.find((e) => e.type === 'WorkoutCompleted');
+  assert.equal(done?.atMs, 180_000);
+  assert.deepEqual(checkpoints(r.events).map((c) => c.label), ['Minute 3']);
+});
+
+test('death by: surviving every window finishes on the last one', () => {
+  let s = startWorkout(make({ format: 'death_by', intervalRounds: 2, rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'air-squat', reps: 1 }] }] }), 0).state;
+  s = completeStep(s, 5_000).state;
+  s = tick(s, 60_000).state;
+  s = completeStep(s, 70_000).state;
+  assert.equal(s.phase, 'completed');
+  assert.equal(s.totalReps, 3);
+  assert.equal(s.roundsCompleted, 2);
+});
+
+test('windows longer than a minute are sets, described by their length', () => {
+  const structure: WorkoutStructure = { format: 'emom', intervalRounds: 6, intervalWorkSec: 120, rounds: [{ roundNumber: 1, steps: [{ exerciseId: 'burpee', reps: 10 }] }] };
+  assert.equal(roundNoun(structure), 'Set');
+  assert.equal(describeStructure(structure), 'Every 2 min for 12 min');
+  assert.equal(estimateStructureMinutes(structure), 12);
+  assert.equal(roundNoun({ ...structure, intervalWorkSec: 60 }), 'Minute');
+  assert.equal(roundNoun({ format: 'ladder', rounds: [] }), 'Rung');
+  assert.equal(roundNoun({ format: 'tabata', rounds: [] }), 'Interval');
+});
+
+test('every format has a label and a blurb', () => {
+  const all = ['fixed_rounds', 'chipper', 'ladder', 'intervals', 'amrap', 'emom', 'tabata', 'death_by'] as const;
+  for (const f of all) {
+    assert.ok(formatLabel(f).length > 0, f);
+    assert.ok(formatBlurb(f).length > 10, f);
+  }
 });

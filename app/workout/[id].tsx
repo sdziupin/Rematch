@@ -15,14 +15,15 @@ import type { ExerciseRow, PersonalBestRow, ResultRow } from '../../src/db/schem
 import { categoryForSwaps, easierChain, presetSwaps, SCALING_LABELS } from '../../src/domain/scaling';
 import type { PartialKey, ScalingCategory, WorkoutStructure } from '../../src/domain/types';
 import { formatDuration, formatScore, titleCase } from '../../src/domain/utils';
-import { formatLabel } from '../../src/engine/workoutEngine';
+import { formatLabel, structureLabel } from '../../src/engine/workoutEngine';
 import { useLayout } from '../../src/hooks/useLayout';
 import { archiveCustomWorkout } from '../../src/services/customWorkoutService';
 import { difficultyLabel } from '../../src/services/recommendationService';
 import { getPb, listResults } from '../../src/services/sessionService';
 import { getWorkoutTrend, type TrendPoint } from '../../src/services/statsService';
 import { beginWorkout, resolveDanglingSession } from '../../src/services/startWorkout';
-import { colors, fonts, radius, readable, spacing, typography } from '../../src/theme';
+import { useSettings } from '../../src/store/settingsStore';
+import { colors, fonts, radius, readable, spacing, typography, makeStyles } from '../../src/theme';
 
 const VARIANTS: PartialKey[] = ['full', 'three_quarter', 'half', 'quarter'];
 const VARIANT_LABEL: Record<PartialKey, string> = { full: 'Full', three_quarter: '¾', half: '½', quarter: '¼' };
@@ -30,6 +31,8 @@ const VARIANT_LABEL: Record<PartialKey, string> = { full: 'Full', three_quarter:
 type Plan = NonNullable<Awaited<ReturnType<typeof loadWorkoutPlan>>>;
 
 export default function WorkoutDetailScreen() {
+  const styles = useStyles();
+  const defaultOpponent = useSettings((st) => st.defaultOpponent);
   const params = useLocalSearchParams<{ id: string; variant?: string; program?: string; key?: string }>();
   const router = useRouter();
   const { isWide } = useLayout();
@@ -152,13 +155,16 @@ export default function WorkoutDetailScreen() {
   const trendValues = trend.filter((t) => t.variantId === plan.variant.id && t.scaling === scaling).map((t) => t.value);
   const scoreType = plan.version.rulesJson.includes('"reps"') ? 'reps' : 'time';
 
-  const primary = isBenchmark && pb
+  // Profile › "Rematch button races" decides who the main button races when both exist.
+  const raceLastFirst = defaultOpponent === 'last' && !!last && !!pb && last.sessionId !== pb.sessionId;
+  const primary = isBenchmark && pb && !raceLastFirst
     ? { title: 'Rematch your best', icon: 'trophy' as const, run: () => start(pb.sessionId) }
     : isBenchmark && last
       ? { title: 'Rematch last attempt', icon: 'bolt' as const, run: () => start(last.sessionId) }
       : { title: isBenchmark ? 'Start first attempt' : 'Start', icon: 'play' as const, run: () => start(null) };
   const secondary: { title: string; run: () => void }[] = [];
-  if (isBenchmark && pb && last && last.sessionId !== pb.sessionId) secondary.push({ title: 'Race last attempt', run: () => start(last.sessionId) });
+  if (isBenchmark && pb && last && last.sessionId !== pb.sessionId)
+    secondary.push(raceLastFirst ? { title: 'Race your best', run: () => start(pb.sessionId) } : { title: 'Race last attempt', run: () => start(last.sessionId) });
   if (isBenchmark && results.length > 1)
     secondary.push({
       title: 'Choose opponent',
@@ -174,7 +180,7 @@ export default function WorkoutDetailScreen() {
     <View style={styles.hero}>
       <WorkoutMark name={w.name} color={w.identityColor} size={52} />
       <Text style={styles.eyebrow}>
-        {formatLabel(w.format as WorkoutStructure['format'])} · {difficultyLabel(w.difficulty)} · {titleCase(w.focus)}
+        {structureLabel(plan.structure)} · {difficultyLabel(w.difficulty)} · {titleCase(w.focus)}
         {w.source === 'custom' ? ' · Custom' : ''}
         {!isBenchmark ? (w.kind === 'warmup' ? ' · Warm-up' : ' · Cool-down') : ''}
       </Text>
@@ -311,7 +317,7 @@ export default function WorkoutDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   row: { flexDirection: 'row', gap: 4 },
   hero: { gap: 6, marginBottom: spacing.lg },
@@ -336,4 +342,4 @@ const styles = StyleSheet.create({
   side: { width: 380 },
   footer: { borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background, paddingHorizontal: spacing.md + 4, paddingTop: spacing.sm + 4 },
   footerInner: { width: '100%', maxWidth: 720, alignSelf: 'center' },
-});
+}));

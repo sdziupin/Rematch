@@ -14,11 +14,12 @@ import type { WorkoutStructure } from '../../src/domain/types';
 import { titleCase } from '../../src/domain/utils';
 import { formatLabel } from '../../src/engine/workoutEngine';
 import { useLayout } from '../../src/hooks/useLayout';
-import { colors, fonts, radius, spacing, typography } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../../src/theme';
 
 const SPEEDS = [0.5, 1, 1.5] as const;
 
 export default function ExerciseDetailScreen() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isWide, columns } = useLayout();
@@ -175,6 +176,7 @@ export default function ExerciseDetailScreen() {
 }
 
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.step}>
       <View style={styles.stepN}>
@@ -189,6 +191,7 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
 }
 
 function VariantCard({ label, ex, onPress }: { label: string; ex: ExerciseRow; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Card onPress={onPress} style={styles.variant} accessibilityLabel={`${label}: ${ex.name}`}>
       <ExerciseAnimation exerciseId={ex.id} category={ex.category} size={56} playing={false} />
@@ -201,7 +204,7 @@ function VariantCard({ label, ex, onPress }: { label: string; ex: ExerciseRow; o
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   columns: { flexDirection: 'row', gap: spacing.xl, alignItems: 'flex-start' },
   sticky: { width: 400 },
@@ -226,4 +229,4 @@ const styles = StyleSheet.create({
   muscleGroup: { gap: 4 },
   variant: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: 10 },
   variantName: { ...typography.bodyStrong, color: colors.text, marginTop: 2 },
-});
+}));

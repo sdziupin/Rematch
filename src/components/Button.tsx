@@ -1,7 +1,8 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { colors, fonts, radius, spacing, withAlpha } from '../theme';
+import { ActivityIndicator, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { colors, fonts, radius, spacing, withAlpha, makeStyles } from '../theme';
 import { Icon, type IconName } from './Icon';
+import { PressableScale } from './motion';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'outline';
 type Size = 'sm' | 'md' | 'lg';
@@ -23,12 +24,14 @@ const HEIGHT: Record<Size, number> = { sm: 36, md: 48, lg: 56 };
 const FONT: Record<Size, number> = { sm: 13.5, md: 15, lg: 16 };
 
 export function Button({ title, onPress, variant = 'primary', size = 'md', disabled, loading, icon, style, accessibilityLabel, accessibilityHint }: ButtonProps) {
+  const styles = useStyles();
   const bg = variant === 'primary' ? colors.accent : variant === 'danger' ? colors.danger : variant === 'secondary' ? colors.surfaceRaised : 'transparent';
   const textColor =
     variant === 'primary' ? colors.onAccent : variant === 'danger' ? colors.text : variant === 'outline' ? colors.text : variant === 'ghost' ? colors.textSecondary : colors.text;
   const inactive = disabled || loading;
   return (
-    <Pressable
+    <PressableScale
+      scaleTo={size === 'sm' ? 0.96 : 0.975}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
       accessibilityHint={accessibilityHint}
@@ -36,7 +39,7 @@ export function Button({ title, onPress, variant = 'primary', size = 'md', disab
       onPress={onPress}
       disabled={inactive}
       style={(state) => {
-        const hovered = (state as { hovered?: boolean }).hovered && !inactive;
+        const hovered = state.hovered && !inactive;
         const hoverBg =
           variant === 'ghost' || variant === 'outline'
             ? withAlpha(colors.text, 0.06)
@@ -64,7 +67,7 @@ export function Button({ title, onPress, variant = 'primary', size = 'md', disab
           </Text>
         </View>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -81,8 +84,10 @@ interface IconButtonProps {
 
 /** Round icon-only button with a 48 pt minimum touch target. */
 export function IconButton({ icon, onPress, label, size = 48, color = colors.text, background = colors.surfaceRaised, disabled, style }: IconButtonProps) {
+  const styles = useStyles();
   return (
-    <Pressable
+    <PressableScale
+      scaleTo={0.9}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
@@ -94,7 +99,7 @@ export function IconButton({ icon, onPress, label, size = 48, color = colors.tex
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: (state as { hovered?: boolean }).hovered ? colors.surfaceHover : background,
+          backgroundColor: state.hovered ? colors.surfaceHover : background,
           opacity: disabled ? 0.4 : 1,
         },
         state.pressed && styles.pressed,
@@ -102,11 +107,11 @@ export function IconButton({ icon, onPress, label, size = 48, color = colors.tex
       ]}
     >
       <Icon name={icon} size={Math.round(size * 0.42)} color={color} strokeWidth={2} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   base: {
     borderRadius: radius.full,
     alignItems: 'center',
@@ -116,8 +121,8 @@ const styles = StyleSheet.create({
   secondary: { borderWidth: 1, borderColor: colors.border },
   outline: { borderWidth: 1, borderColor: colors.borderStrong },
   small: { paddingHorizontal: 14 },
-  pressed: { opacity: 0.75, transform: [{ scale: 0.985 }] },
+  pressed: { opacity: 0.86 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   text: { fontFamily: fonts.semibold, letterSpacing: -0.15 },
   iconButton: { alignItems: 'center', justifyContent: 'center' },
-});
+}));

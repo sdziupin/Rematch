@@ -1,5 +1,5 @@
 export type ScalingCategory = 'rx' | 'scaled' | 'modified';
-export type WorkoutFormat = 'fixed_rounds' | 'chipper' | 'ladder' | 'intervals' | 'amrap' | 'emom';
+export type WorkoutFormat = 'fixed_rounds' | 'chipper' | 'ladder' | 'intervals' | 'amrap' | 'emom' | 'tabata' | 'death_by';
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced' | 'elite';
 export type PartialKey = 'full' | 'three_quarter' | 'half' | 'quarter';
 
@@ -30,11 +30,15 @@ export interface WorkoutStructure {
   rounds: WorkoutRound[];
   /** AMRAP: the workout length. For time formats: optional cap. */
   timeCapSec?: number;
+  /** Rest between rounds; for Tabata, between one movement's block and the next. */
   restBetweenRoundsSec?: number;
-  /** Intervals: work seconds per interval. EMOM: window length (default 60). */
+  /** Intervals / Tabata: work seconds per interval. EMOM / Death by: window length (default 60). */
   intervalWorkSec?: number;
   intervalRestSec?: number;
-  /** Intervals / EMOM: number of work intervals (minutes for EMOM). */
+  /**
+   * Intervals: number of work intervals. EMOM: number of windows. Tabata: intervals per
+   * movement (default 8). Death by: the most windows it can last (default 20).
+   */
   intervalRounds?: number;
 }
 

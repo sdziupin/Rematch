@@ -230,4 +230,36 @@ export const PROGRAM_SEEDS: ProgramSeed[] = [
       ],
     ]),
   },
+  {
+    id: 'p-furnace',
+    slug: 'furnace',
+    name: 'FURNACE',
+    symbol: '✶',
+    identityColor: '#F87171',
+    tagline: 'Three weeks of Tabatas, Death bys and pyramids.',
+    description:
+      'High-intensity work in short, honest formats. Week 1 sets your Death by and pyramid marks, week 2 stretches you across longer Tabatas and two-minute windows, and week 3 asks the week-1 you for a rematch.',
+    level: 'intermediate',
+    goal: 'conditioning',
+    weeks: 3,
+    daysPerWeek: 3,
+    equipment: [],
+    sessions: schedule([
+      [
+        { workoutId: 'w-fuse', partialKey: 'full', note: 'Learn the rhythm: all-out for twenty, breathe for ten.' },
+        { workoutId: 'w-echo', partialKey: 'full', note: 'Baseline. Note the minute where it started to bite; that is the one to beat in week 3.' },
+        { workoutId: 'w-cairn', partialKey: 'full', note: 'Even pace up the pyramid, faster on the way down.' },
+      ],
+      [
+        { workoutId: 'w-flint', partialKey: 'full', note: 'Three Tabatas. Hold your rep count in the last intervals of each block.' },
+        { workoutId: 'w-abyss', partialKey: 'full', note: 'Move early to buy rest for the deep minutes.' },
+        { workoutId: 'w-tide', partialKey: 'half', note: 'Four sets only. Keep every window under 90 seconds.' },
+      ],
+      [
+        { workoutId: 'w-flint', partialKey: 'full', note: 'Rematch week 2: more reps in every block.' },
+        { workoutId: 'w-cairn', partialKey: 'full', note: 'Rematch. Find the rung where you pass your week-1 self.' },
+        { workoutId: 'w-echo', partialKey: 'full', note: 'Final rematch. One minute further than week 1 and the plan is yours.' },
+      ],
+    ]),
+  },
 ];

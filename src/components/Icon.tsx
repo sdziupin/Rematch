@@ -34,7 +34,10 @@ export type IconName =
   | 'bolt'
   | 'flag'
   | 'info'
-  | 'keyboard';
+  | 'keyboard'
+  | 'heart'
+  | 'palette'
+  | 'sync';
 
 interface IconProps {
   name: IconName;
@@ -182,6 +185,17 @@ function renderIcon(name: IconName, p: StrokeProps, color: string) {
           <Path d="M12 11v5.5M12 7.5h.01" {...p} />
         </>
       );
+    case 'heart':
+      return <Path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.2a4.3 4.3 0 0 1 7.5 2.6C19.5 15.4 12 20 12 20z" {...p} />;
+    case 'palette':
+      return (
+        <>
+          <Path d="M12 3a9 9 0 1 0 0 18c1.4 0 2-1 1.6-2.1-.5-1.3.3-2.4 1.7-2.4H18a3 3 0 0 0 3-3C21 7.1 17 3 12 3z" {...p} />
+          <Path d="M7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01" {...p} />
+        </>
+      );
+    case 'sync':
+      return <Path d="M20 11a8 8 0 0 0-14.3-4.6M4 5v3.5h3.5M4 13a8 8 0 0 0 14.3 4.6M20 19v-3.5h-3.5" {...p} />;
     case 'keyboard':
       return (
         <>

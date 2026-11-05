@@ -1,0 +1,37 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Health Connect data types REMATCH uses (also listed in the Play Console health declaration). -->
+  <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
+  <uses-permission android:name="android.permission.health.WRITE_ACTIVE_CALORIES_BURNED" />
+  <uses-permission android:name="android.permission.health.READ_WEIGHT" />
+  <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+
+  <!-- Android 13 and lower: lets the app see (and talk to) the Health Connect app. -->
+  <queries>
+    <package android:name="com.google.android.apps.healthdata" />
+  </queries>
+
+  <application>
+    <!-- Health Connect only shows its permission dialog to apps that explain how they use the data.
+         Android 13 and lower open this activity through ACTION_SHOW_PERMISSIONS_RATIONALE... -->
+    <activity
+      android:name="expo.modules.rematchhealth.HealthPermissionsRationaleActivity"
+      android:exported="true"
+      android:theme="@android:style/Theme.Material.NoActionBar">
+      <intent-filter>
+        <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+      </intent-filter>
+    </activity>
+
+    <!-- ...and Android 14+ through VIEW_PERMISSION_USAGE in the HEALTH_PERMISSIONS category. -->
+    <activity-alias
+      android:name="expo.modules.rematchhealth.ViewPermissionUsageActivity"
+      android:exported="true"
+      android:permission="android.permission.START_VIEW_PERMISSION_USAGE"
+      android:targetActivity="expo.modules.rematchhealth.HealthPermissionsRationaleActivity">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+        <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+      </intent-filter>
+    </activity-alias>
+  </application>
+</manifest>

@@ -23,6 +23,10 @@ public class RematchHealthModule: Module {
       HKHealthStore.isHealthDataAvailable()
     }
 
+    Function("getAvailability") { () -> String in
+      HKHealthStore.isHealthDataAvailable() ? "available" : "unsupported"
+    }
+
     /// Only write access can be checked: HealthKit never says whether reading was allowed.
     Function("getAuthorizationStatus") { () -> String in
       self.workoutStatus()
@@ -40,6 +44,9 @@ public class RematchHealthModule: Module {
       var read: Set<HKObjectType> = []
       if let mass = HKQuantityType.quantityType(forIdentifier: .bodyMass) {
         read.insert(mass)
+      }
+      if let heartRate = HKQuantityType.quantityType(forIdentifier: .heartRate) {
+        read.insert(heartRate)
       }
       self.store.requestAuthorization(toShare: share, read: read) { _, error in
         if let error = error {
@@ -65,8 +72,23 @@ public class RematchHealthModule: Module {
       self.store.execute(query)
     }
 
+    /// Average, highest and lowest heart rate between two epoch-ms instants, or nil when there is no
+    /// data (HealthKit also reports "no data" when reading isn't allowed).
+    AsyncFunction("getHeartRate") { (start: Double, end: Double, promise: Promise) in
+      self.heartRate(from: start, to: end, promise: promise)
+    }
+
     AsyncFunction("saveWorkout") { (workout: WorkoutRecord, promise: Promise) in
       self.save(workout, promise: promise)
+    }
+
+    AsyncFunction("deleteWorkout") { (id: String, externalId: String, promise: Promise) in
+      self.deleteWorkout(id: id, externalId: externalId, promise: promise)
+    }
+
+    /// There is no public URL into the Health app's per-app settings; JavaScript opens the Health app itself.
+    AsyncFunction("openSettings") { () -> Bool in
+      false
     }
   }
 
@@ -82,13 +104,54 @@ public class RematchHealthModule: Module {
   private static func activityType(_ name: String) -> HKWorkoutActivityType {
     switch name {
     case "functionalStrength": return .functionalStrengthTraining
+    case "traditionalStrength": return .traditionalStrengthTraining
     case "coreTraining": return .coreTraining
     case "flexibility": return .flexibility
     case "mixedCardio": return .mixedCardio
     case "crossTraining": return .crossTraining
+    case "jumpRope": return .jumpRope
+    case "warmup": return .preparationAndRecovery
+    case "cooldown": return .cooldown
     default: return .highIntensityIntervalTraining
     }
   }
+
+  // MARK: - Heart rate
+
+  private func heartRate(from startMs: Double, to endMs: Double, promise: Promise) {
+    let start = Date(timeIntervalSince1970: startMs / 1000)
+    let end = Date(timeIntervalSince1970: endMs / 1000)
+    guard HKHealthStore.isHealthDataAvailable(),
+          end > start,
+          let heartRate = HKQuantityType.quantityType(forIdentifier: .heartRate) else {
+      promise.resolve(nil as [String: Int]?)
+      return
+    }
+    let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+    let query = HKStatisticsQuery(
+      quantityType: heartRate,
+      quantitySamplePredicate: predicate,
+      options: [.discreteAverage, .discreteMax, .discreteMin]
+    ) { _, statistics, _ in
+      // An error here means "no data" or "not allowed"; both read as nothing to show.
+      let bpm = HKUnit.count().unitDivided(by: .minute())
+      guard let statistics = statistics,
+            let average = statistics.averageQuantity()?.doubleValue(for: bpm),
+            let maximum = statistics.maximumQuantity()?.doubleValue(for: bpm),
+            let minimum = statistics.minimumQuantity()?.doubleValue(for: bpm) else {
+        promise.resolve(nil as [String: Int]?)
+        return
+      }
+      promise.resolve([
+        "avgBpm": Int(average.rounded()),
+        "maxBpm": Int(maximum.rounded()),
+        "minBpm": Int(minimum.rounded()),
+      ])
+    }
+    store.execute(query)
+  }
+
+  // MARK: - Saving
 
   private func save(_ workout: WorkoutRecord, promise: Promise) {
     guard HKHealthStore.isHealthDataAvailable() else {
@@ -101,7 +164,26 @@ public class RematchHealthModule: Module {
       promise.reject("ERR_HEALTH_RANGE", "A workout must end after it starts.")
       return
     }
+    guard !workout.externalId.isEmpty else {
+      build(workout, start: start, end: end, promise: promise)
+      return
+    }
+    // Saving is idempotent: JavaScript may hand over a session again (for example when it backfills after a
+    // restore), and HealthKit has no upsert, so a workout this app already saved for that session is reused.
+    queryWorkouts(matching: savedByThisApp(externalId: workout.externalId)) { existing, error in
+      if let error = error {
+        promise.reject("ERR_HEALTH_SAVE", error.localizedDescription)
+        return
+      }
+      if let saved = existing.first {
+        promise.resolve(saved.uuid.uuidString)
+        return
+      }
+      self.build(workout, start: start, end: end, promise: promise)
+    }
+  }
 
+  private func build(_ workout: WorkoutRecord, start: Date, end: Date, promise: Promise) {
     let configuration = HKWorkoutConfiguration()
     configuration.activityType = Self.activityType(workout.activity)
     configuration.locationType = .indoor
@@ -151,6 +233,100 @@ public class RematchHealthModule: Module {
             }
           }
         }
+      }
+    }
+  }
+
+  // MARK: - Deleting
+
+  /// Deletes the workout with this UUID or, failing that, every workout this app saved with this external id,
+  /// together with the energy samples that were saved with it.
+  private func deleteWorkout(id: String, externalId: String, promise: Promise) {
+    guard HKHealthStore.isHealthDataAvailable() else {
+      promise.resolve(false)
+      return
+    }
+    findWorkouts(id: id, externalId: externalId) { workouts, error in
+      if let error = error {
+        promise.reject("ERR_HEALTH_DELETE", error.localizedDescription)
+        return
+      }
+      guard !workouts.isEmpty else {
+        promise.resolve(false)
+        return
+      }
+      self.delete(workouts, promise: promise)
+    }
+  }
+
+  private func findWorkouts(id: String, externalId: String, completion: @escaping ([HKWorkout], Error?) -> Void) {
+    let byExternalId: () -> Void = {
+      guard !externalId.isEmpty else { return completion([], nil) }
+      self.queryWorkouts(matching: self.savedByThisApp(externalId: externalId), completion: completion)
+    }
+    guard let uuid = UUID(uuidString: id) else { return byExternalId() }
+    queryWorkouts(matching: HKQuery.predicateForObject(with: uuid)) { workouts, error in
+      if let error = error { return completion([], error) }
+      if workouts.isEmpty { byExternalId() } else { completion(workouts, nil) }
+    }
+  }
+
+  /// Workouts this app saved for one REMATCH session.
+  private func savedByThisApp(externalId: String) -> NSPredicate {
+    NSCompoundPredicate(andPredicateWithSubpredicates: [
+      HKQuery.predicateForObjects(withMetadataKey: HKMetadataKeyExternalUUID, allowedValues: [externalId]),
+      HKQuery.predicateForObjects(from: HKSource.default()),
+    ])
+  }
+
+  /// With write-only access HealthKit still returns the workouts this app saved itself.
+  private func queryWorkouts(matching predicate: NSPredicate, completion: @escaping ([HKWorkout], Error?) -> Void) {
+    let query = HKSampleQuery(
+      sampleType: HKObjectType.workoutType(),
+      predicate: predicate,
+      limit: HKObjectQueryNoLimit,
+      sortDescriptors: nil
+    ) { _, samples, error in
+      completion(samples?.compactMap { $0 as? HKWorkout } ?? [], error)
+    }
+    store.execute(query)
+  }
+
+  /// Deletes the workouts one after another; resolves true after the last one, rejects on the first failure.
+  private func delete(_ workouts: [HKWorkout], promise: Promise) {
+    guard let workout = workouts.first else {
+      promise.resolve(true)
+      return
+    }
+    let rest = Array(workouts.dropFirst())
+    deleteEnergy(of: workout) { error in
+      if let error = error {
+        promise.reject("ERR_HEALTH_DELETE", error.localizedDescription)
+        return
+      }
+      self.store.delete(workout) { ok, error in
+        guard ok else {
+          promise.reject("ERR_HEALTH_DELETE", error?.localizedDescription ?? "The workout could not be deleted.")
+          return
+        }
+        self.delete(rest, promise: promise)
+      }
+    }
+  }
+
+  /// Deleting a workout leaves its samples behind, so the energy saved with it goes first.
+  /// Energy is only ever saved while sharing it is authorized, so without that there is nothing of ours to delete.
+  private func deleteEnergy(of workout: HKWorkout, completion: @escaping (Error?) -> Void) {
+    guard let energy = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned),
+          store.authorizationStatus(for: energy) == .sharingAuthorized else {
+      completion(nil)
+      return
+    }
+    store.deleteObjects(of: energy, predicate: HKQuery.predicateForObjects(from: workout)) { _, _, error in
+      if let error = error, (error as? HKError)?.code != .errorNoData {
+        completion(error)
+      } else {
+        completion(nil)
       }
     }
   }

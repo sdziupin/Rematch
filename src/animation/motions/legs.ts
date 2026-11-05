@@ -222,7 +222,9 @@ const bridgeBody = (hipY: number, extra: Partial<Body> = {}): Body => {
     ...extra,
   };
 };
-const gluteBridge = animate('side', 2200, [key(0, bridgeBody(SEAT)), key(0.45, bridgeBody(77)), key(0.6, bridgeBody(77))], {
+/** Top of a bridge: shoulders, hips and knees close to one line (about 35° off the floor). */
+const BRIDGE_TOP = 74;
+const gluteBridge = animate('side', 2200, [key(0, bridgeBody(SEAT)), key(0.45, bridgeBody(BRIDGE_TOP)), key(0.6, bridgeBody(BRIDGE_TOP))], {
   props: [{ kind: 'mat' }],
   thumbT: 0.5,
 });
@@ -233,8 +235,8 @@ const singleLegBridge = animate(
   2400,
   [
     key(0, bridgeBody(SEAT, { legR: legRel(slbTorso(SEAT), 42), footR: 150 })),
-    key(0.45, bridgeBody(77, { legR: legRel(slbTorso(77), 4), footR: 175 })),
-    key(0.6, bridgeBody(77, { legR: legRel(slbTorso(77), 4), footR: 175 })),
+    key(0.45, bridgeBody(BRIDGE_TOP, { legR: legRel(slbTorso(BRIDGE_TOP), 4), footR: 175 })),
+    key(0.6, bridgeBody(BRIDGE_TOP, { legR: legRel(slbTorso(BRIDGE_TOP), 4), footR: 175 })),
   ],
   { props: [{ kind: 'mat' }], thumbT: 0.5 },
 );

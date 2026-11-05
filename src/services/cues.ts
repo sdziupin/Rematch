@@ -56,13 +56,14 @@ export function releaseAudio() {
   players = {};
 }
 
-export type HapticKind = 'light' | 'medium' | 'heavy' | 'success' | 'warning';
+export type HapticKind = 'selection' | 'light' | 'medium' | 'heavy' | 'success' | 'warning';
 
 export function haptic(kind: HapticKind = 'light') {
   if (!useSettings.getState().haptics) return;
   try {
     let p: Promise<void>;
-    if (kind === 'success') p = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (kind === 'selection') p = Haptics.selectionAsync();
+    else if (kind === 'success') p = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     else if (kind === 'warning') p = Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     else p = Haptics.impactAsync(kind === 'heavy' ? Haptics.ImpactFeedbackStyle.Heavy : kind === 'medium' ? Haptics.ImpactFeedbackStyle.Medium : Haptics.ImpactFeedbackStyle.Light);
     void p.catch(() => undefined);

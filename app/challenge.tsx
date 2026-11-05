@@ -11,11 +11,12 @@ import type { WorkoutStructure } from '../src/domain/types';
 import { formatLabel } from '../src/engine/workoutEngine';
 import { difficultyLabel, focusLabel, recommendWorkout } from '../src/services/recommendationService';
 import { getRecentWorkoutIds, getWorkoutStatsMap, hadPainRecently } from '../src/services/sessionService';
-import { colors, spacing, typography } from '../src/theme';
+import { colors, spacing, typography, makeStyles } from '../src/theme';
 
 const DURATIONS = [5, 10, 15, 20, 30] as const;
 
 export default function ChallengeScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const params = useLocalSearchParams<{ minutes?: string }>();
   const initial = (DURATIONS as readonly number[]).includes(Number(params.minutes)) ? (Number(params.minutes) as (typeof DURATIONS)[number]) : 15;
@@ -74,7 +75,7 @@ export default function ChallengeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   actions: { gap: spacing.sm + 2, marginTop: spacing.lg },
   note: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.lg },
-});
+}));

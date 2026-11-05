@@ -1,5 +1,8 @@
 import { create } from 'zustand';
 import type { Profile } from '../db/repository';
+import type { AccentId, Appearance } from '../theme/colors';
+
+export type DefaultOpponent = 'best' | 'last';
 
 export interface Settings {
   haptics: boolean;
@@ -14,6 +17,15 @@ export interface Settings {
   restAlerts: boolean;
   reminders: boolean;
   reminderHour: number;
+  /** Look and feel (device-only). */
+  appearance: Appearance;
+  accent: AccentId;
+  /** Who the main "Rematch" button races when both a best and a last attempt exist. */
+  defaultOpponent: DefaultOpponent;
+  /** Show the animated demo of the current movement during a workout. */
+  liveDemos: boolean;
+  /** Seconds added by the "more rest" button. */
+  restStepSec: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -28,6 +40,11 @@ export const DEFAULT_SETTINGS: Settings = {
   restAlerts: false,
   reminders: false,
   reminderHour: 18,
+  appearance: 'dark',
+  accent: 'volt',
+  defaultOpponent: 'best',
+  liveDemos: true,
+  restStepSec: 15,
 };
 
 interface SettingsStore extends Settings {

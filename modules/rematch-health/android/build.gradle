@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.rematchhealth'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.rematchhealth"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Latest stable Health Connect client. It needs minSdk 26: plugins/withHealthConnect.js raises the app's minSdk.
+  implementation 'androidx.health.connect:connect-client:1.1.0'
+  // Same version expo-modules-core exposes; declared because this module uses Dispatchers.Main directly.
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2'
+}

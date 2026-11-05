@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, typography } from '../theme';
+import Animated, { Easing, ReduceMotion, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { colors, typography, makeStyles } from '../theme';
 import { formatDelta, formatRepDelta } from '../domain/utils';
 
 interface RaceRailsProps {
@@ -12,6 +13,7 @@ interface RaceRailsProps {
 
 /** Two lanes: you in the signal colour, past you as a quiet outline. */
 export function RaceRails({ youProgress, opponentProgress, youLabel = 'You', opponentLabel = 'Past you' }: RaceRailsProps) {
+  const styles = useStyles();
   return (
     <View style={styles.wrap} accessibilityLabel={`${youLabel} ${Math.round(youProgress * 100)} percent, ${opponentLabel} ${Math.round(opponentProgress * 100)} percent`}>
       <Rail label={youLabel} progress={youProgress} color={colors.accent} />
@@ -21,21 +23,30 @@ export function RaceRails({ youProgress, opponentProgress, youLabel = 'You', opp
 }
 
 function Rail({ label, progress, color, ghost }: { label: string; progress: number; color: string; ghost?: boolean }) {
-  const pct = Math.max(0, Math.min(1, progress)) * 100;
+  const styles = useStyles();
+  const p = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
+  const v = useSharedValue(p);
+  useEffect(() => {
+    // Glide across the tick interval so both lanes move continuously, not in 200 ms steps.
+    v.value = withTiming(p, { duration: 260, easing: Easing.linear, reduceMotion: ReduceMotion.System });
+  }, [p, v]);
+  const fill = useAnimatedStyle(() => ({ width: `${v.value * 100}%` }));
+  const marker = useAnimatedStyle(() => ({ left: `${v.value * 100}%` }));
   return (
     <View style={styles.railRow}>
       <Text style={[styles.railLabel, !ghost && { color: colors.text }]} numberOfLines={1}>
         {label}
       </Text>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${pct}%`, backgroundColor: ghost ? colors.borderStrong : color }]} />
-        <View style={[styles.marker, { left: `${pct}%`, backgroundColor: ghost ? colors.background : color, borderColor: color }]} />
+        <Animated.View style={[styles.fill, { backgroundColor: ghost ? colors.borderStrong : color }, fill]} />
+        <Animated.View style={[styles.marker, { backgroundColor: ghost ? colors.background : color, borderColor: color }, marker]} />
       </View>
     </View>
   );
 }
 
 export function CheckpointBreakdown({ items, unit = 'time' }: { items: { label: string; deltaMs: number; repDelta?: number }[]; unit?: 'time' | 'reps' }) {
+  const styles = useStyles();
   const values = items.map((item) => (unit === 'reps' ? item.repDelta ?? 0 : item.deltaMs));
   const max = Math.max(1, ...values.map((v) => Math.abs(v)));
   return (
@@ -58,7 +69,7 @@ export function CheckpointBreakdown({ items, unit = 'time' }: { items: { label: 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   wrap: { gap: 10 },
   railRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   railLabel: { ...typography.callout, color: colors.textMuted, width: 64 },
@@ -71,4 +82,4 @@ const styles = StyleSheet.create({
   deltaTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.surfaceRaised, overflow: 'hidden' },
   deltaBar: { height: 4, borderRadius: 2, opacity: 0.85 },
   rowDelta: { ...typography.figure, minWidth: 72, textAlign: 'right' },
-});
+}));
