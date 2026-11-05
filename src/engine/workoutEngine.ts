@@ -25,6 +25,21 @@ const DEFAULT_AMRAP_SEC = 600;
 const DEFAULT_EMOM_WINDOW_SEC = 60;
 const MAX_OPEN_REPS = 9999;
 
+/** The classic protocol: 8 × 20 s on / 10 s off for each movement, a minute between movements. */
+export const TABATA_DEFAULTS = { workSec: 20, restSec: 10, intervals: 8, blockRestSec: 60 } as const;
+/** "Death by": minute N asks for N × the base reps; it ends the first time a minute beats you. */
+export const DEATH_BY_DEFAULTS = { windowSec: 60, maxWindows: 20 } as const;
+
+/** Formats whose rounds are minute windows: finish early and the rest of the window is rest. */
+export function isWindowed(format: WorkoutFormat): boolean {
+  return format === 'emom' || format === 'death_by';
+}
+
+/** Formats whose work is on the clock: a fixed time per interval, max reps counted. */
+export function isTimedIntervals(format: WorkoutFormat): boolean {
+  return format === 'intervals' || format === 'tabata';
+}
+
 export type CheckpointKind = 'step' | 'round' | 'cap';
 
 export type EngineEvent =
@@ -41,11 +56,11 @@ export interface EngineResult {
 }
 
 export function scoringFor(format: WorkoutFormat): ScoreType {
-  return format === 'amrap' || format === 'intervals' || format === 'emom' ? 'reps' : 'time';
+  return format === 'amrap' || format === 'intervals' || format === 'emom' || format === 'tabata' || format === 'death_by' ? 'reps' : 'time';
 }
 
 export function raceModeFor(format: WorkoutFormat): RaceMode {
-  return format === 'intervals' || format === 'emom' ? 'volume' : 'pace';
+  return format === 'intervals' || format === 'emom' || format === 'tabata' || format === 'death_by' ? 'volume' : 'pace';
 }
 
 export function formatLabel(format: WorkoutFormat): string {
@@ -62,6 +77,41 @@ export function formatLabel(format: WorkoutFormat): string {
       return 'AMRAP';
     case 'emom':
       return 'EMOM';
+    case 'tabata':
+      return 'Tabata';
+    case 'death_by':
+      return 'Death by';
+  }
+}
+
+/** The label for a specific structure: an EMOM on two-minute windows is an E2MOM. */
+export function structureLabel(structure: WorkoutStructure): string {
+  if (structure.format === 'emom') {
+    const w = structure.intervalWorkSec ?? DEFAULT_EMOM_WINDOW_SEC;
+    if (w !== 60 && w % 60 === 0) return `E${w / 60}MOM`;
+  }
+  return formatLabel(structure.format);
+}
+
+/** One-line explanation of a format, for pickers and filters. */
+export function formatBlurb(format: WorkoutFormat): string {
+  switch (format) {
+    case 'fixed_rounds':
+      return 'The same round several times, as fast as you can.';
+    case 'chipper':
+      return 'One long list, worked through once, for time.';
+    case 'ladder':
+      return 'Reps climb (or climb and fall) rung by rung, for time.';
+    case 'intervals':
+      return 'Fixed work and rest; count your reps in every interval.';
+    case 'amrap':
+      return 'As many rounds as possible before the clock runs out.';
+    case 'emom':
+      return 'A set at the top of every window; what you save is rest.';
+    case 'tabata':
+      return '8 × 20 s all-out, 10 s rest, for each movement.';
+    case 'death_by':
+      return 'Minute one: one rep. Minute two: two. Until a minute beats you.';
   }
 }
 
@@ -100,6 +150,46 @@ export function buildRounds(structure: WorkoutStructure, swaps: Record<string, s
     });
   }
 
+  if (structure.format === 'tabata') {
+    // One block per movement, in order: N intervals of the same movement, short rests
+    // inside the block and a longer one before the next movement.
+    const steps = structure.rounds.flatMap((r) => r.steps);
+    if (steps.length === 0) return [];
+    const per = Math.max(1, structure.intervalRounds ?? TABATA_DEFAULTS.intervals);
+    const work = structure.intervalWorkSec ?? TABATA_DEFAULTS.workSec;
+    const rest = structure.intervalRestSec ?? TABATA_DEFAULTS.restSec;
+    const blockRest = structure.restBetweenRoundsSec ?? TABATA_DEFAULTS.blockRestSec;
+    const out: SessionRoundState[] = [];
+    steps.forEach((step, b) => {
+      for (let i = 0; i < per; i++) {
+        const lastInBlock = i === per - 1;
+        const lastOverall = lastInBlock && b === steps.length - 1;
+        out.push({
+          roundNumber: out.length + 1,
+          completed: false,
+          restAfterSec: lastOverall ? 0 : lastInBlock ? blockRest : rest,
+          exercises: [toExercise(step, swaps, { durationSec: work, targetReps: 0 })],
+        });
+      }
+    });
+    return out;
+  }
+
+  if (structure.format === 'death_by') {
+    // Window N asks for N × each movement's base reps.
+    const steps = structure.rounds.flatMap((r) => r.steps).filter((s) => (s.reps ?? 0) > 0);
+    if (steps.length === 0) return [];
+    const count = Math.max(1, structure.intervalRounds ?? DEATH_BY_DEFAULTS.maxWindows);
+    const windowSec = structure.intervalWorkSec ?? DEATH_BY_DEFAULTS.windowSec;
+    return Array.from({ length: count }, (_, i) => ({
+      roundNumber: i + 1,
+      completed: false,
+      windowSec,
+      restAfterSec: 0,
+      exercises: steps.map((s) => toExercise(s, swaps, { targetReps: (s.reps ?? 1) * (i + 1) })),
+    }));
+  }
+
   if (structure.format === 'emom') {
     const templates = structure.rounds.filter((r) => r.steps.length > 0);
     if (templates.length === 0) return [];
@@ -125,8 +215,8 @@ export function buildRounds(structure: WorkoutStructure, swaps: Record<string, s
 
 function timeCapFor(structure: WorkoutStructure): number | null {
   if (structure.format === 'amrap') return (structure.timeCapSec ?? DEFAULT_AMRAP_SEC) * 1000;
-  // EMOM ends with its last window; intervals end with their last interval.
-  if (structure.format === 'emom' || structure.format === 'intervals') return null;
+  // Windowed formats end with their last window (or, Death by, a missed one); intervals end with their last interval.
+  if (isWindowed(structure.format) || isTimedIntervals(structure.format)) return null;
   return structure.timeCapSec ? structure.timeCapSec * 1000 : null;
 }
 
@@ -309,10 +399,16 @@ function stepStarted(state: ActiveWorkoutState, atMs: number): EngineEvent {
   };
 }
 
+/** What one round of a format is called: "Round", "Minute", "Interval"… */
+export function roundNoun(structure: WorkoutStructure): string {
+  if (isTimedIntervals(structure.format)) return 'Interval';
+  if (isWindowed(structure.format)) return (structure.intervalWorkSec ?? DEFAULT_EMOM_WINDOW_SEC) === 60 ? 'Minute' : 'Set';
+  if (structure.format === 'ladder') return 'Rung';
+  return 'Round';
+}
+
 function roundLabel(state: ActiveWorkoutState, n: number): string {
-  if (state.structure.format === 'intervals') return `Interval ${n}`;
-  if (state.structure.format === 'emom') return `Minute ${n}`;
-  return `Round ${n}`;
+  return `${roundNoun(state.structure)} ${n}`;
 }
 
 export function startWorkout(state: ActiveWorkoutState, atMs = 0): EngineResult {
@@ -470,7 +566,10 @@ function endAtCap(state: ActiveWorkoutState, capMs: number, events: EngineEvent[
   return { ...s, phase: 'completed', endedBy: 'time_cap', restEndsAtMs: null };
 }
 
-/** EMOM: the minute ran out before the round was finished. Partial reps count. */
+/**
+ * EMOM: the minute ran out before the round was finished. Partial reps count and the
+ * next minute starts. Death by: a missed minute is the end of the workout.
+ */
 function expireWindow(state: ActiveWorkoutState, windowEnd: number, events: EngineEvent[]): ActiveWorkoutState {
   const round = state.rounds[state.currentRoundIndex];
   const partial = round.exercises.reduce((sum, e) => sum + (e.done ? 0 : e.completedReps), 0);
@@ -487,6 +586,13 @@ function expireWindow(state: ActiveWorkoutState, windowEnd: number, events: Engi
     roundsCompleted: (s.roundsCompleted ?? 0) + 1,
     rounds: s.rounds.map((r, i) => (i === s.currentRoundIndex ? { ...r, completed: true } : r)),
   };
+  if (s.structure.format === 'death_by') {
+    // The failed minute is not a completed round: only its partial reps count.
+    s = { ...s, roundsCompleted: Math.max(0, (s.roundsCompleted ?? 1) - 1) };
+    events.push({ type: 'Checkpoint', atMs: windowEnd, kind: 'round', key: `round-${roundNo}`, label: roundLabel(s, roundNo), reps: s.totalReps ?? 0 });
+    events.push({ type: 'WorkoutCompleted', atMs: windowEnd, reason: 'finished' });
+    return { ...s, phase: 'completed', endedBy: 'finished' };
+  }
   events.push({ type: 'Checkpoint', atMs: windowEnd, kind: 'round', key: `round-${roundNo}`, label: roundLabel(s, roundNo), reps: s.totalReps ?? 0 });
   if (s.currentRoundIndex >= s.rounds.length - 1) {
     events.push({ type: 'WorkoutCompleted', atMs: windowEnd, reason: 'finished' });
@@ -554,13 +660,13 @@ export function tick(state: ActiveWorkoutState, atMs: number): EngineResult {
 export function skipRest(state: ActiveWorkoutState, atMs: number): EngineResult {
   const due = tick(state, atMs);
   if (due.events.length > 0) return due;
-  if (state.phase !== 'rest' || state.structure.format === 'emom') return { state, events: [] };
+  if (state.phase !== 'rest' || isWindowed(state.structure.format)) return { state, events: [] };
   const events: EngineEvent[] = [{ type: 'RestEnded', atMs, skipped: true }];
   return { state: beginNextRound(state, atMs, events), events };
 }
 
 export function extendRest(state: ActiveWorkoutState, seconds: number): ActiveWorkoutState {
-  if (state.phase !== 'rest' || state.restEndsAtMs == null || state.structure.format === 'emom') return state;
+  if (state.phase !== 'rest' || state.restEndsAtMs == null || isWindowed(state.structure.format)) return state;
   return { ...state, restEndsAtMs: state.restEndsAtMs + seconds * 1000 };
 }
 
@@ -616,7 +722,21 @@ export function describeStructure(structure: WorkoutStructure): string {
       return `As many rounds as possible in ${Math.round((structure.timeCapSec ?? DEFAULT_AMRAP_SEC) / 60)} min`;
     case 'emom': {
       const n = structure.intervalRounds ?? structure.rounds.length;
-      return `Every minute on the minute for ${n} min`;
+      const w = structure.intervalWorkSec ?? DEFAULT_EMOM_WINDOW_SEC;
+      if (w === 60) return `Every minute on the minute for ${n} min`;
+      return w % 60 === 0 ? `Every ${w / 60} min for ${Math.round((n * w) / 60)} min` : `Every ${w}s, ${n} sets`;
+    }
+    case 'tabata': {
+      const moves = structure.rounds.flatMap((r) => r.steps).length;
+      const per = structure.intervalRounds ?? TABATA_DEFAULTS.intervals;
+      const work = structure.intervalWorkSec ?? TABATA_DEFAULTS.workSec;
+      const rest = structure.intervalRestSec ?? TABATA_DEFAULTS.restSec;
+      return `${moves} Tabata${moves === 1 ? '' : 's'}: ${per} × ${work}s on / ${rest}s off`;
+    }
+    case 'death_by': {
+      const w = structure.intervalWorkSec ?? DEATH_BY_DEFAULTS.windowSec;
+      const unit = w === 60 ? 'minute' : `${w}s window`;
+      return `One more rep every ${unit}, until you miss one (max ${structure.intervalRounds ?? DEATH_BY_DEFAULTS.maxWindows})`;
     }
     case 'intervals': {
       const n = structure.intervalRounds ?? structure.rounds.flatMap((r) => r.steps).length;
@@ -640,6 +760,16 @@ export function estimateStructureMinutes(structure: WorkoutStructure, secondsPer
   if (structure.format === 'amrap') return Math.round((timeCapFor(structure) ?? 0) / 60000);
   if (structure.format === 'emom') {
     return Math.round(rounds.reduce((sum, r) => sum + (r.windowSec ?? DEFAULT_EMOM_WINDOW_SEC), 0) / 60);
+  }
+  if (structure.format === 'death_by') {
+    // Lasts until the work no longer fits in the window (about two thirds of it, tired).
+    let windows = 0;
+    for (const r of rounds) {
+      const work = r.exercises.reduce((sum, e) => sum + e.targetReps * secondsPerRep, 0);
+      if (work > (r.windowSec ?? DEFAULT_EMOM_WINDOW_SEC) * 0.85) break;
+      windows += 1;
+    }
+    return Math.max(1, Math.round(((windows + 1) * (rounds[0]?.windowSec ?? DEFAULT_EMOM_WINDOW_SEC)) / 60));
   }
   let sec = 0;
   for (const r of rounds) {

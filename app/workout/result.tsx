@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Platform, StyleSheet, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { Keyframe, ReduceMotion } from 'react-native-reanimated';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Button } from '../../src/components/Button';
 import { CheckpointBreakdown } from '../../src/components/RaceRails';
 import { confirmAction, showToast } from '../../src/components/Dialogs';
 import { Card, Chip, EmptyState, Pill, Screen, ScreenHeader, Stat } from '../../src/components/ui';
+import { Burst, EASE_OUT, Rise, nativeKeyframe, useCountUp } from '../../src/components/motion';
 import { compareScores } from '../../src/domain/rematch';
 import { SCALING_LABELS } from '../../src/domain/scaling';
 import type { ScalingCategory } from '../../src/domain/types';
@@ -12,8 +14,22 @@ import { formatDelta, formatDuration, formatRepDelta, formatScore, relativeDay }
 import { useLayout } from '../../src/hooks/useLayout';
 import { getActiveProgram } from '../../src/services/programService';
 import { deleteSession, getResultSummary, saveFeedback, toScore, type ResultSummary } from '../../src/services/sessionService';
+import { HEALTH_PROVIDER, getSessionHeartRate, removeSessionFromHealth, type HeartRateSummary } from '../../src/services/healthService';
+import { Icon } from '../../src/components/Icon';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, fonts, radius, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, elevation, fonts, radius, spacing, typography, withAlpha, makeStyles } from '../../src/theme';
+
+/** The score card lands with a firm settle, not a bounce. */
+const SCORE_ENTER = nativeKeyframe(
+  new Keyframe({
+    0: { opacity: 0, transform: [{ scale: 0.92 }, { translateY: 14 }] },
+    60: { opacity: 1, transform: [{ scale: 1.012 }, { translateY: 0 }], easing: EASE_OUT },
+    100: { opacity: 1, transform: [{ scale: 1 }, { translateY: 0 }] },
+  })
+    .duration(560)
+    .reduceMotion(ReduceMotion.System),
+  320,
+);
 
 const INTENSITY = [
   { key: 'too_easy', label: 'Too easy' },
@@ -22,6 +38,7 @@ const INTENSITY = [
 ] as const;
 
 export default function ResultScreen() {
+  const styles = useStyles();
   const { sessionId, fresh } = useLocalSearchParams<{ sessionId: string; fresh?: string }>();
   const router = useRouter();
   const { isWide } = useLayout();
@@ -31,7 +48,7 @@ export default function ResultScreen() {
   const [pain, setPain] = useState(false);
   const [note, setNote] = useState('');
   const [programNote, setProgramNote] = useState<string | null>(null);
-  const scale = useRef(new Animated.Value(fresh ? 0.6 : 1)).current;
+  const [heart, setHeart] = useState<HeartRateSummary | null>(null);
   const isFresh = fresh === '1';
 
   const load = useCallback(async () => {
@@ -57,10 +74,22 @@ export default function ResultScreen() {
     void load();
   }, [load]);
 
+  // Heart rate from a watch or band, via the health store. A watch can take a little
+  // while to hand its samples over, so a fresh result asks once more.
   useEffect(() => {
-    if (!isFresh) return;
-    Animated.spring(scale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: Platform.OS !== 'web' }).start();
-  }, [isFresh, scale]);
+    if (!sessionId) return;
+    let alive = true;
+    const read = () => getSessionHeartRate(sessionId).then((h) => alive && h && setHeart(h)).catch(() => undefined);
+    void read();
+    const retry = isFresh ? setTimeout(read, 20_000) : null;
+    return () => {
+      alive = false;
+      if (retry) clearTimeout(retry);
+    };
+  }, [sessionId, isFresh]);
+
+  const target = summary ? (summary.result.scoreType === 'reps' ? summary.result.scoreReps ?? 0 : summary.result.completionMs) : 0;
+  const counted = useCountUp(target, { enabled: isFresh && !!summary && !summary.result.isAbandoned, durationMs: 950 });
 
   if (missing) {
     return (
@@ -102,7 +131,9 @@ export default function ResultScreen() {
     tone = colors.behind;
   }
 
-  const scoreMain = reps ? `${result.scoreReps ?? 0}` : formatDuration(result.completionMs);
+  // Fresh results count up to the score; the final value is always the exact one.
+  const shown = counted === target ? target : counted;
+  const scoreMain = reps ? `${Math.round(shown)}` : formatDuration(counted === target ? result.completionMs : Math.round(shown / 1000) * 1000);
   const scoreUnit = reps ? 'reps' : '';
   const versus = comparison
     ? reps
@@ -131,6 +162,7 @@ export default function ResultScreen() {
     });
     if (!ok) return;
     await deleteSession(result.sessionId);
+    void removeSessionFromHealth(result.sessionId);
     useSettings.getState().touch();
     showToast('Result deleted');
     if (router.canGoBack()) router.back();
@@ -143,7 +175,8 @@ export default function ResultScreen() {
   };
 
   const score = (
-    <Animated.View style={[styles.scoreCard, { transform: [{ scale }] }]}>
+    <Animated.View style={[styles.scoreCard, tone !== colors.textSecondary && tone !== colors.textMuted && { borderColor: withAlpha(tone, 0.28) }]} entering={isFresh ? SCORE_ENTER : undefined}>
+      {isFresh && isPb && !abandoned && <Burst colors={[colors.pb, colors.accent, colors.text, colors.rest]} />}
       <View style={[styles.headlinePill, { backgroundColor: withAlpha(tone, 0.12) }]}>
         <View style={[styles.headlineDot, { backgroundColor: tone }]} />
         <Text style={[styles.headline, { color: tone }]} accessibilityRole="header">
@@ -220,10 +253,26 @@ export default function ResultScreen() {
         placeholder="Add a note (pacing, how the burpees felt…)"
         placeholderTextColor={colors.textMuted}
         style={styles.noteInput}
+        keyboardAppearance={colors.scheme}
+        selectionColor={colors.accent}
         multiline
         maxLength={400}
         accessibilityLabel="Session note"
       />
+    </Card>
+  );
+
+  const heartCard = heart && (
+    <Card style={styles.heartCard}>
+      <View style={styles.heartIcon}>
+        <Icon name="heart" size={18} color={colors.behind} strokeWidth={2} />
+      </View>
+      <View style={styles.flexRow}>
+        <Stat label="Avg heart rate" value={`${heart.avgBpm}`} small />
+        <Stat label="Peak" value={`${heart.maxBpm}`} small color={colors.behind} />
+        <Stat label="Low" value={`${heart.minBpm}`} small />
+      </View>
+      <Text style={styles.heartSource}>bpm · {HEALTH_PROVIDER}</Text>
     </Card>
   );
 
@@ -261,30 +310,33 @@ export default function ResultScreen() {
             {splits}
           </View>
           <View style={styles.side}>
-            {stats}
-            {feedback}
-            {actions}
+            {[heartCard, stats, feedback, actions].filter(Boolean).map((block, i) => (
+              <Rise key={i} index={isFresh ? i + 2 : 0}>
+                {block}
+              </Rise>
+            ))}
           </View>
         </View>
       ) : (
         <View style={styles.stack}>
           {score}
-          {splits}
-          {stats}
-          {feedback}
-          {actions}
+          {[splits, heartCard, stats, feedback, actions].filter(Boolean).map((block, i) => (
+            <Rise key={i} index={isFresh ? i + 3 : 0}>
+              {block}
+            </Rise>
+          ))}
         </View>
       )}
     </Screen>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1, gap: spacing.sm + 4 },
   stack: { gap: spacing.sm + 4, paddingTop: spacing.md },
   columns: { flexDirection: 'row', gap: spacing.xl, alignItems: 'flex-start', paddingTop: spacing.md },
   side: { width: 380, gap: spacing.sm + 4 },
-  scoreCard: { backgroundColor: colors.surface, borderRadius: radius.xl + 6, borderWidth: 1, borderColor: colors.border, paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, alignItems: 'center', gap: spacing.sm, overflow: 'hidden' },
+  scoreCard: { backgroundColor: colors.surface, borderRadius: radius.xl + 6, borderWidth: 1, borderColor: colors.border, paddingVertical: spacing.xl, paddingHorizontal: spacing.lg, alignItems: 'center', gap: spacing.sm, overflow: 'hidden', ...elevation(2) },
   headlinePill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: radius.full },
   headlineDot: { width: 6, height: 6, borderRadius: 3 },
   headline: { ...typography.callout, fontFamily: fonts.semibold },
@@ -303,5 +355,9 @@ const styles = StyleSheet.create({
   splitValue: { ...typography.figure, color: colors.text },
   splitTotal: { ...typography.caption, color: colors.textMuted },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  heartCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, flexWrap: 'wrap' },
+  heartIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: withAlpha(colors.behind, 0.12) },
+  flexRow: { flex: 1, flexDirection: 'row', justifyContent: 'space-between', gap: spacing.md, minWidth: 200 },
+  heartSource: { ...typography.caption, color: colors.textMuted, width: '100%', marginTop: -spacing.xs },
   actions: { gap: spacing.sm + 2 },
-});
+}));

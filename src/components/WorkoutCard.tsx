@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, fonts, radius, spacing, typography } from '../theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../theme';
 import { formatDuration, formatScore } from '../domain/utils';
 import { Pill, WorkoutMark } from './ui';
 import { Icon } from './Icon';
@@ -30,6 +30,7 @@ type Hoverable = { hovered?: boolean; pressed: boolean };
 
 /** The featured "next challenge" card. */
 export function WorkoutHeroCard({ name, meta, duration, pb, last, color, onPress, badge, format, description }: WorkoutCardProps) {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -87,6 +88,7 @@ interface WorkoutTileProps {
 
 /** Compact list row for a workout. */
 export function WorkoutTile({ name, color, meta, format, pb, attempts, onPress, tag }: WorkoutTileProps) {
+  const styles = useStyles();
   return (
     <Pressable
       onPress={onPress}
@@ -119,7 +121,7 @@ export function WorkoutTile({ name, color, meta, format, pb, attempts, onPress, 
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   fill: { flex: 1 },
   pressed: { opacity: 0.8 },
   hero: { backgroundColor: colors.surface, borderRadius: radius.xl + 4, padding: spacing.lg - 2, borderWidth: 1, borderColor: colors.border, gap: spacing.lg },
@@ -153,4 +155,4 @@ const styles = StyleSheet.create({
   tilePb: { alignItems: 'flex-end', gap: 1 },
   tilePbLabel: { ...typography.overline, fontSize: 9.5, color: colors.textMuted },
   tilePbValue: { ...typography.figure, color: colors.pb },
-});
+}));

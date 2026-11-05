@@ -5,7 +5,7 @@
     "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "scheme": "rematch",
     "ios": {
       "supportsTablet": false,
@@ -15,7 +15,7 @@
       },
       "appleTeamId": "5K9D77KS36",
       "infoPlist": {
-        "NSHealthShareUsageDescription": "REMATCH reads your body weight to estimate the calories of each workout it saves.",
+        "NSHealthShareUsageDescription": "REMATCH reads your body weight to estimate the calories of each workout it saves, and your heart rate during a workout to show it on the result.",
         "NSHealthUpdateUsageDescription": "REMATCH saves your finished workouts to Apple Health, so they count in Fitness alongside everything else."
       },
       "entitlements": {
@@ -85,7 +85,8 @@
             }
           ]
         }
-      ]
+      ],
+      "./plugins/withHealthConnect"
     ],
     "description": "A benchmark fitness app where your past performance becomes a live opponent."
   }

@@ -1,9 +1,27 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Platform, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeInDown, FadeOutDown, Keyframe, ReduceMotion } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
-import { colors, radius, spacing, typography } from '../theme';
+import { colors, elevation, radius, spacing, typography, makeStyles } from '../theme';
 import { Button } from './Button';
+import { EASE_OUT, SPRING, nativeKeyframe } from './motion';
+
+const DIALOG_ENTER = nativeKeyframe(
+  new Keyframe({
+    0: { opacity: 0, transform: [{ scale: 0.95 }, { translateY: 8 }] },
+    100: { opacity: 1, transform: [{ scale: 1 }, { translateY: 0 }], easing: EASE_OUT },
+  })
+    .duration(240)
+    .reduceMotion(ReduceMotion.System),
+  160,
+);
+
+const TOAST_ENTER =
+  Platform.OS === 'web'
+    ? FadeInDown.duration(220).reduceMotion(ReduceMotion.System)
+    : FadeInDown.springify().damping(SPRING.damping).stiffness(SPRING.stiffness).mass(SPRING.mass).withInitialValues({ opacity: 0, transform: [{ translateY: 16 }] }).reduceMotion(ReduceMotion.System);
+const TOAST_EXIT = FadeOutDown.duration(180).reduceMotion(ReduceMotion.System);
 
 /**
  * App-wide confirm dialog and toast. React Native's `Alert.alert` with buttons
@@ -52,6 +70,7 @@ export function showToast(message: string, options: { tone?: ToastState['tone'];
 }
 
 function ConfirmModal() {
+  const styles = useStyles();
   const request = useDialogStore((s) => s.confirm);
   const close = (ok: boolean) => {
     request?.resolve(ok);
@@ -60,6 +79,7 @@ function ConfirmModal() {
   return (
     <Modal visible={!!request} transparent animationType="fade" onRequestClose={() => close(false)}>
       <Pressable style={styles.backdrop} onPress={() => close(false)} accessibilityLabel="Dismiss">
+        <Animated.View entering={DIALOG_ENTER} style={styles.dialogWrap}>
         <Pressable style={styles.dialog} onPress={() => undefined} accessibilityViewIsModal>
           <Text style={styles.title} accessibilityRole="header">
             {request?.title}
@@ -75,31 +95,30 @@ function ConfirmModal() {
             />
           </View>
         </Pressable>
+        </Animated.View>
       </Pressable>
     </Modal>
   );
 }
 
 function Toast() {
+  const styles = useStyles();
   const toast = useDialogStore((s) => s.toast);
   const insets = useSafeAreaInsets();
-  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!toast) return;
-    Animated.timing(opacity, { toValue: 1, duration: 160, useNativeDriver: Platform.OS !== 'web' }).start();
+    // Dismissing unmounts the toast; its exit animation runs on the way out.
     const timer = setTimeout(() => {
-      Animated.timing(opacity, { toValue: 0, duration: 200, useNativeDriver: Platform.OS !== 'web' }).start(() => {
-        if (useDialogStore.getState().toast?.id === toast.id) useDialogStore.setState({ toast: null });
-      });
+      if (useDialogStore.getState().toast?.id === toast.id) useDialogStore.setState({ toast: null });
     }, toast.actionLabel ? 5000 : 2600);
     return () => clearTimeout(timer);
-  }, [toast, opacity]);
+  }, [toast]);
 
   if (!toast) return null;
   const tone = toast.tone === 'success' ? colors.accent : toast.tone === 'error' ? colors.danger : colors.textSecondary;
   return (
-    <Animated.View pointerEvents="box-none" style={[styles.toastWrap, { bottom: insets.bottom + 84, opacity }]}>
+    <Animated.View key={toast.id} entering={TOAST_ENTER} exiting={TOAST_EXIT} pointerEvents="box-none" style={[styles.toastWrap, { bottom: insets.bottom + 84 }]}>
       <View style={styles.toast} accessibilityLiveRegion="polite" accessibilityRole="alert">
         <View style={[styles.toastDot, { backgroundColor: tone }]} />
         <Text style={styles.toastText}>{toast.message}</Text>
@@ -129,9 +148,10 @@ export function DialogHost() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   backdrop: { flex: 1, backgroundColor: colors.overlay, alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
-  dialog: { width: '100%', maxWidth: 400, backgroundColor: colors.surface, borderRadius: radius.xl + 2, padding: spacing.lg, borderWidth: 1, borderColor: colors.borderStrong },
+  dialogWrap: { width: '100%', maxWidth: 400 },
+  dialog: { width: '100%', backgroundColor: colors.surface, borderRadius: radius.xl + 2, padding: spacing.lg, borderWidth: 1, borderColor: colors.scheme === 'light' ? colors.border : colors.borderStrong, ...elevation(3) },
   title: { ...typography.heading, color: colors.text },
   message: { ...typography.body, color: colors.textSecondary, marginTop: spacing.sm },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
@@ -142,14 +162,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.scheme === 'light' ? colors.surface : colors.surfaceRaised,
     borderRadius: radius.full,
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: colors.borderStrong,
+    borderColor: colors.scheme === 'light' ? colors.border : colors.borderStrong,
+    ...elevation(3),
   },
   toastDot: { width: 7, height: 7, borderRadius: 4 },
   toastText: { ...typography.callout, color: colors.text, flexShrink: 1 },
   toastAction: { ...typography.bodyStrong },
-});
+}));

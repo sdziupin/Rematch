@@ -1,10 +1,11 @@
 import { Tabs } from 'expo-router/js-tabs';
 import { AppTabBar } from '../../src/components/AppTabBar';
 import { useLayout } from '../../src/hooks/useLayout';
-import { colors } from '../../src/theme';
+import { useColors } from '../../src/theme';
 
 export default function TabsLayout() {
   const { isWide } = useLayout();
+  const colors = useColors();
   return (
     <Tabs
       tabBar={(props) => <AppTabBar {...props} sidebar={isWide} />}

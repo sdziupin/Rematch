@@ -7,6 +7,7 @@ import { Icon } from '../../src/components/Icon';
 import { WorkoutHeroCard, WorkoutTile } from '../../src/components/WorkoutCard';
 import { Wordmark } from '../../src/components/Wordmark';
 import { Card, Grid, ProgressBar, Screen, SectionTitle, WorkoutMark } from '../../src/components/ui';
+import { LiveDot, Rise } from '../../src/components/motion';
 import { WORKOUT_SEEDS } from '../../src/content/seed';
 import { getProfile, listWorkouts, profileEquipment } from '../../src/db/repository';
 import type { WorkoutRow } from '../../src/db/schema';
@@ -19,7 +20,7 @@ import { difficultyLabel, focusLabel, recommendTodayWorkout } from '../../src/se
 import { getActiveSession, getRecentWorkoutIds, getWorkoutStatsMap, hadPainRecently } from '../../src/services/sessionService';
 import { getRecentPbs, getTrainingStats, type TrainingStats } from '../../src/services/statsService';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, fonts, radius, spacing, typography } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../../src/theme';
 
 type Stats = Awaited<ReturnType<typeof getWorkoutStatsMap>>;
 
@@ -29,6 +30,7 @@ function greeting() {
 }
 
 export default function TodayScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const { isWide, columns } = useLayout();
   const revision = useSettings((s) => s.revision);
@@ -108,7 +110,7 @@ export default function TodayScreen() {
 
   const resumeCard = inProgress && (
     <Card onPress={() => router.push('/workout/recovery')} accent={colors.accent} style={styles.resume} accessibilityLabel={`${inProgress} is in progress. Resume.`}>
-      <View style={styles.liveDot} />
+      <LiveDot color={colors.accent} />
       <View style={styles.flex}>
         <Text style={styles.label}>In progress</Text>
         <Text style={styles.cardTitle}>{inProgress}</Text>
@@ -232,40 +234,37 @@ export default function TodayScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
+      <Rise style={styles.header}>
         {!isWide && <Wordmark size={15} />}
         <Text style={styles.date}>{today()}</Text>
         <Text style={styles.greeting}>{greeting()}</Text>
-      </View>
+      </Rise>
       {isWide ? (
         <View style={styles.columns}>
           <View style={styles.main}>
-            {resumeCard}
-            {programCard}
-            {pickCard}
-            {nextUp}
+            {stagger([resumeCard, programCard, pickCard, nextUp], 1)}
           </View>
           <View style={styles.side}>
-            {weekCard}
-            {teaser}
-            {pbStrip}
-            {prepCard}
+            {stagger([weekCard, teaser, pbStrip, prepCard], 2)}
           </View>
         </View>
       ) : (
-        <View style={styles.stack}>
-          {resumeCard}
-          {weekCard}
-          {programCard}
-          {pickCard}
-          {teaser}
-          {pbStrip}
-          {prepCard}
-          {nextUp}
-        </View>
+        <View style={styles.stack}>{stagger([resumeCard, weekCard, programCard, pickCard, teaser, pbStrip, prepCard, nextUp], 1)}</View>
       )}
     </Screen>
   );
+}
+
+/** Blocks rise into place one after another the first time they appear. */
+function stagger(blocks: React.ReactNode[], from = 0) {
+  return blocks
+    .map((block, i) => ({ block, key: i }))
+    .filter(({ block }) => !!block)
+    .map(({ block, key }, i) => (
+      <Rise key={key} index={from + i}>
+        {block}
+      </Rise>
+    ));
 }
 
 function today() {
@@ -273,6 +272,7 @@ function today() {
 }
 
 function ProgramTeaser({ onPress }: { onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Card onPress={onPress} style={styles.teaser} accessibilityLabel="Browse training programs">
       <View style={styles.teaserIcon}>
@@ -287,7 +287,7 @@ function ProgramTeaser({ onPress }: { onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   header: { marginBottom: spacing.lg, gap: 4 },
@@ -316,4 +316,4 @@ const styles = StyleSheet.create({
   resumeText: { ...typography.callout, fontFamily: fonts.semibold, color: colors.onAccent },
   teaser: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   teaserIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: colors.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
-});
+}));

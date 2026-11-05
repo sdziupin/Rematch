@@ -12,13 +12,14 @@ import { getWorkoutById, listExercises, loadWorkoutPlan, parseJsonArray } from '
 import type { ExerciseRow } from '../src/db/schema';
 import type { Difficulty, WorkoutExerciseStep, WorkoutFormat } from '../src/domain/types';
 import { titleCase } from '../src/domain/utils';
-import { estimateStructureMinutes, formatLabel } from '../src/engine/workoutEngine';
+import { DEATH_BY_DEFAULTS, TABATA_DEFAULTS, estimateStructureMinutes, formatBlurb, formatLabel, isTimedIntervals } from '../src/engine/workoutEngine';
 import { useLayout } from '../src/hooks/useLayout';
 import { buildStructure, CUSTOM_COLORS, CUSTOM_SYMBOLS, saveCustomWorkout, validateStructure } from '../src/services/customWorkoutService';
 import { useSettings } from '../src/store/settingsStore';
-import { colors, fonts, radius, spacing, typography } from '../src/theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../src/theme';
 
-const FORMATS = ['fixed_rounds', 'chipper', 'amrap', 'emom', 'intervals'] as const;
+const FORMATS = ['fixed_rounds', 'chipper', 'ladder', 'amrap', 'emom', 'intervals', 'tabata', 'death_by'] as const;
+const EMOM_WINDOWS = [1, 2, 3] as const;
 const DIFFICULTIES: Difficulty[] = ['beginner', 'intermediate', 'advanced', 'elite'];
 const CATEGORIES = ['all', 'push', 'pull', 'squat', 'lunge', 'hinge', 'core', 'cardio', 'conditioning', 'accessory', 'mobility'] as const;
 
@@ -29,6 +30,7 @@ interface Step extends WorkoutExerciseStep {
 let stepKey = 0;
 
 function Stepper({ value, onChange, min = 0, max = 999, step = 1, suffix = '', label }: { value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string; label: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.stepper}>
       <IconButton icon="minus" label={`Decrease ${label}`} size={34} onPress={() => onChange(Math.max(min, value - step))} />
@@ -42,6 +44,7 @@ function Stepper({ value, onChange, min = 0, max = 999, step = 1, suffix = '', l
 }
 
 export default function BuilderScreen() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
   const { isWide } = useLayout();
@@ -58,6 +61,14 @@ export default function BuilderScreen() {
   const [workSec, setWorkSec] = useState(40);
   const [intervalRest, setIntervalRest] = useState(20);
   const [intervalCount, setIntervalCount] = useState(8);
+  const [windowMin, setWindowMin] = useState<(typeof EMOM_WINDOWS)[number]>(1);
+  const [rungs, setRungs] = useState(5);
+  const [pyramid, setPyramid] = useState(false);
+  const [tabataIntervals, setTabataIntervals] = useState<number>(TABATA_DEFAULTS.intervals);
+  const [tabataWork, setTabataWork] = useState<number>(TABATA_DEFAULTS.workSec);
+  const [tabataRest, setTabataRest] = useState<number>(TABATA_DEFAULTS.restSec);
+  const [blockRest, setBlockRest] = useState<number>(TABATA_DEFAULTS.blockRestSec);
+  const [deathMax, setDeathMax] = useState<number>(DEATH_BY_DEFAULTS.maxWindows);
   const [steps, setSteps] = useState<Step[]>([]);
   const [picking, setPicking] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -86,6 +97,20 @@ export default function BuilderScreen() {
       }
       if (s.intervalWorkSec) setWorkSec(s.intervalWorkSec);
       if (s.intervalRestSec !== undefined) setIntervalRest(s.intervalRestSec);
+      if (s.format === 'emom' && s.intervalWorkSec && [60, 120, 180].includes(s.intervalWorkSec)) setWindowMin((s.intervalWorkSec / 60) as (typeof EMOM_WINDOWS)[number]);
+      if (s.format === 'tabata') {
+        setTabataIntervals(s.intervalRounds ?? TABATA_DEFAULTS.intervals);
+        setTabataWork(s.intervalWorkSec ?? TABATA_DEFAULTS.workSec);
+        setTabataRest(s.intervalRestSec ?? TABATA_DEFAULTS.restSec);
+        setBlockRest(s.restBetweenRoundsSec ?? TABATA_DEFAULTS.blockRestSec);
+      }
+      if (s.format === 'death_by') setDeathMax(s.intervalRounds ?? DEATH_BY_DEFAULTS.maxWindows);
+      if (s.format === 'ladder') {
+        // A pyramid ends on the rung it started on.
+        const isPyramid = s.rounds.length >= 3 && JSON.stringify(s.rounds[0].steps) === JSON.stringify(s.rounds[s.rounds.length - 1].steps);
+        setPyramid(isPyramid);
+        setRungs(isPyramid ? (s.rounds.length + 1) / 2 : s.rounds.length);
+      }
       setSteps((s.rounds[0]?.steps ?? []).map((st) => ({ ...st, key: ++stepKey })));
     })();
   }, [id]);
@@ -95,19 +120,22 @@ export default function BuilderScreen() {
   const structure = useMemo(
     () =>
       buildStructure(format as WorkoutFormat, steps, {
-        rounds,
-        restBetweenRoundsSec: restSec,
+        rounds: format === 'ladder' ? rungs : rounds,
+        pyramid,
+        restBetweenRoundsSec: format === 'tabata' ? blockRest : restSec,
         timeCapSec: format === 'amrap' ? capMin * 60 : undefined,
-        intervalRounds: format === 'emom' ? emomMin : intervalCount,
-        intervalWorkSec: workSec,
-        intervalRestSec: intervalRest,
+        intervalRounds: format === 'emom' ? emomMin : format === 'tabata' ? tabataIntervals : format === 'death_by' ? deathMax : intervalCount,
+        intervalWorkSec: format === 'emom' ? windowMin * 60 : format === 'tabata' ? tabataWork : format === 'death_by' ? 60 : workSec,
+        intervalRestSec: format === 'tabata' ? tabataRest : intervalRest,
       }),
-    [format, steps, rounds, restSec, capMin, emomMin, intervalCount, workSec, intervalRest],
+    [format, steps, rounds, rungs, pyramid, restSec, capMin, emomMin, windowMin, intervalCount, workSec, intervalRest, tabataIntervals, tabataWork, tabataRest, blockRest, deathMax],
   );
 
   const addExercise = (e: ExerciseRow) => {
     const timedByDefault = e.category === 'mobility' || e.category === 'recovery' || /hold|plank|sit|hang|carry/.test(e.id);
-    setSteps((s) => [...s, { key: ++stepKey, exerciseId: e.id, ...(timedByDefault ? { durationSec: 30 } : { reps: 10 }) }]);
+    // Death by grows every minute, so it starts small.
+    const reps = format === 'death_by' ? 2 : 10;
+    setSteps((s) => [...s, { key: ++stepKey, exerciseId: e.id, ...(timedByDefault && format !== 'death_by' ? { durationSec: 30 } : { reps }) }]);
     setPicking(false);
   };
 
@@ -165,6 +193,7 @@ export default function BuilderScreen() {
 
       <SectionTitle>Format</SectionTitle>
       <ChipRow options={FORMATS} value={format} onChange={setFormat} format={(f) => formatLabel(f as WorkoutFormat)} />
+      <Text style={styles.hint}>{formatBlurb(format)}</Text>
       <Card style={styles.stack}>
         {format === 'fixed_rounds' && (
           <>
@@ -177,15 +206,62 @@ export default function BuilderScreen() {
           </>
         )}
         {format === 'chipper' && <Text style={styles.hint}>One pass through the list, for time.</Text>}
+        {format === 'ladder' && (
+          <>
+            <Row label="Rungs">
+              <Stepper label="rungs" value={rungs} onChange={setRungs} min={2} max={15} />
+            </Row>
+            <Row label="Shape">
+              <View style={styles.wrap}>
+                <Chip label="Ladder" selected={!pyramid} onPress={() => setPyramid(false)} />
+                <Chip label="Pyramid" selected={pyramid} onPress={() => setPyramid(true)} />
+              </View>
+            </Row>
+            <Row label="Rest between rungs">
+              <Stepper label="rest" value={restSec} onChange={setRestSec} min={0} max={300} step={15} suffix="s" />
+            </Row>
+            <Text style={styles.hint}>Set the reps for rung 1; rung n asks for n times as many{pyramid ? ', then the pyramid comes back down' : ''}. Timed movements keep their seconds.</Text>
+          </>
+        )}
         {format === 'amrap' && (
           <Row label="Time">
             <Stepper label="minutes" value={capMin} onChange={setCapMin} min={1} max={60} suffix=" min" />
           </Row>
         )}
         {format === 'emom' && (
-          <Row label="Minutes">
-            <Stepper label="minutes" value={emomMin} onChange={setEmomMin} min={1} max={60} />
-          </Row>
+          <>
+            <Row label="Every">
+              <ChipRow options={EMOM_WINDOWS} value={windowMin} onChange={setWindowMin} format={(m) => (m === 1 ? 'Minute' : `${m} min`)} />
+            </Row>
+            <Row label={windowMin === 1 ? 'Minutes' : 'Sets'}>
+              <Stepper label={windowMin === 1 ? 'minutes' : 'sets'} value={emomMin} onChange={setEmomMin} min={1} max={60} />
+            </Row>
+          </>
+        )}
+        {format === 'tabata' && (
+          <>
+            <Row label="Intervals per movement">
+              <Stepper label="intervals" value={tabataIntervals} onChange={setTabataIntervals} min={4} max={12} />
+            </Row>
+            <Row label="Work">
+              <Stepper label="work seconds" value={tabataWork} onChange={setTabataWork} min={10} max={60} step={5} suffix="s" />
+            </Row>
+            <Row label="Rest">
+              <Stepper label="rest seconds" value={tabataRest} onChange={setTabataRest} min={5} max={60} step={5} suffix="s" />
+            </Row>
+            <Row label="Between movements">
+              <Stepper label="rest between movements" value={blockRest} onChange={setBlockRest} min={0} max={180} step={15} suffix="s" />
+            </Row>
+            <Text style={styles.hint}>Each movement gets its own block. Count every rep: your score is the total.</Text>
+          </>
+        )}
+        {format === 'death_by' && (
+          <>
+            <Row label="Up to">
+              <Stepper label="minutes" value={deathMax} onChange={setDeathMax} min={5} max={40} suffix=" min" />
+            </Row>
+            <Text style={styles.hint}>Set the reps for minute 1. Minute n asks for n times as many. Miss a minute and it's over; your score is every rep you banked.</Text>
+          </>
         )}
         {format === 'intervals' && (
           <>
@@ -213,18 +289,19 @@ export default function BuilderScreen() {
             <ExerciseAnimation exerciseId={s.exerciseId} category={ex?.category} size={48} playing={false} />
             <View style={styles.flex}>
               <Text style={styles.stepName}>{ex?.name ?? s.exerciseId}</Text>
-              {format !== 'intervals' && (
+              {!isTimedIntervals(format) && format !== 'death_by' && (
                 <View style={styles.wrap}>
                   <Chip label="Reps" selected={!timed} onPress={() => update(s.key, { reps: s.reps ?? 10, durationSec: undefined })} />
                   <Chip label="Seconds" selected={timed} onPress={() => update(s.key, { durationSec: s.durationSec ?? 30, reps: undefined })} />
                 </View>
               )}
+              {format === 'death_by' && <Text style={styles.hint}>Reps in minute 1</Text>}
             </View>
-            {format !== 'intervals' &&
-              (timed ? (
+            {!isTimedIntervals(format) &&
+              (timed && format !== 'death_by' ? (
                 <Stepper label="seconds" value={s.durationSec ?? 30} onChange={(v) => update(s.key, { durationSec: v })} min={5} max={600} step={5} suffix="s" />
               ) : (
-                <Stepper label="reps" value={s.reps ?? 10} onChange={(v) => update(s.key, { reps: v })} min={1} max={500} />
+                <Stepper label="reps" value={s.reps ?? (format === 'death_by' ? 1 : 10)} onChange={(v) => update(s.key, { reps: v, durationSec: undefined })} min={1} max={500} />
               ))}
             <View style={styles.reorder}>
               <IconButton icon="back" label="Move up" size={32} onPress={() => move(s.key, -1)} disabled={i === 0} style={{ transform: [{ rotate: '90deg' }] }} />
@@ -282,6 +359,7 @@ export default function BuilderScreen() {
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.optionRow}>
       <Text style={styles.optionLabel}>{label}</Text>
@@ -291,6 +369,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function ExercisePicker({ visible, exercises, onPick, onClose, accent }: { visible: boolean; exercises: ExerciseRow[]; onPick: (e: ExerciseRow) => void; onClose: () => void; accent: string }) {
+  const styles = useStyles();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<(typeof CATEGORIES)[number]>('all');
   const list = exercises.filter((e) => (category === 'all' || e.category === category) && e.name.toLowerCase().includes(query.trim().toLowerCase()));
@@ -324,7 +403,7 @@ function ExercisePicker({ visible, exercises, onPick, onClose, accent }: { visib
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   stack: { gap: spacing.sm + 2 },
   columns: { flexDirection: 'row', gap: spacing.xl, alignItems: 'flex-start' },
@@ -352,4 +431,4 @@ const styles = StyleSheet.create({
   searchRow: { flexDirection: 'row' },
   pickList: { gap: 2, paddingBottom: spacing.xl },
   pickRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: 8, borderRadius: radius.md },
-});
+}));

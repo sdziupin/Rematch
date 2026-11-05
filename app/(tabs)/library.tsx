@@ -15,17 +15,18 @@ import { getActiveEnrollment, listPrograms } from '../../src/services/programSer
 import { difficultyLabel, focusLabel } from '../../src/services/recommendationService';
 import { getWorkoutStatsMap } from '../../src/services/sessionService';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, radius, spacing, typography } from '../../src/theme';
+import { colors, radius, spacing, typography, makeStyles } from '../../src/theme';
 
 const TABS = ['benchmarks', 'programs', 'mine', 'prep'] as const;
 type Tab = (typeof TABS)[number];
 const TAB_LABEL: Record<Tab, string> = { benchmarks: 'Benchmarks', programs: 'Programs', mine: 'Mine', prep: 'Warm-ups' };
 
-const FORMATS = ['all', 'fixed_rounds', 'chipper', 'ladder', 'amrap', 'emom', 'intervals'] as const;
+const FORMATS = ['all', 'fixed_rounds', 'chipper', 'ladder', 'amrap', 'emom', 'intervals', 'tabata', 'death_by'] as const;
 const DIFFICULTIES = ['all', 'beginner', 'intermediate', 'advanced', 'elite'] as const;
 const DURATIONS = ['any', '≤10', '10–20', '20+'] as const;
 
 export default function LibraryScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const params = useLocalSearchParams<{ tab?: string }>();
   const { columns, isWide } = useLayout();
@@ -171,6 +172,7 @@ export default function LibraryScreen() {
 }
 
 function ProgramCard({ program, active, onPress }: { program: ProgramSeed; active: boolean; onPress: () => void }) {
+  const styles = useStyles();
   return (
     <Card onPress={onPress} style={styles.programCard} accessibilityLabel={`${program.name}. ${program.tagline}`}>
       <View style={styles.programTop}>
@@ -191,7 +193,7 @@ function ProgramCard({ program, active, onPress }: { program: ProgramSeed; activ
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   section: { gap: spacing.sm + 4, marginTop: spacing.lg },
   searchRow: { flexDirection: 'row', gap: spacing.sm },
@@ -205,4 +207,4 @@ const styles = StyleSheet.create({
   programTagline: { ...typography.body, color: colors.textSecondary },
   programFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: spacing.sm + 4, borderTopWidth: 1, borderTopColor: colors.border },
   programMeta: { ...typography.caption, color: colors.textMuted },
-});
+}));

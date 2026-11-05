@@ -13,7 +13,7 @@ import { useLayout } from '../../src/hooks/useLayout';
 import { listHistory, toScore, type HistoryItem } from '../../src/services/sessionService';
 import { getBenchmarkProgress, getTrainingStats, type BenchmarkProgress, type TrainingStats } from '../../src/services/statsService';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, fonts, radius, spacing, typography } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../../src/theme';
 
 const VARIANT_LABEL: Record<string, string> = { full: 'Full', three_quarter: '¾', half: '½', quarter: '¼' };
 
@@ -22,6 +22,7 @@ type ViewKey = (typeof VIEWS)[number];
 const VIEW_LABEL: Record<ViewKey, string> = { overview: 'Overview', benchmarks: 'Benchmarks', history: 'History' };
 
 export default function ProgressScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const { isWide, columns } = useLayout();
   const revision = useSettings((s) => s.revision);
@@ -168,6 +169,7 @@ export default function ProgressScreen() {
 }
 
 function Total({ label, value, color, half }: { label: string; value: string; color?: string; half?: boolean }) {
+  const styles = useStyles();
   return (
     <View style={[styles.total, half && styles.totalHalf]}>
       <Text style={styles.totalLabel}>{label}</Text>
@@ -177,6 +179,7 @@ function Total({ label, value, color, half }: { label: string; value: string; co
 }
 
 function ChartHeader({ title, note }: { title: string; note?: string }) {
+  const styles = useStyles();
   return (
     <View style={styles.chartHeader}>
       <Text style={styles.chartTitle}>{title}</Text>
@@ -185,7 +188,7 @@ function ChartHeader({ title, note }: { title: string; note?: string }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   stack: { gap: spacing.sm + 4 },
   caption: { ...typography.caption, color: colors.textMuted },
@@ -211,4 +214,4 @@ const styles = StyleSheet.create({
   historyHover: { backgroundColor: colors.surfaceRaised },
   historyName: { ...typography.callout, fontFamily: fonts.semibold, color: colors.text },
   historyScore: { ...typography.figure, color: colors.text, minWidth: 56, textAlign: 'right' },
-});
+}));

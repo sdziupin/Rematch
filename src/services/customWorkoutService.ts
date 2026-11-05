@@ -4,7 +4,7 @@ import { ensureWorkoutVersion } from '../db/contentSync';
 import * as schema from '../db/schema';
 import { createId } from '../domain/id';
 import type { Difficulty, WorkoutFormat, WorkoutStructure } from '../domain/types';
-import { estimateStructureMinutes } from '../engine/workoutEngine';
+import { DEATH_BY_DEFAULTS, TABATA_DEFAULTS, estimateStructureMinutes, isTimedIntervals } from '../engine/workoutEngine';
 
 export const CUSTOM_SYMBOLS = ['◆', '▲', '●', '■', '✦', '⬢', '◉', '✚', '⚑', '☄'];
 export const CUSTOM_COLORS = ['#4ECDC4', '#F4A261', '#6BCB77', '#5B8DEF', '#C9B1FF', '#FB7185', '#FDE047', '#F97316'];
@@ -26,12 +26,18 @@ export function validateStructure(structure: WorkoutStructure, name: string): st
   const steps = structure.rounds.flatMap((r) => r.steps);
   if (structure.rounds.length === 0 || steps.length === 0) errors.push('Add at least one movement.');
   for (const s of steps) {
-    const timed = structure.format === 'intervals';
+    const timed = isTimedIntervals(structure.format);
+    if (structure.format === 'death_by' && !(s.reps && s.reps > 0)) {
+      errors.push('Every movement needs a starting number of reps.');
+      break;
+    }
     if (!timed && !(s.reps && s.reps > 0) && !(s.durationSec && s.durationSec > 0)) {
       errors.push('Every movement needs reps or seconds.');
       break;
     }
   }
+  if (structure.format === 'tabata' && !(structure.intervalWorkSec && structure.intervalWorkSec >= 5)) errors.push('A Tabata needs at least 5 seconds of work.');
+  if (structure.format === 'ladder' && structure.rounds.length < 2) errors.push('A ladder needs at least 2 rungs.');
   if (structure.format === 'amrap' && !(structure.timeCapSec && structure.timeCapSec >= 60)) errors.push('An AMRAP needs a time of at least 1 minute.');
   if (structure.format === 'intervals' && !(structure.intervalWorkSec && structure.intervalWorkSec >= 5)) errors.push('Intervals need at least 5 seconds of work.');
   if ((structure.format === 'intervals' || structure.format === 'emom') && !(structure.intervalRounds && structure.intervalRounds >= 1)) {
@@ -44,7 +50,7 @@ export function validateStructure(structure: WorkoutStructure, name: string): st
 export function buildStructure(
   format: WorkoutFormat,
   steps: WorkoutStructure['rounds'][number]['steps'],
-  options: { rounds?: number; timeCapSec?: number; restBetweenRoundsSec?: number; intervalWorkSec?: number; intervalRestSec?: number; intervalRounds?: number },
+  options: { rounds?: number; timeCapSec?: number; restBetweenRoundsSec?: number; intervalWorkSec?: number; intervalRestSec?: number; intervalRounds?: number; pyramid?: boolean },
 ): WorkoutStructure {
   const clean = steps.map((s) => ({ exerciseId: s.exerciseId, ...(s.reps ? { reps: s.reps } : {}), ...(s.durationSec ? { durationSec: s.durationSec } : {}) }));
   switch (format) {
@@ -62,6 +68,36 @@ export function buildStructure(
       };
     case 'chipper':
       return { format, rounds: [{ roundNumber: 1, steps: clean }] };
+    case 'tabata':
+      return {
+        format,
+        intervalWorkSec: options.intervalWorkSec ?? TABATA_DEFAULTS.workSec,
+        intervalRestSec: options.intervalRestSec ?? TABATA_DEFAULTS.restSec,
+        intervalRounds: options.intervalRounds ?? TABATA_DEFAULTS.intervals,
+        restBetweenRoundsSec: options.restBetweenRoundsSec ?? TABATA_DEFAULTS.blockRestSec,
+        rounds: [{ roundNumber: 1, steps: clean.map((s) => ({ exerciseId: s.exerciseId })) }],
+      };
+    case 'death_by':
+      return {
+        format,
+        intervalWorkSec: options.intervalWorkSec ?? DEATH_BY_DEFAULTS.windowSec,
+        intervalRounds: options.intervalRounds ?? DEATH_BY_DEFAULTS.maxWindows,
+        rounds: [{ roundNumber: 1, steps: clean.map((s) => ({ exerciseId: s.exerciseId, reps: Math.max(1, s.reps ?? 1) })) }],
+      };
+    case 'ladder': {
+      // Rung n asks for base × n reps (timed steps keep their seconds); a pyramid climbs and comes back down.
+      const rungs = Math.max(2, options.rounds ?? 5);
+      const order = options.pyramid ? [...Array.from({ length: rungs }, (_, i) => i + 1), ...Array.from({ length: rungs - 1 }, (_, i) => rungs - 1 - i)] : Array.from({ length: rungs }, (_, i) => i + 1);
+      return {
+        format,
+        ...(options.restBetweenRoundsSec ? { restBetweenRoundsSec: options.restBetweenRoundsSec } : {}),
+        ...(options.timeCapSec ? { timeCapSec: options.timeCapSec } : {}),
+        rounds: order.map((n, i) => ({
+          roundNumber: i + 1,
+          steps: clean.map((s) => (s.reps ? { exerciseId: s.exerciseId, reps: s.reps * n } : { ...s })),
+        })),
+      };
+    }
     default: {
       const count = Math.max(1, options.rounds ?? 3);
       return {

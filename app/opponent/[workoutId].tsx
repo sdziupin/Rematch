@@ -9,11 +9,12 @@ import type { PartialKey, ScalingCategory } from '../../src/domain/types';
 import { formatScore, relativeDay } from '../../src/domain/utils';
 import { listOpponents } from '../../src/services/sessionService';
 import { beginWorkout, resolveDanglingSession } from '../../src/services/startWorkout';
-import { colors, fonts, radius, spacing, typography } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../../src/theme';
 
 type Opponent = Awaited<ReturnType<typeof listOpponents>>[number];
 
 export default function OpponentScreen() {
+  const styles = useStyles();
   const params = useLocalSearchParams<{ workoutId: string; variant?: string; scaling?: string; swaps?: string; program?: string; key?: string }>();
   const router = useRouter();
   const partialKey = (params.variant ?? 'full') as PartialKey;
@@ -100,7 +101,7 @@ export default function OpponentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   list: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, paddingVertical: 14, paddingHorizontal: spacing.md + 2 },
@@ -110,4 +111,4 @@ const styles = StyleSheet.create({
   score: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, letterSpacing: -0.5, color: colors.text, fontVariant: ['tabular-nums'] },
   meta: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   action: { ...typography.callout, fontFamily: fonts.semibold, color: colors.accent },
-});
+}));

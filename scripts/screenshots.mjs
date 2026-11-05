@@ -3,6 +3,7 @@
 //
 //   npm run build:web && npm run serve:web   # in one terminal
 //   node scripts/screenshots.mjs [outDir=docs/screenshots] [--url http://localhost:8080] [--hero-only]
+//                                [--appearance dark|midnight|light] [--accent volt|mint|aqua|orchid|flamingo|mono] [--phone-only]
 //
 // It onboards a fresh browser profile, races TEMPEST twice with a fake clock
 // so the history, PBs and splits are real, photographs every main screen on a
@@ -13,9 +14,17 @@ import { join, resolve } from 'node:path';
 import { chromium } from 'playwright';
 
 const args = process.argv.slice(2);
-const urlFlag = args.indexOf('--url');
-const base = urlFlag >= 0 ? args[urlFlag + 1] : 'http://localhost:8080';
-const out = resolve(args.find((a, i) => !a.startsWith('--') && args[i - 1] !== '--url') ?? 'docs/screenshots');
+const flag = (name) => {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : undefined;
+};
+const VALUE_FLAGS = new Set(['--url', '--appearance', '--accent']);
+const base = flag('--url') ?? 'http://localhost:8080';
+const appearance = flag('--appearance');
+const accent = flag('--accent');
+const out = resolve(args.find((a, i) => !a.startsWith('--') && !VALUE_FLAGS.has(args[i - 1])) ?? 'docs/screenshots');
+const THEME_LABELS = { system: 'Automatic', dark: 'Graphite', midnight: 'Midnight', light: 'Daylight' };
+const ACCENT_LABELS = { volt: 'Volt', mint: 'Mint', aqua: 'Aqua', orchid: 'Orchid', flamingo: 'Flamingo', mono: 'Mono' };
 mkdirSync(out, { recursive: true });
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -74,7 +83,7 @@ async function race(page, pace, { snapshotAt, snapshotName } = {}) {
 
 async function capture(kind, viewport, scale) {
   console.log(`${kind} ${viewport.width}×${viewport.height}`);
-  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: 'dark', reducedMotion: 'no-preference' });
+  const context = await browser.newContext({ viewport, deviceScaleFactor: scale, colorScheme: appearance === 'light' ? 'light' : 'dark', reducedMotion: 'no-preference' });
   const page = await context.newPage();
   await page.clock.install({ time: Date.now() - 6 * DAY });
   await page.goto(base);
@@ -82,6 +91,14 @@ async function capture(kind, viewport, scale) {
 
   await shot(page, `${kind}-onboarding`);
   await tap(page, /first challenge/i);
+
+  // Pick the look the same way a person would: Profile › Appearance.
+  if (appearance || accent) {
+    await go(page, '/profile');
+    if (appearance) await page.getByRole('radio', { name: `${THEME_LABELS[appearance]} theme` }).first().click();
+    if (accent) await page.getByRole('radio', { name: `${ACCENT_LABELS[accent]} accent` }).first().click();
+    await settle(page, 600);
+  }
 
   // Attempt one, a few days ago: steady and a little slow.
   await go(page, '/workout/w-tempest');
@@ -156,9 +173,9 @@ async function hero() {
 try {
   if (!args.includes('--hero-only')) {
     await capture('phone', { width: 393, height: 852 }, 2);
-    await capture('desktop', { width: 1280, height: 800 }, 2);
+    if (!args.includes('--phone-only')) await capture('desktop', { width: 1280, height: 800 }, 2);
   }
-  await hero();
+  if (!args.includes('--phone-only')) await hero();
 } finally {
   await browser.close();
 }

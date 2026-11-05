@@ -56,6 +56,37 @@ function intervals(workSec: number, restSec: number, count: number, exerciseIds:
   };
 }
 
+/** One Tabata block per movement: 8 × 20 s on / 10 s off, a minute between movements. */
+function tabata(exerciseIds: string[], options: { intervals?: number; workSec?: number; restSec?: number; blockRestSec?: number } = {}): WorkoutStructure {
+  return {
+    format: 'tabata',
+    intervalWorkSec: options.workSec ?? 20,
+    intervalRestSec: options.restSec ?? 10,
+    intervalRounds: options.intervals ?? 8,
+    restBetweenRoundsSec: options.blockRestSec ?? 60,
+    rounds: [{ roundNumber: 1, steps: exerciseIds.map((exerciseId) => ({ exerciseId })) }],
+  };
+}
+
+/** Minute n asks for n × each base rep count, until a minute is missed (or `maxMinutes`). */
+function deathBy(steps: Step[], maxMinutes = 20): WorkoutStructure {
+  return { format: 'death_by', intervalWorkSec: 60, intervalRounds: maxMinutes, rounds: [{ roundNumber: 1, steps }] };
+}
+
+/** One set at the top of every `everyMin`-minute window. */
+function everyMinutes(everyMin: number, sets: number, steps: Step[]): WorkoutStructure {
+  return { format: 'emom', intervalRounds: sets, intervalWorkSec: everyMin * 60, rounds: [{ roundNumber: 1, steps }] };
+}
+
+/** Reps climb rung by rung to `peak`, then come back down; rung n asks for base × n. */
+function pyramid(peak: number, base: Step[]): WorkoutStructure {
+  const order = [...Array.from({ length: peak }, (_, i) => i + 1), ...Array.from({ length: peak - 1 }, (_, i) => peak - 1 - i)];
+  return {
+    format: 'ladder',
+    rounds: order.map((n, i) => ({ roundNumber: i + 1, steps: base.map((st) => (st.reps ? { ...st, reps: st.reps * n } : { ...st })) })),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Workouts
 // ---------------------------------------------------------------------------
@@ -94,6 +125,170 @@ export const WORKOUT_SEEDS: WorkoutSeed[] = [
   { id: 'w-onyx', slug: 'onyx', name: 'ONYX', symbol: '◼', focus: 'full_body', difficulty: 'intermediate', estimatedMinutesMin: 12, estimatedMinutesMax: 18, equipment: ['bodyweight'], format: 'fixed_rounds', identityColor: '#1E293B', progressionTier: 'standard', description: 'Crab walks, push-ups and lunges for four rounds; the crab walk taxes your shoulders right before every push-up set.', structure: rounds(4, [{ exerciseId: 'crab-walk', durationSec: 30 }, { exerciseId: 'push-up', reps: 12 }, { exerciseId: 'walking-lunge', reps: 12 }]) },
   { id: 'w-aurora', slug: 'aurora', name: 'AURORA', symbol: '⌇', focus: 'mixed', difficulty: 'intermediate', estimatedMinutesMin: 16, estimatedMinutesMax: 22, equipment: ['mat'], format: 'fixed_rounds', identityColor: '#86EFAC', progressionTier: 'standard', description: 'Single-leg deadlifts, push-ups and side planks across five rounds that reward balance over speed.', structure: rounds(5, [{ exerciseId: 'single-leg-deadlift', reps: 10 }, { exerciseId: 'push-up', reps: 10 }, { exerciseId: 'side-plank', durationSec: 30 }]) },
   { id: 'w-reef', slug: 'reef', name: 'REEF', symbol: '❋', focus: 'low_impact', difficulty: 'beginner', estimatedMinutesMin: 10, estimatedMinutesMax: 14, equipment: ['mat'], format: 'fixed_rounds', identityColor: '#14B8A6', progressionTier: 'foundation', description: 'Box breathing, dead bugs and reverse lunges: a calm, low-impact race against your own control.', structure: rounds(4, [{ exerciseId: 'box-breather', durationSec: 30 }, { exerciseId: 'dead-bug', reps: 12 }, { exerciseId: 'reverse-lunge', reps: 10 }]) },
+
+  // ---------------------------------------------------------------------------
+  // Tabata, Death by, longer windows and pyramids
+  // ---------------------------------------------------------------------------
+  {
+    id: 'w-fuse',
+    slug: 'fuse',
+    name: 'FUSE',
+    symbol: '✶',
+    focus: 'cardio',
+    difficulty: 'beginner',
+    estimatedMinutesMin: 8,
+    estimatedMinutesMax: 10,
+    equipment: ['bodyweight'],
+    format: 'tabata',
+    identityColor: '#FACC15',
+    progressionTier: 'foundation',
+    description: 'Two classic Tabatas, jacks then squats: eight minutes of work that teach you how short twenty seconds really is.',
+    structure: tabata(['jumping-jack', 'air-squat']),
+  },
+  {
+    id: 'w-flint',
+    slug: 'flint',
+    name: 'FLINT',
+    symbol: '◭',
+    focus: 'full_body',
+    difficulty: 'intermediate',
+    estimatedMinutesMin: 13,
+    estimatedMinutesMax: 15,
+    equipment: ['bodyweight'],
+    format: 'tabata',
+    identityColor: '#FB923C',
+    progressionTier: 'standard',
+    description: 'Squats, push-ups and climbers, eight sharp intervals each; your score is every rep you can strike out of 24 of them.',
+    structure: tabata(['air-squat', 'push-up', 'mountain-climber']),
+  },
+  {
+    id: 'w-crucible',
+    slug: 'crucible',
+    name: 'CRUCIBLE',
+    symbol: '⏚',
+    focus: 'core',
+    difficulty: 'intermediate',
+    estimatedMinutesMin: 13,
+    estimatedMinutesMax: 15,
+    equipment: ['mat'],
+    format: 'tabata',
+    identityColor: '#E879F9',
+    progressionTier: 'standard',
+    description: 'Hollow rocks, bicycles and climbers in three Tabatas: the midline gets no rest it didn\'t earn.',
+    structure: tabata(['hollow-rock', 'bicycle-crunch', 'mountain-climber']),
+  },
+  {
+    id: 'w-anvil',
+    slug: 'anvil',
+    name: 'ANVIL',
+    symbol: '⊓',
+    focus: 'strength_endurance',
+    difficulty: 'advanced',
+    estimatedMinutesMin: 8,
+    estimatedMinutesMax: 10,
+    equipment: ['dumbbells'],
+    format: 'tabata',
+    identityColor: '#A8A29E',
+    progressionTier: 'advanced',
+    description: 'Thrusters, then renegade rows, eight intervals each with the same pair of dumbbells you won\'t want to pick up again.',
+    structure: tabata(['dumbbell-thruster', 'renegade-row']),
+  },
+  {
+    id: 'w-echo',
+    slug: 'echo',
+    name: 'ECHO',
+    symbol: '◌',
+    focus: 'conditioning',
+    difficulty: 'advanced',
+    estimatedMinutesMin: 10,
+    estimatedMinutesMax: 16,
+    equipment: ['bodyweight'],
+    format: 'death_by',
+    identityColor: '#F87171',
+    progressionTier: 'advanced',
+    description: 'One burpee in minute one, two in minute two, and on it goes until a minute beats you. Past you already knows which one.',
+    structure: deathBy([rep('burpee', 1)]),
+  },
+  {
+    id: 'w-abyss',
+    slug: 'abyss',
+    name: 'ABYSS',
+    symbol: '▼',
+    focus: 'full_body',
+    difficulty: 'intermediate',
+    estimatedMinutesMin: 7,
+    estimatedMinutesMax: 11,
+    equipment: ['bodyweight'],
+    format: 'death_by',
+    identityColor: '#818CF8',
+    progressionTier: 'standard',
+    description: 'Two squats and a push-up more every minute. The early minutes feel like rest; the deep ones decide the race.',
+    structure: deathBy([rep('air-squat', 2), rep('push-up', 1)]),
+  },
+  {
+    id: 'w-maelstrom',
+    slug: 'maelstrom',
+    name: 'MAELSTROM',
+    symbol: '⊚',
+    focus: 'conditioning',
+    difficulty: 'intermediate',
+    estimatedMinutesMin: 9,
+    estimatedMinutesMax: 13,
+    equipment: ['kettlebell'],
+    format: 'death_by',
+    identityColor: '#2DD4BF',
+    progressionTier: 'standard',
+    description: 'Two kettlebell swings more every minute. Grip, lungs and hinge all give out eventually; the question is which first.',
+    structure: deathBy([rep('kettlebell-swing', 2)]),
+  },
+  {
+    id: 'w-cairn',
+    slug: 'cairn',
+    name: 'CAIRN',
+    symbol: '⩓',
+    focus: 'full_body',
+    difficulty: 'intermediate',
+    estimatedMinutesMin: 8,
+    estimatedMinutesMax: 12,
+    equipment: ['mat'],
+    format: 'ladder',
+    identityColor: '#D6D3D1',
+    progressionTier: 'standard',
+    description: 'A pyramid up to 10 push-ups, 15 squats and 10 sit-ups and back down again: build the pile, then take it apart faster than last time.',
+    structure: pyramid(5, [rep('push-up', 2), rep('air-squat', 3), rep('sit-up', 2)]),
+  },
+  {
+    id: 'w-tide',
+    slug: 'tide',
+    name: 'TIDE',
+    symbol: '≈',
+    focus: 'conditioning',
+    difficulty: 'advanced',
+    estimatedMinutesMin: 16,
+    estimatedMinutesMax: 17,
+    equipment: ['bodyweight'],
+    format: 'emom',
+    identityColor: '#38BDF8',
+    progressionTier: 'advanced',
+    description: 'Every two minutes, eight burpees, twelve jump squats and sixteen climbers. Eight sets; whatever is left of each window is yours.',
+    structure: everyMinutes(2, 8, [rep('burpee', 8), rep('jump-squat', 12), rep('mountain-climber', 16)]),
+  },
+  {
+    id: 'w-meridian',
+    slug: 'meridian',
+    name: 'MERIDIAN',
+    symbol: '⦶',
+    focus: 'upper',
+    difficulty: 'advanced',
+    estimatedMinutesMin: 15,
+    estimatedMinutesMax: 16,
+    equipment: ['pull-up-bar'],
+    format: 'emom',
+    identityColor: '#A5B4FC',
+    progressionTier: 'advanced',
+    description: 'Every three minutes: six pull-ups, fifteen push-ups, twenty-four squats. Five sets, and the pull-ups get heavier every time.',
+    structure: everyMinutes(3, 5, [rep('pull-up', 6), rep('push-up', 15), rep('air-squat', 24)]),
+  },
 
   // ---------------------------------------------------------------------------
   // EMOM benchmarks

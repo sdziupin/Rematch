@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, AppState, Platform, StyleSheet, Text, View } from 'react-native';
+import { AppState, Platform, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { Redirect, useNavigation, useRouter, type Href } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,7 +9,7 @@ import { Button, IconButton } from '../../src/components/Button';
 import { ExerciseAnimation } from '../../src/components/ExerciseAnimation';
 import { RematchBar, TimerDisplay } from '../../src/components/RematchBar';
 import { RaceRails } from '../../src/components/RaceRails';
-import { ProgressRing } from '../../src/components/charts';
+import { Bump, fadeIn, popIn, ProgressRing, riseIn, useFlash } from '../../src/components/motion';
 import { confirmAction, isConfirmOpen } from '../../src/components/Dialogs';
 import { Icon } from '../../src/components/Icon';
 import { getExercisesByIds, getWorkoutById } from '../../src/db/repository';
@@ -24,11 +25,12 @@ import {
   completeStep,
   completedStepCount,
   extendRest,
-  formatLabel,
   getCheckpointKey,
   getCurrentExercise,
   getCurrentRound,
+  isWindowed,
   liveReps,
+  roundNoun,
   pauseState,
   restRemainingMs,
   resumeState,
@@ -36,6 +38,7 @@ import {
   startWorkout,
   stepRemainingMs,
   stepsPerPass,
+  structureLabel,
   swapExercise,
   tick,
   windowRemainingMs,
@@ -57,7 +60,7 @@ import {
 } from '../../src/services/sessionService';
 import { useSettings } from '../../src/store/settingsStore';
 import { useWorkoutStore } from '../../src/store/workoutStore';
-import { colors, fonts, radius, readable, spacing, typography, withAlpha } from '../../src/theme';
+import { colors, fonts, radius, readable, spacing, typography, withAlpha, makeStyles } from '../../src/theme';
 import { syncWorkoutActivity } from '../../src/widgets';
 import type { WorkoutActivityProps } from '../../src/widgets/types';
 
@@ -81,6 +84,7 @@ function spokenStep(ex: ActiveWorkoutState['rounds'][number]['exercises'][number
 }
 
 export default function ActiveWorkoutScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const { isWide, gutter } = useLayout();
   const sessionId = useWorkoutStore((s) => s.sessionId);
@@ -89,6 +93,8 @@ export default function ActiveWorkoutScreen() {
   const opponentSessionId = useWorkoutStore((s) => s.opponentSessionId);
   const yourCheckpoints = useWorkoutStore((s) => s.yourCheckpoints);
   const keepAwake = useSettings((s) => s.keepAwake);
+  const liveDemos = useSettings((s) => s.liveDemos);
+  const restStepSec = useSettings((s) => s.restStepSec);
 
   const [now, setNow] = useState(Date.now());
   const [meta, setMeta] = useState<Meta>(new Map());
@@ -99,7 +105,8 @@ export default function ActiveWorkoutScreen() {
   const finishing = useRef(false);
   const lastSave = useRef(0);
   const lastBeep = useRef<string>('');
-  const flash = useRef(new Animated.Value(0)).current;
+  const { style: flashStyle, flash } = useFlash();
+  const [flashTone, setFlashTone] = useState<string>(colors.accent);
   /** Set when the screen leaves on purpose; navigation happens in an effect so the leave guard is already off. */
   const [exitTo, setExitTo] = useState<Href | null>(null);
 
@@ -191,15 +198,19 @@ export default function ActiveWorkoutScreen() {
     [],
   );
 
-  const pulse = useCallback(() => {
-    // A visual cue for loud gyms and muted phones.
-    flash.setValue(0.35);
-    Animated.timing(flash, { toValue: 0, duration: 450, useNativeDriver: Platform.OS !== 'web' }).start();
-  }, [flash]);
+  const pulse = useCallback(
+    (tone: string) => {
+      // A visual cue for loud gyms and muted phones, tinted by what just happened.
+      setFlashTone(tone);
+      flash(colors.scheme === 'light' ? 0.16 : 0.2);
+    },
+    [flash],
+  );
 
   const cues = useCallback(
     (events: EngineEvent[], s: ActiveWorkoutState) => {
-      if (events.some((e) => e.type === 'RestEnded' || e.type === 'RestStarted' || (e.type === 'Checkpoint' && e.kind === 'round'))) pulse();
+      if (events.some((e) => e.type === 'RestStarted')) pulse(colors.rest);
+      else if (events.some((e) => e.type === 'RestEnded' || (e.type === 'Checkpoint' && e.kind === 'round'))) pulse(colors.accent);
       for (const e of events) {
         if (e.type === 'Checkpoint' && e.kind === 'round') {
           playSound('done');
@@ -365,7 +376,7 @@ export default function ActiveWorkoutScreen() {
       apply(due);
       return;
     }
-    const next = extendRest(s, 15);
+    const next = extendRest(s, useSettings.getState().restStepSec);
     useWorkoutStore.getState().setState(next);
     persist(next, true);
   }, [apply, persist]);
@@ -490,7 +501,11 @@ export default function ActiveWorkoutScreen() {
     const upcoming = state.rounds[state.currentRoundIndex + 1]?.exercises[0];
     const nameOf = (e: NonNullable<typeof current>) => meta.get(e.scaledExerciseId)?.name ?? e.scaledExerciseId.replace(/-/g, ' ');
     const roundLabel =
-      state.structure.format === 'amrap' ? `Round ${(state.roundsCompleted ?? 0) + 1}` : `Round ${state.currentRoundIndex + 1} of ${state.rounds.length}`;
+      state.structure.format === 'amrap'
+        ? `Round ${(state.roundsCompleted ?? 0) + 1}`
+        : state.structure.format === 'death_by'
+          ? `${roundNoun(state.structure)} ${state.currentRoundIndex + 1}`
+          : `${roundNoun(state.structure)} ${state.currentRoundIndex + 1} of ${state.rounds.length}`;
     const live = race && race.status !== 'none' && race.delta !== null ? race : null;
     return {
       name: workoutName,
@@ -562,8 +577,10 @@ export default function ActiveWorkoutScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.countdownWrap}>
           <Text style={styles.kicker}>{workoutName}</Text>
-          <ProgressRing progress={state.countdownRemaining / Math.max(1, useSettings.getState().countdownSec)} size={240} stroke={4}>
-            <Text style={styles.countdown}>{state.countdownRemaining > 0 ? state.countdownRemaining : 'Go'}</Text>
+          <ProgressRing progress={state.countdownRemaining / Math.max(1, useSettings.getState().countdownSec)} size={240} stroke={4} glideMs={1000}>
+            <Animated.Text key={state.countdownRemaining} entering={popIn()} style={styles.countdown}>
+              {state.countdownRemaining > 0 ? state.countdownRemaining : 'Go'}
+            </Animated.Text>
           </ProgressRing>
           {first && (
             <View style={styles.upFirst}>
@@ -599,14 +616,14 @@ export default function ActiveWorkoutScreen() {
           {workoutName}
         </Text>
         <Text style={styles.progressLabel}>
-          {formatLabel(state.structure.format)} ·{' '}
+          {structureLabel(state.structure)} ·{' '}
           {isAmrap
             ? formatRoundsAndReps(state.roundsCompleted ?? 0, Math.max(0, reps - lastRoundReps))
-            : state.structure.format === 'intervals'
-              ? `Interval ${state.currentRoundIndex + 1} of ${state.rounds.length}`
-              : state.structure.format === 'emom'
-                ? `Minute ${state.currentRoundIndex + 1} of ${state.rounds.length}`
-                : `Round ${round?.roundNumber ?? 1} of ${state.rounds.length}`}
+            : state.structure.format === 'death_by'
+              ? `${roundNoun(state.structure)} ${state.currentRoundIndex + 1} · miss one and it's over`
+              : state.structure.format === 'fixed_rounds' || state.structure.format === 'chipper' || state.structure.format === 'ladder'
+                ? `${roundNoun(state.structure)} ${round?.roundNumber ?? 1} of ${state.rounds.length}`
+                : `${roundNoun(state.structure)} ${state.currentRoundIndex + 1} of ${state.rounds.length}`}
         </Text>
       </View>
       {state.phase !== 'paused' && <IconButton icon="pause" label="Pause workout" size={44} onPress={onPause} />}
@@ -654,14 +671,14 @@ export default function ActiveWorkoutScreen() {
     const total = Math.max(1, (state.restEndsAtMs ?? 0) - (state.restStartedAtMs ?? elapsed));
     const upcoming = state.rounds[state.currentRoundIndex + 1]?.exercises[0];
     stage = (
-      <View style={styles.stage}>
-        <Text style={[styles.kicker, { color: colors.rest }]}>{state.structure.format === 'emom' ? 'Rest until the minute' : 'Rest'}</Text>
-        <ProgressRing progress={(restLeft ?? 0) / total} size={isWide ? 280 : 230} stroke={4} color={colors.rest}>
+      <Animated.View key={`rest-${state.currentRoundIndex}`} entering={fadeIn(0, 260)} style={styles.stage}>
+        <Text style={[styles.kicker, { color: colors.rest }]}>{isWindowed(state.structure.format) ? (roundNoun(state.structure) === 'Minute' ? 'Rest until the minute' : 'Rest until the next set') : 'Rest'}</Text>
+        <ProgressRing progress={(restLeft ?? 0) / total} size={isWide ? 280 : 230} stroke={4} color={colors.rest} glideMs={TICK_MS + 40}>
           <Text style={styles.ringNumber}>{formatCountdown(restLeft ?? 0)}</Text>
         </ProgressRing>
         {upcoming && (
           <View style={styles.upFirst}>
-            <ExerciseAnimation exerciseId={upcoming.scaledExerciseId} category={meta.get(upcoming.scaledExerciseId)?.category} size={64} color={colors.rest} />
+            <ExerciseAnimation exerciseId={upcoming.scaledExerciseId} category={meta.get(upcoming.scaledExerciseId)?.category} size={64} color={colors.rest} playing={liveDemos} />
             <View style={styles.flex}>
               <Text style={styles.label}>Next</Text>
               <Text style={styles.upFirstName}>{meta.get(upcoming.scaledExerciseId)?.name ?? upcoming.scaledExerciseId}</Text>
@@ -669,12 +686,12 @@ export default function ActiveWorkoutScreen() {
             </View>
           </View>
         )}
-      </View>
+      </Animated.View>
     );
     controls =
-      state.structure.format !== 'emom' && state.phase === 'rest' ? (
+      !isWindowed(state.structure.format) && state.phase === 'rest' ? (
         <View style={styles.row}>
-          <Button title="15 sec" variant="secondary" icon="plus" size="lg" onPress={onExtendRest} style={styles.flex} accessibilityLabel="Add 15 seconds of rest" />
+          <Button title={`${restStepSec} sec`} variant="secondary" icon="plus" size="lg" onPress={onExtendRest} style={styles.flex} accessibilityLabel={`Add ${restStepSec} seconds of rest`} />
           <Button title="Skip rest" icon="skip" size="lg" onPress={onSkipRest} style={styles.flex} />
         </View>
       ) : null;
@@ -682,27 +699,41 @@ export default function ActiveWorkoutScreen() {
     const timed = !!ex?.durationSec;
     const countReps = timed ? state.scoring === 'reps' : true;
     const animSize = isWide ? 320 : 200;
+    const stepKey = `${state.loop ?? 0}-${state.currentRoundIndex}-${state.currentExerciseIndex}`;
     stage = (
       <View style={styles.stage}>
-        <Text style={styles.exerciseName} numberOfLines={2} adjustsFontSizeToFit accessibilityRole="header">
-          {exMeta?.name ?? ex?.scaledExerciseId ?? ''}
-        </Text>
-        <Text style={styles.target}>{describeTarget(ex, state.scoring)}</Text>
+        <Animated.View key={stepKey} entering={riseIn(0)} style={styles.stepHead}>
+          <Text style={[styles.exerciseName, !liveDemos && styles.exerciseNameLarge]} numberOfLines={2} adjustsFontSizeToFit accessibilityRole="header">
+            {exMeta?.name ?? ex?.scaledExerciseId ?? ''}
+          </Text>
+          <Text style={styles.target}>{describeTarget(ex, state.scoring)}</Text>
+        </Animated.View>
         {timed && stepLeft !== null ? (
           <>
-            <ProgressRing progress={stepLeft / ((ex?.durationSec ?? 1) * 1000)} size={animSize + 24} stroke={4}>
-              <ExerciseAnimation exerciseId={ex!.scaledExerciseId} category={exMeta?.category} size={animSize - 48} background={null} color={colors.accent} playing={state.phase === 'active'} />
+            <ProgressRing progress={stepLeft / ((ex?.durationSec ?? 1) * 1000)} size={liveDemos ? animSize + 24 : animSize} stroke={4} glideMs={TICK_MS + 40}>
+              {liveDemos ? (
+                <ExerciseAnimation exerciseId={ex!.scaledExerciseId} category={exMeta?.category} size={animSize - 48} background={null} color={colors.accent} playing={state.phase === 'active'} />
+              ) : (
+                <Text style={styles.ringNumber}>{formatCountdown(stepLeft)}</Text>
+              )}
             </ProgressRing>
-            <Text style={styles.stepCountdown} accessibilityLabel={`${Math.ceil(stepLeft / 1000)} seconds left`}>
-              {formatCountdown(stepLeft)}
-            </Text>
+            {liveDemos && (
+              <Text style={styles.stepCountdown} accessibilityLabel={`${Math.ceil(stepLeft / 1000)} seconds left`}>
+                {formatCountdown(stepLeft)}
+              </Text>
+            )}
           </>
         ) : (
-          ex && <ExerciseAnimation exerciseId={ex.scaledExerciseId} category={exMeta?.category} size={animSize} playing={state.phase === 'active'} color={colors.accent} background={null} style={styles.figure} />
+          ex &&
+          liveDemos && (
+            <Animated.View key={`fig-${stepKey}`} entering={fadeIn(80, 300)}>
+              <ExerciseAnimation exerciseId={ex.scaledExerciseId} category={exMeta?.category} size={animSize} playing={state.phase === 'active'} color={colors.accent} background={null} style={styles.figure} />
+            </Animated.View>
+          )
         )}
         {windowLeft !== null && (
           <Text style={styles.windowText}>
-            {formatCountdown(windowLeft)}s <Text style={styles.capLabel}>left in this minute</Text>
+            {formatCountdown(windowLeft)}s <Text style={styles.capLabel}>left in this {roundNoun(state.structure) === 'Minute' ? 'minute' : 'set'}</Text>
           </Text>
         )}
         {nextEx && hasNext && (
@@ -719,7 +750,9 @@ export default function ActiveWorkoutScreen() {
           <View style={styles.repControls}>
             <IconButton icon="minus" label="One rep less" size={52} onPress={() => onRep(-1)} />
             <View style={styles.repCountWrap}>
-              <Text style={styles.repCount}>{ex.completedReps}</Text>
+              <Bump trigger={ex.completedReps}>
+                <Text style={styles.repCount}>{ex.completedReps}</Text>
+              </Bump>
               <Text style={styles.capLabel}>{ex.targetReps ? `of ${ex.targetReps}` : 'counted'}</Text>
             </View>
             <IconButton icon="plus" label="One more rep" size={52} onPress={() => onRep(1)} />
@@ -766,9 +799,9 @@ export default function ActiveWorkoutScreen() {
         )}
       </View>
 
-      <Animated.View pointerEvents="none" style={[styles.flash, { opacity: flash }]} />
+      <Animated.View pointerEvents="none" style={[styles.flash, { backgroundColor: flashTone }, flashStyle]} />
       {paused && (
-        <View style={styles.pauseOverlay} accessibilityViewIsModal>
+        <Animated.View entering={fadeIn(0, 180)} style={styles.pauseOverlay} accessibilityViewIsModal>
           <View style={styles.pauseCard}>
             <Text style={[styles.label, styles.centered]}>Paused</Text>
             <View style={styles.centeredBox}>
@@ -788,7 +821,7 @@ export default function ActiveWorkoutScreen() {
             )}
             <Button title="End workout" variant="ghost" icon="flag" onPress={onEnd} />
           </View>
-        </View>
+        </Animated.View>
       )}
     </SafeAreaView>
   );
@@ -796,6 +829,7 @@ export default function ActiveWorkoutScreen() {
 
 /** The next few movements (wide layouts). */
 function UpNext({ state, meta }: { state: ActiveWorkoutState; meta: Meta }) {
+  const styles = useStyles();
   const upcoming: { key: string; ex: ActiveWorkoutState['rounds'][number]['exercises'][number]; round: number }[] = [];
   const isAmrap = state.structure.format === 'amrap';
   for (let r = state.currentRoundIndex, guard = 0; upcoming.length < 4 && guard < 40; guard++) {
@@ -820,7 +854,7 @@ function UpNext({ state, meta }: { state: ActiveWorkoutState; meta: Meta }) {
           </Text>
           {round !== state.currentRoundIndex + 1 && (
             <Text style={styles.capLabel}>
-              {state.structure.format === 'emom' ? 'M' : state.structure.format === 'intervals' ? 'I' : 'R'}
+              {roundNoun(state.structure)[0]}
               {round}
             </Text>
           )}
@@ -830,7 +864,7 @@ function UpNext({ state, meta }: { state: ActiveWorkoutState; meta: Meta }) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   upNext: { gap: 10, backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
   upNextRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4 },
   upNextText: { ...typography.callout, color: colors.textSecondary, flex: 1 },
@@ -843,7 +877,9 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 3, marginTop: spacing.md },
   segment: { flex: 1, height: 3, borderRadius: 2 },
   stage: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  stepHead: { alignItems: 'center', gap: spacing.sm },
   exerciseName: { ...typography.display, textAlign: 'center', color: colors.text },
+  exerciseNameLarge: { fontSize: 52, lineHeight: 56, letterSpacing: -1.8 },
   target: { ...typography.subheading, color: colors.accent },
   figure: { marginVertical: spacing.sm },
   ringNumber: { ...typography.numeral, color: colors.text },
@@ -876,7 +912,7 @@ const styles = StyleSheet.create({
   wideStage: { backgroundColor: colors.surface, borderRadius: radius.xl + 6, borderWidth: 1, borderColor: colors.border },
   wideSide: { width: 380, gap: spacing.lg, paddingVertical: spacing.sm },
   shortcuts: { ...typography.caption, color: colors.textMuted, textAlign: 'center' },
-  flash: { ...StyleSheet.absoluteFill, backgroundColor: colors.accent },
+  flash: { ...StyleSheet.absoluteFill, opacity: 0 },
   pauseOverlay: { ...StyleSheet.absoluteFill, backgroundColor: withAlpha(colors.background, 0.94), alignItems: 'center', justifyContent: 'center', padding: spacing.lg },
   pauseCard: { width: '100%', maxWidth: 400, gap: spacing.sm + 2, alignItems: 'stretch' },
-});
+}));

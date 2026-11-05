@@ -12,7 +12,7 @@ import { normalizeState } from '../../src/engine/workoutEngine';
 import { afterSessionEnded } from '../../src/services/sessionEffects';
 import { abandonSession, finishSession, getActiveSession, getCheckpoints } from '../../src/services/sessionService';
 import { useWorkoutStore } from '../../src/store/workoutStore';
-import { colors, spacing, typography } from '../../src/theme';
+import { colors, spacing, typography, makeStyles } from '../../src/theme';
 
 interface Pending {
   sessionId: string;
@@ -24,6 +24,7 @@ interface Pending {
 }
 
 export default function RecoveryScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const [info, setInfo] = useState<Pending | null>(null);
   const [busy, setBusy] = useState(false);
@@ -104,7 +105,7 @@ export default function RecoveryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   center: { justifyContent: 'center' },
   card: { padding: spacing.xl, gap: spacing.sm },
   kickerRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -113,4 +114,4 @@ const styles = StyleSheet.create({
   name: { ...typography.display, color: colors.text, marginTop: spacing.sm },
   sub: { ...typography.body, color: colors.textSecondary },
   actions: { gap: spacing.sm, marginTop: spacing.lg },
-});
+}));

@@ -9,11 +9,12 @@ import { listExercises, parseJsonArray } from '../../src/db/repository';
 import type { ExerciseRow } from '../../src/db/schema';
 import { titleCase } from '../../src/domain/utils';
 import { useLayout } from '../../src/hooks/useLayout';
-import { colors, fonts, radius, spacing, typography } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../../src/theme';
 
 const CATEGORIES = ['all', 'push', 'pull', 'squat', 'lunge', 'hinge', 'core', 'cardio', 'conditioning', 'accessory', 'mobility', 'recovery'] as const;
 
 export default function ExercisesScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const { contentWidth, isWide } = useLayout();
   const [rows, setRows] = useState<ExerciseRow[]>([]);
@@ -118,7 +119,7 @@ export default function ExercisesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   searchRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm + 4 },
   filters: { backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.border, padding: spacing.md, gap: spacing.lg, marginTop: spacing.sm + 4 },
   filtersWide: { flexDirection: 'row', alignItems: 'center' },
@@ -133,4 +134,4 @@ const styles = StyleSheet.create({
   tileText: { paddingHorizontal: 14, paddingVertical: 12, gap: 2 },
   tileName: { ...typography.callout, fontFamily: fonts.semibold, color: colors.text },
   tileMeta: { ...typography.caption, color: colors.textMuted },
-});
+}));

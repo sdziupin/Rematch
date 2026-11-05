@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import type { PartialKey, WorkoutStructure } from '../domain/types';
 import { estimateStructureMinutes } from '../engine/workoutEngine';
 import legacyStructures from './__fixtures__/legacy-structures.json';
-import { EXERCISE_SEEDS, PARTIAL_FRACTIONS, PROGRAM_SEEDS, WORKOUT_SEEDS, scaleStructure } from './seed';
+import { EXERCISE_SEEDS, PARTIAL_FRACTIONS, PROGRAM_SEEDS, WORKOUT_SEEDS, isTimeBoxed, scaleStructure } from './seed';
 import { EQUIPMENT, EXERCISE_CATEGORIES, MUSCLES, type EquipmentId } from './types';
 
 const FOCUSES = [
@@ -172,13 +172,13 @@ test('structures satisfy their format requirements', () => {
     assert.ok(s.rounds.length > 0, `${where}: no rounds`);
     s.rounds.forEach((round, i) => {
       assert.ok(round.steps.length > 0, `${where}: round ${i + 1} is empty`);
-      if (s.format !== 'intervals' && s.format !== 'emom') assert.equal(round.roundNumber, i + 1, `${where}: round numbers out of order`);
+      if (s.format !== 'intervals' && s.format !== 'emom' && s.format !== 'tabata') assert.equal(round.roundNumber, i + 1, `${where}: round numbers out of order`);
     });
 
     for (const step of allSteps(s)) {
       const hasReps = (step.reps ?? 0) > 0;
       const hasDuration = (step.durationSec ?? 0) > 0;
-      if (s.format === 'intervals') {
+      if (s.format === 'intervals' || s.format === 'tabata') {
         assert.ok(hasDuration || (s.intervalWorkSec ?? 0) > 0, `${where}: interval step "${step.exerciseId}" has no duration`);
         if (step.durationSec !== undefined && s.intervalWorkSec !== undefined) {
           assert.equal(step.durationSec, s.intervalWorkSec, `${where}: step duration differs from intervalWorkSec`);
@@ -187,6 +187,7 @@ test('structures satisfy their format requirements', () => {
         assert.ok(hasReps || hasDuration, `${where}: step "${step.exerciseId}" needs reps or durationSec`);
       }
       if (s.format === 'emom') assert.ok(hasReps, `${where}: EMOM steps need reps`);
+      if (s.format === 'death_by') assert.ok(hasReps && !hasDuration, `${where}: Death by steps need base reps`);
     }
 
     switch (s.format) {
@@ -205,6 +206,17 @@ test('structures satisfy their format requirements', () => {
           const workSec = round.steps.reduce((sum, st) => sum + (st.reps ?? 0) * 3 + (st.durationSec ?? 0), 0);
           assert.ok(workSec < windowSec, `${where}: EMOM minute ${round.roundNumber} leaves no rest (${workSec}s of work)`);
         }
+        break;
+      }
+      case 'tabata':
+        assert.ok((s.intervalWorkSec ?? 20) >= 10 && (s.intervalWorkSec ?? 20) <= 60, `${where}: Tabata work interval out of range`);
+        assert.ok((s.intervalRounds ?? 8) >= 4, `${where}: a Tabata block needs at least 4 intervals`);
+        break;
+      case 'death_by': {
+        const windowSec = s.intervalWorkSec ?? 60;
+        const base = allSteps(s).reduce((sum, st) => sum + (st.reps ?? 0) * 3, 0);
+        assert.ok(base * 3 < windowSec, `${where}: Death by is over by minute 3 (${base}s of work per rep step)`);
+        assert.ok((s.intervalRounds ?? 20) >= 8, `${where}: Death by needs room to run`);
         break;
       }
       default:
@@ -288,7 +300,7 @@ test('partial sessions actually reduce volume', () => {
         `${p.id}: ${s.partialKey} ${s.workoutId} is not shorter than the full workout`,
       );
       // Time-boxed partials shorten the clock but keep every movement.
-      if (w.format === 'emom' || w.format === 'intervals' || w.format === 'amrap') {
+      if (isTimeBoxed(w.format)) {
         assert.equal(scaled.rounds.length, w.structure.rounds.length, `${p.id}: partial ${w.format} ${s.workoutId} dropped movements`);
       }
     }
@@ -316,7 +328,7 @@ test('program equipment is exactly what its workouts need', () => {
 
 test('every size of a time-boxed workout keeps all of its movements', () => {
   for (const w of WORKOUT_SEEDS) {
-    if (w.format !== 'emom' && w.format !== 'intervals' && w.format !== 'amrap') continue;
+    if (!isTimeBoxed(w.format)) continue;
     const ids = new Set(w.structure.rounds.flatMap((r) => r.steps.map((st) => st.exerciseId)));
     for (const f of PARTIAL_FRACTIONS) {
       const scaled = scaleStructure(w.structure, f.fraction);

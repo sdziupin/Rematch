@@ -10,7 +10,7 @@ import { getProfile, updateProfile } from '../src/db/repository';
 import { titleCase } from '../src/domain/utils';
 import { useLayout } from '../src/hooks/useLayout';
 import { useSettings } from '../src/store/settingsStore';
-import { colors, spacing, typography } from '../src/theme';
+import { colors, spacing, typography, makeStyles } from '../src/theme';
 
 const GOALS = ['general_fitness', 'conditioning', 'strength_endurance', 'consistency'] as const;
 const LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
@@ -18,6 +18,7 @@ const TIMES = [10, 15, 20, 30] as const;
 const FREQ = [2, 3, 4, 5] as const;
 
 export default function Onboarding() {
+  const styles = useStyles();
   const router = useRouter();
   const { isWide } = useLayout();
   const [goal, setGoal] = useState<(typeof GOALS)[number]>('conditioning');
@@ -79,6 +80,7 @@ export default function Onboarding() {
 }
 
 function Section({ title, hint, last, children }: { title: string; hint?: string; last?: boolean; children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={[styles.section, last && styles.sectionLast]}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -88,7 +90,7 @@ function Section({ title, hint, last, children }: { title: string; hint?: string
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   hero: { gap: spacing.lg, marginBottom: spacing.xxl, marginTop: spacing.md },
   heroWide: { flexDirection: 'row', alignItems: 'center' },
@@ -102,4 +104,4 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   hint: { ...typography.caption, color: colors.textMuted },
   footnote: { ...typography.caption, color: colors.textMuted, textAlign: 'center', marginTop: spacing.md },
-});
+}));

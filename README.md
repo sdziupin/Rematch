@@ -50,7 +50,7 @@ There's no leaderboard and no stranger to chase. Just you and the last version o
     <td><img src="./docs/screenshots/phone-program.png" alt="Program" /></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Workouts</b><br/>58 benchmarks, programs, your own</sub></td>
+    <td align="center"><sub><b>Workouts</b><br/>68 benchmarks, programs, your own</sub></td>
     <td align="center"><sub><b>Exercises</b><br/>95 animated demos with cues</sub></td>
     <td align="center"><sub><b>Progress</b><br/>Totals, calendar, muscle map</sub></td>
     <td align="center"><sub><b>Programs</b><br/>Multi-week plans that re-test</sub></td>
@@ -75,29 +75,33 @@ On wide screens the tab bar becomes a sidebar and every screen gets a two-column
 | **Checkpoint racing** | A split at every movement and round. The live delta compares you at the same checkpoint and flips the moment past-you reaches your next one first. |
 | **Any opponent** | Race your best, your last attempt, or any finished attempt. |
 | **Honest personal bests** | Kept separately for each workout version, size (full, ¾, ½, ¼) and scaling (RX, scaled, modified). Editing a workout creates a new version, so old results stay comparable. |
-| **Every format** | For time, chippers, ladders, AMRAP, EMOM, intervals, time caps and prescribed rest. Timed holds and rests run their own clocks. |
+| **Every format** | For time, chippers, ladders and pyramids, AMRAP, EMOM (and every 2 or 3 minutes), intervals, Tabata, Death by, time caps and prescribed rest. Timed holds and rests run their own clocks. |
 | **Scaling** | Swap any movement for its easier variant before or during a workout. The result is filed as scaled or modified automatically. |
 | **Exercise library** | 95 movements, each with an original animated demo, coaching cues, common mistakes, a muscle map and easier or harder progressions. |
-| **Programs** | Six multi-week plans. Each opens and closes on the same benchmark, so the last session is a rematch against the person who started. |
-| **Builder** | Make your own benchmarks in any format. They race, version and track bests like the built-in ones. |
+| **Programs** | Seven multi-week plans. Each opens and closes on the same benchmark, so the last session is a rematch against the person who started. |
+| **Builder** | Make your own benchmarks in any format, ladders and pyramids included. They race, version and track bests like the built-in ones. |
+| **Make it yours** | Four themes (Automatic, Graphite, Midnight for OLED, Daylight) and six accents, applied instantly. Choose who the Rematch button races, turn the live movement demos off, set the extra-rest step. |
 | **Progress** | Weekly goal and streaks, an 18-week calendar, a 30-day muscle map, first, latest and best for every benchmark, and full history. |
-| **Built for training** | Countdown beeps that mix with your music, an optional voice coach, haptics, keep-awake, big touch targets, pause and resume. |
-| **On iPhone** | Finished workouts saved to Apple Health (with an energy estimate when Health knows your weight). Home and Lock Screen widgets for this week's goal and your last race. A Live Activity with the clock and the delta on the Lock Screen and in the Dynamic Island. Rest alerts when the phone is in your pocket, and training reminders on days the week still needs you. All opt-in from Profile. |
+| **Built for training** | Countdown beeps that mix with your music, an optional voice coach, haptics, keep-awake, big touch targets, pause and resume. Motion is short and purposeful (springs under your finger, rings that glide, a burst for a new best) and steps aside when the phone asks for reduced motion. |
+| **Health sync** | Apple Health on iPhone, Health Connect on Android (so Google Fit, Fitbit and others see it too). Each finished workout is saved once with the right workout type, its pauses and an energy estimate from your weight; deleting a result removes it again. Recent sessions catch up on their own, and heart rate from your watch shows on every result. Opt-in from Profile. |
+| **On iPhone** | Home and Lock Screen widgets for this week's goal and your last race. A Live Activity with the clock and the delta on the Lock Screen and in the Dynamic Island. Rest alerts when the phone is in your pocket, and training reminders on days the week still needs you. All opt-in from Profile. |
 | **Web app** | Responsive layout, keyboard shortcuts, installable as a PWA, works offline after the first visit. |
 | **Your data** | Sessions survive app kills and reloads. Export everything as one JSON file and restore it anywhere. |
 
 ## Content
 
-**58 original benchmarks** (TEMPEST, EMBER, RIPTIDE, AVALANCHE, SUMMIT, VORTEX, ONYX and more), **4 warm-ups**, **3 cool-downs** and **6 programs**.
+**68 original benchmarks** (TEMPEST, EMBER, RIPTIDE, AVALANCHE, SUMMIT, VORTEX, ONYX, FLINT, ECHO, CAIRN and more), **4 warm-ups**, **3 cool-downs** and **7 programs**.
 
 | Format | Benchmarks | Scored by |
 |---|---:|---|
 | For time | 30 | time |
 | Chipper | 6 | time |
-| Ladder | 3 | time |
+| Ladder and pyramid | 4 | time |
 | Intervals | 10 | total reps |
 | AMRAP | 5 | rounds + reps |
-| EMOM | 4 | total reps |
+| EMOM, E2MOM, E3MOM | 6 | total reps |
+| Tabata (8 × 20 s on / 10 s off per movement) | 4 | total reps |
+| Death by (one more rep every minute until you miss one) | 3 | total reps |
 
 Workouts are tagged by equipment (bodyweight, mat, pull-up bar, dumbbells, kettlebell, bench or box, jump rope, resistance band) and level (beginner to elite), so recommendations only suggest what you can actually do.
 
@@ -109,10 +113,13 @@ Workouts are tagged by equipment (bodyweight, mat, pull-up bar, dumbbells, kettl
 | LOADED | 4 weeks, 3 sessions a week (dumbbells) |
 | ASCENT | 4 weeks, 3 sessions a week (pull-up bar) |
 | GAUNTLET | 4 weeks, 4 sessions a week |
+| FURNACE | 3 weeks, 3 sessions a week (Tabata, Death by, pyramids) |
 
 ## Design
 
-REMATCH is dark, quiet and precise. The interface stays out of the way so the clock and the delta can do the talking.
+REMATCH is quiet and precise. The interface stays out of the way so the clock and the delta can do the talking. It ships dark (Graphite); Midnight is true black for OLED, Daylight is warm paper white with soft shadows instead of hairlines, and Automatic follows the phone. Six accents (Volt, Mint, Aqua, Orchid, Flamingo, Mono) each have a dark-ground and a deeper light-ground value, so text in the accent stays above 4.5:1.
+
+Graphite tokens:
 
 | Token | Value | Role |
 |---|---|---|
@@ -130,7 +137,7 @@ REMATCH is dark, quiet and precise. The interface stays out of the way so the cl
 - **No emoji.** Each workout gets its own colour and a monogram, so it looks the same on every platform.
 - **The mark.** A solid disc (you) just ahead of an outlined one (past you). `npm run generate:icons` renders it into every app and web icon.
 
-Tokens live in [`src/theme`](./src/theme), and every screen builds on the kit in [`src/components/ui.tsx`](./src/components/ui.tsx).
+Tokens live in [`src/theme`](./src/theme). `colors` is a live palette: `makeStyles` sheets rebuild once per theme change, so switching theme or accent re-tints every screen without a reload. Every screen builds on the kit in [`src/components/ui.tsx`](./src/components/ui.tsx) and the motion primitives in [`src/components/motion.tsx`](./src/components/motion.tsx).
 
 ## How the race works
 
@@ -183,7 +190,7 @@ flowchart TB
 
 ### Stack
 
-React Native 0.86 and React 19 on Expo SDK 57, Expo Router, TypeScript 6, Zustand, expo-sqlite with Drizzle ORM, react-native-svg for animations and charts, expo-audio, expo-speech, expo-haptics and expo-keep-awake for cues, expo-notifications, expo-widgets with @expo/ui for widgets and the Live Activity, and a small local Swift module for HealthKit. Tests run on Node's test runner via `tsx` against real SQLite (`node:sqlite`).
+React Native 0.86 and React 19 on Expo SDK 57, Expo Router, TypeScript 6, Zustand, expo-sqlite with Drizzle ORM, react-native-svg for animations and charts, expo-audio, expo-speech, expo-haptics and expo-keep-awake for cues, expo-notifications, expo-widgets with @expo/ui for widgets and the Live Activity, and a small local Expo module for health data: Swift for HealthKit, Kotlin for Health Connect (`androidx.health.connect:connect-client`, which needs Android 8.0+; `plugins/withHealthConnect.js` sets minSdk 26). Tests run on Node's test runner via `tsx` against real SQLite (`node:sqlite`).
 
 ## Getting started
 
@@ -221,7 +228,7 @@ Secrets: `IOS_DIST_P12_BASE64`, `IOS_DIST_P12_PASSWORD` (Apple Distribution cert
 ### Checks
 
 ```bash
-npm test           # 375 tests: engine, race, scoring, stats, DB lifecycle, migrations, backup, content, animations, Health, widgets, reminders
+npm test           # 388 tests: engine, race, scoring, stats, DB lifecycle, migrations, backup, content, animations, Health, widgets, reminders
 npm run typecheck
 ```
 
@@ -229,7 +236,7 @@ npm run typecheck
 
 | Command | What it does |
 |---|---|
-| `npm run screenshots` | Races TEMPEST twice in a fresh browser and captures every screen in `docs/screenshots/` (needs `serve:web` running) |
+| `npm run screenshots` | Races TEMPEST twice in a fresh browser and captures every screen in `docs/screenshots/` (needs `serve:web` running). `--appearance light --accent aqua` shoots another look, `--phone-only` skips desktop |
 | `npm run generate:icons` | Renders the brand mark into the app, splash, adaptive and web icons |
 | `npm run generate:sounds` | Re-synthesises the cue sounds in `assets/sounds/` |
 | `npm run motion-sheet -- out.html --only burpee,pull-up` | Renders exercise animations as a contact sheet |
@@ -258,12 +265,13 @@ src/
   db/                Schema, migrations, async driver, content sync
   domain/            Timer, rematch comparator, scoring, stats, scaling, Health and widget data
   engine/            Deterministic workout state machine
-  services/          Sessions, stats, programs, backup, cues, recommendations, Health, notifications
+  services/          Sessions, stats, programs, backup, cues, recommendations, Health, notifications, theme
   store/             Zustand stores
-  theme/             Colour, type and spacing tokens
+  theme/             Themes, accents, type and spacing tokens, theme store
   widgets/           iOS widget and Live Activity layouts (expo-widgets)
 modules/
-  rematch-health/    Local Expo module: HealthKit authorization and workout saving (Swift)
+  rematch-health/    Local Expo module: HealthKit (Swift) and Health Connect (Kotlin): access, saving, deleting, weight, heart rate
+plugins/             Expo config plugin for Health Connect (minSdk)
 public/              Web shell: manifest, icons, service worker
 assets/              App icons and cue sounds
 docs/screenshots/    README images (generated)

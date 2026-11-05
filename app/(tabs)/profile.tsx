@@ -7,6 +7,7 @@ import { confirmAction, showToast } from '../../src/components/Dialogs';
 import { Icon } from '../../src/components/Icon';
 import { Wordmark } from '../../src/components/Wordmark';
 import { Card, Chip, ChipRow, Grid, Screen, ScreenHeader, SectionTitle } from '../../src/components/ui';
+import { AppearancePicker } from '../../src/components/AppearancePicker';
 import { EQUIPMENT, EQUIPMENT_LABELS } from '../../src/content/types';
 import { getDriverInfo } from '../../src/db/client';
 import { getProfile, profileEquipment, updateProfile, type Profile } from '../../src/db/repository';
@@ -15,11 +16,11 @@ import { useLayout } from '../../src/hooks/useLayout';
 import { BackupError, backupFileName, createBackup, parseBackup, resetAllData, restoreBackup, serializeBackup } from '../../src/services/backupService';
 import { haptic, playSound, prepareAudio, speak } from '../../src/services/cues';
 import { saveDeviceSettings } from '../../src/services/deviceSettings';
-import { connectHealth, disconnectHealth, isHealthSupported } from '../../src/services/healthService';
+import { HEALTH_PROVIDER, connectHealth, disconnectHealth, getHealthAvailability, isHealthSupported, openHealthApp, syncRecentSessionsToHealth } from '../../src/services/healthService';
 import { ensureNotificationPermission, notificationsSupported } from '../../src/services/notificationService';
 import { pickTextFile, saveTextFile } from '../../src/services/fileTransfer';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, spacing, typography } from '../../src/theme';
+import { colors, spacing, typography, makeStyles } from '../../src/theme';
 
 const GOALS = ['general_fitness', 'conditioning', 'strength_endurance', 'consistency'] as const;
 const LEVELS = ['beginner', 'intermediate', 'advanced', 'elite'] as const;
@@ -27,10 +28,13 @@ const MINUTES = [10, 15, 20, 30, 45] as const;
 const FREQUENCY = [2, 3, 4, 5, 6] as const;
 const COUNTDOWNS = [3, 5, 10] as const;
 const REMINDER_HOURS = [7, 12, 17, 19] as const;
+const REST_STEPS = [10, 15, 30] as const;
+const OPPONENTS = ['best', 'last'] as const;
 
 const hourLabel = (h: number) => new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
 export default function ProfileScreen() {
+  const styles = useStyles();
   const router = useRouter();
   const { isWide } = useLayout();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -40,6 +44,9 @@ export default function ProfileScreen() {
   const restAlerts = useSettings((s) => s.restAlerts);
   const reminders = useSettings((s) => s.reminders);
   const reminderHour = useSettings((s) => s.reminderHour);
+  const liveDemos = useSettings((s) => s.liveDemos);
+  const restStepSec = useSettings((s) => s.restStepSec);
+  const defaultOpponent = useSettings((s) => s.defaultOpponent);
   const healthSupported = isHealthSupported();
 
   const refresh = useCallback(async () => {
@@ -179,8 +186,20 @@ export default function ProfileScreen() {
           }}
         />
         <Setting label="Keep screen awake" hint="While a workout is running." value={profile.keepAwakeEnabled} onChange={(v) => save({ keepAwakeEnabled: v })} />
+        <Setting
+          label="Movement demos"
+          hint="Show the animated demo of each movement while you work. Off gives the clock and the movement name more room."
+          value={liveDemos}
+          onChange={(v) => void saveDeviceSettings({ liveDemos: v })}
+        />
         <Field label="Countdown">
           <ChipRow options={COUNTDOWNS} value={(profile.countdownSec ?? 3) as (typeof COUNTDOWNS)[number]} onChange={(countdownSec) => save({ countdownSec })} format={(s) => `${s} seconds`} />
+        </Field>
+        <Field label="Extra rest button">
+          <ChipRow options={REST_STEPS} value={(REST_STEPS as readonly number[]).includes(restStepSec) ? (restStepSec as (typeof REST_STEPS)[number]) : 15} onChange={(v) => void saveDeviceSettings({ restStepSec: v })} format={(v) => `+${v} sec`} />
+        </Field>
+        <Field label="Rematch button races">
+          <ChipRow options={OPPONENTS} value={defaultOpponent} onChange={(v) => void saveDeviceSettings({ defaultOpponent: v })} format={(v) => (v === 'best' ? 'Your best' : 'Your last attempt')} />
         </Field>
         <Field label="Week starts on" last>
           <ChipRow options={[1, 0] as const} value={(profile.weekStartsOn ?? 1) as 0 | 1} onChange={(weekStartsOn) => save({ weekStartsOn })} format={(d) => (d === 1 ? 'Monday' : 'Sunday')} />
@@ -189,7 +208,21 @@ export default function ProfileScreen() {
     </View>
   );
 
+  const appearance = (
+    <View>
+      <SectionTitle>Appearance</SectionTitle>
+      <Card>
+        <AppearancePicker />
+      </Card>
+    </View>
+  );
+
   const openSettings = () => void Linking.openSettings().catch(() => undefined);
+
+  const provider = HEALTH_PROVIDER ?? 'Health';
+  const healthAvailability = getHealthAvailability();
+  const deniedHint =
+    Platform.OS === 'ios' ? 'Allow REMATCH in the Health app: Sharing › Apps › REMATCH' : 'Allow REMATCH in Health Connect: App permissions › REMATCH';
 
   const toggleHealth = async (on: boolean) => {
     if (!on) {
@@ -198,10 +231,26 @@ export default function ProfileScreen() {
     }
     try {
       const status = await connectHealth();
-      if (status === 'authorized') showToast('Workouts will be saved to Apple Health', { tone: 'success' });
-      else if (status === 'denied') showToast('Allow REMATCH in the Health app: Sharing › Apps › REMATCH', { tone: 'error', actionLabel: 'Settings', onAction: openSettings });
+      if (status === 'authorized') {
+        haptic('success');
+        showToast(`Workouts will be saved to ${provider}`, { tone: 'success' });
+      } else if (status === 'denied') showToast(deniedHint, { tone: 'error', actionLabel: 'Open', onAction: () => void openHealthApp() });
+      else if (healthAvailability !== 'available') showToast(healthAvailability === 'needsUpdate' ? 'Update Health Connect, then turn this on again.' : 'Install Health Connect, then turn this on again.', { tone: 'info' });
     } catch {
-      showToast('Apple Health is not available right now.', { tone: 'error' });
+      showToast(`${provider} is not available right now.`, { tone: 'error' });
+    }
+  };
+
+  const syncNow = async () => {
+    setBusy('health');
+    try {
+      const { saved, failed } = await syncRecentSessionsToHealth();
+      if (failed) showToast(`${saved} saved, ${failed} could not be written to ${provider}`, { tone: 'error' });
+      else showToast(saved ? `${saved} workout${saved === 1 ? '' : 's'} saved to ${provider}` : `${provider} is up to date`, { tone: 'success' });
+    } catch {
+      showToast(`${provider} is not available right now.`, { tone: 'error' });
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -218,15 +267,29 @@ export default function ProfileScreen() {
 
   const connected = (healthSupported || notificationsSupported) && (
     <View>
-      <SectionTitle>Phone</SectionTitle>
+      <SectionTitle>Health and phone</SectionTitle>
       <Card style={styles.group}>
         {healthSupported && (
-          <Setting
-            label="Save to Apple Health"
-            hint="Finished workouts appear in Health and Fitness with their active time. Calories are estimated from your weight in Health, when there is one."
-            value={healthSync}
-            onChange={(v) => void toggleHealth(v)}
-          />
+          <>
+            <Setting
+              label={`Sync with ${provider}`}
+              hint={
+                Platform.OS === 'ios'
+                  ? 'Finished workouts appear in Health and Fitness with the right workout type and their active time. Calories are estimated from your weight in Health, and heart rate from your Apple Watch shows on each result.'
+                  : healthAvailability === 'available'
+                    ? 'Finished workouts are written to Health Connect, so Google Fit, Fitbit and other apps see them. Calories are estimated from your weight there, and heart rate from your watch shows on each result.'
+                    : 'Needs the Health Connect app from Google Play. Workouts then reach Google Fit, Fitbit and other apps.'
+              }
+              value={healthSync}
+              onChange={(v) => void toggleHealth(v)}
+            />
+            {healthSync && (
+              <View style={[styles.field, styles.row]}>
+                <Button title="Sync now" icon="sync" variant="secondary" size="sm" onPress={syncNow} loading={busy === 'health'} style={styles.flex} />
+                <Button title={`Open ${Platform.OS === 'ios' ? 'Health' : 'Health Connect'}`} variant="secondary" size="sm" onPress={() => void openHealthApp()} style={styles.flex} />
+              </View>
+            )}
+          </>
         )}
         {notificationsSupported && (
           <>
@@ -294,10 +357,11 @@ export default function ProfileScreen() {
 
   return (
     <Screen>
-      <ScreenHeader title="Profile" subtitle="How you train, how workouts behave, and where your data lives." />
+      <ScreenHeader title="Profile" subtitle="Make it yours: how it looks, how you train, how workouts behave, and where your data lives." />
       {isWide ? (
         <Grid columns={2} gap={spacing.lg}>
           <View>
+            {appearance}
             {training}
             {about}
           </View>
@@ -309,6 +373,7 @@ export default function ProfileScreen() {
         </Grid>
       ) : (
         <View>
+          {appearance}
           {training}
           {behaviour}
           {connected}
@@ -321,6 +386,7 @@ export default function ProfileScreen() {
 }
 
 function Field({ label, last, children }: { label: string; last?: boolean; children: React.ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={[styles.field, last && styles.fieldLast]}>
       <Text style={styles.label}>{label}</Text>
@@ -330,6 +396,7 @@ function Field({ label, last, children }: { label: string; last?: boolean; child
 }
 
 function Setting({ label, hint, value, onChange }: { label: string; hint?: string; value: boolean; onChange: (v: boolean) => void }) {
+  const styles = useStyles();
   return (
     <View style={[styles.field, styles.setting]}>
       <View style={styles.flex}>
@@ -340,14 +407,15 @@ function Setting({ label, hint, value, onChange }: { label: string; hint?: strin
         value={value}
         onValueChange={onChange}
         trackColor={{ true: colors.accent, false: colors.surfaceHover }}
-        thumbColor={value ? colors.onAccent : colors.textSecondary}
+        ios_backgroundColor={colors.surfaceHover}
+        thumbColor={value ? colors.onAccent : colors.scheme === 'light' ? '#FFFFFF' : colors.textSecondary}
         accessibilityLabel={label}
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   group: { padding: 0, overflow: 'hidden' },
   field: { gap: spacing.sm + 2, paddingHorizontal: spacing.md + 2, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
@@ -362,4 +430,4 @@ const styles = StyleSheet.create({
   erase: { alignSelf: 'flex-start', marginTop: spacing.sm, paddingHorizontal: spacing.md + 2 },
   about: { gap: spacing.sm + 4 },
   version: { ...typography.caption, color: colors.textMuted },
-});
+}));

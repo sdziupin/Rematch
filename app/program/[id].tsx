@@ -13,11 +13,12 @@ import { useLayout } from '../../src/hooks/useLayout';
 import { completedProgramKeys, enroll, getActiveEnrollment, getProgram, leaveProgram } from '../../src/services/programService';
 import { difficultyLabel } from '../../src/services/recommendationService';
 import { useSettings } from '../../src/store/settingsStore';
-import { colors, fonts, radius, spacing, typography } from '../../src/theme';
+import { colors, fonts, radius, spacing, typography, makeStyles } from '../../src/theme';
 
 const PARTIAL_LABEL: Record<string, string> = { full: '', three_quarter: '¾', half: '½', quarter: '¼' };
 
 export default function ProgramScreen() {
+  const styles = useStyles();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { isWide } = useLayout();
@@ -185,7 +186,7 @@ export default function ProgramScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(() => ({
   flex: { flex: 1 },
   hero: { gap: spacing.lg },
   heroWide: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.xxl },
@@ -214,4 +215,4 @@ const styles = StyleSheet.create({
   sessionName: { ...typography.callout, fontFamily: fonts.semibold, letterSpacing: 0.2, color: colors.text },
   partial: { color: colors.textMuted },
   note: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-});
+}));
